@@ -1,0 +1,74 @@
+/* Sidebar base */
+.sidebar {
+    width: 190px;
+    height: 100vh;
+    background: #1e293b;
+    color: white;
+    position: fixed;
+    padding: 20px;
+    box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+}
+
+/* User block */
+.sidebar .user-label {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.sidebar .user-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: #f1f5f9;
+}
+
+/* Navigation */
+.nav-link {
+    color: #94a3b8;
+    font-size: 14px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    margin-bottom: 5px;
+}
+
+.nav-link i {
+    width: 22px;
+    margin-right: 10px;
+    font-size: 15px;
+}
+
+.nav-link:hover {
+    background: #334155;
+    color: #38bdf8;
+    transform: translateX(3px);
+}
+
+.nav-link.active {
+    background: #334155;
+    color: #38bdf8;
+}
+
+/* Section headers */
+.sidebar-section {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin: 25px 0 10px 12px;
+    letter-spacing: 1px;
+}
+
+/* Footer */
+.sidebar-footer {
+    border-top: 1px solid #334155;
+    padding-top: 15px;
+}

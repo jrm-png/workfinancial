@@ -1,0 +1,39 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+<link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
+<link rel="stylesheet" href="{{ asset('css/workplan.css') }}">
+
+}
+
+/* Sidebar subtle styling */
+.sidebar {
+    background: #0f172a; /* Deeper slate */
+}
+
+/* Switch styling for Settings */
+.switch { position: relative; display: inline-block; width: 45px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: #10b981; }
+input:checked + .slider:before { transform: translateX(21px); }
+
+/* Grid specific fixes */
+.ag-theme-alpine {
+    --ag-header-background-color: #f8fafc;
+    --ag-border-color: #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.btn-status.active { background: #dcfce7; color: #15803d; font-weight: bold; }
+.btn-status { background: #f1f5f9; color: #64748b; }
