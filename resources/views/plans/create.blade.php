@@ -8,9 +8,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; color: #1e293b; }
+            .content { margin-left: 260px; padding: 40px; background: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif; }
+    
         .section-card { background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 40px; }
         .form-label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 8px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
-        .form-input { width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box; transition: all 0.2s; }
+        .form-input { width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box; transition: all 0.2s; background: white; color: #1e293b; }
         .repeater-item { border: 2px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 30px; background: #fff; position: relative; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 15px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px; }
@@ -27,10 +29,20 @@
         .sticky-bar { position: sticky; bottom: 0; background: white; padding: 20px; border-top: 2px solid #e2e8f0; text-align: right; z-index: 100; }
         .file-pill { display: inline-flex; align-items: center; background: white; padding: 4px 10px; border-radius: 20px; border: 1px solid #f9a8d4; font-size: 11px; margin: 2px; }
         .file-pill i { margin-left: 8px; cursor: pointer; color: #ef4444; }
+    
+::-webkit-calendar-picker-indicator {
+    z-index: 999999 !important;
+}
+datalist {
+    position: absolute;
+    z-index: 999999 !important;
+}
     </style>
 </head>
 
 <body>
+    @include('layouts.app')
+<div class="content">
     <div style="padding: 20px 30px; border-bottom: 1px solid #e2e8f0; display:flex; justify-content: space-between; align-items: center; background: #f8fafc; position: sticky; top: 0; z-index: 10;">
         <span style="font-weight: 700; color: #64748b;">PLANNING MODULE</span>
         <button type="button" onclick="closePlanModal()" style="background:white; border:1px solid #cbd5e1; padding:8px 16px; border-radius:8px;cursor:pointer;font-weight:600; color:#475569;">✕ Close</button>
@@ -45,37 +57,32 @@
             <h1 style="border-left: 5px solid #2563eb; padding-left: 20px; font-size: 28px; font-weight: 800; margin: 0;">{{ $isEdit ? 'Update Plan' : 'Prepare Plan' }}</h1>
             <div style="width: 200px;">
                 <label class="form-label">Planning Year</label>
-                <select name="year" class="form-input">
-                    @foreach(['2027', '2028', '2029', '2030'] as $year)
-                        <option value="{{ $year }}" {{ ($isEdit && $form->year == $year) ? 'selected' : '' }}>{{ $year }}</option>
-                    @endforeach
-                </select>
+                <input list="list-planning-year" name="year" value="{{ $isEdit ? $form->year : '2027' }}" class="form-input" placeholder="Select or type year" required autocomplete="off">
             </div>
         </div>
 
         <div class="section-card">
             <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
                 <div class="grid-3">
-                    <select name="common_wp[strategic_perspective]" class="form-input" required>
-                        <option value="">-- Select Strategic Perspective --</option>
-                        @if(isset($dropdownOptions['strategic_perspective']))
-                            @foreach($dropdownOptions['strategic_perspective'] as $option)
-                                <option value="{{ $option->value }}">{{ $option->value }}</option>
-                            @endforeach
-                        @endif
-                    </select>
+                    <div>
+                        <label class="form-label">Strategic Perspective</label>
+                        <input list="list-strategic-perspective" name="common_wp[strategic_perspective]" value="{{ $workplans[0]->strategic_perspective ?? '' }}" class="form-input" placeholder="Select or type perspective..." required autocomplete="off">
+                    </div>
 
-                    <select id="master_program" name="common_wp[major_program]" class="form-input" required onchange="syncProgram(this.value)">
-                        <option value="">-- Select Major Program --</option>
-                        @if(isset($dropdownOptions['programs']))
-                            @foreach($dropdownOptions['programs'] as $option)
-                                <option value="{{ $option->value }}">{{ $option->value }}</option>
-                            @endforeach
-                        @endif
-                    </select>
-                    <div><label class="form-label">Strategic Objective</label><input list="list-objectives" name="common_wp[strategic_objective]" value="{{ $workplans[0]->strategic_objective ?? '' }}" class="form-input"></div>
+                    <div>
+                        <label class="form-label">Major Program</label>
+                        <input list="list-major-program" id="master_program" name="common_wp[major_program]" value="{{ $workplans[0]->major_program ?? '' }}" class="form-input" placeholder="Select or type program..." required autocomplete="off" oninput="syncProgram(this.value)">
+                    </div>
+
+                    <div>
+                        <label class="form-label">Strategic Objective</label>
+                        <input list="list-strategic-objective" name="common_wp[strategic_objective]" value="{{ $workplans[0]->strategic_objective ?? '' }}" class="form-input" placeholder="Select or type objective..." autocomplete="off">
+                    </div>
                 </div>
-                <div style="margin-top: 15px;"><label class="form-label">Strategic Measure</label><input list="list-measures" name="common_wp[strategic_measure]" value="{{ $workplans[0]->strategic_measure ?? '' }}" class="form-input"></div>
+                <div style="margin-top: 15px;">
+                    <label class="form-label">Strategic Measure</label>
+                    <input list="list-measures" name="common_wp[strategic_measure]" value="{{ $workplans[0]->strategic_measure ?? '' }}" class="form-input" placeholder="Select or type measure..." autocomplete="off">
+                </div>
             </div>
 
             <div id="wp-wrapper">
@@ -113,23 +120,15 @@
                             @forelse($financials as $fIndex => $fp)
                                 <div class="fin-row" style="background:white; padding:15px; border-radius:8px; margin-bottom:10px; border:1px solid #d1fae5;">
                                     <div class="grid-3">
-                                        <select name="workplans[{{$index}}][financials][{{$fIndex}}][funds]" class="form-input">
-                                            <option value="">-- Select Source of Funds --</option>
-                                            @if(isset($dropdownOptions['funds']))
-                                                @foreach($dropdownOptions['funds'] as $option)
-                                                    <option value="{{ $option->value }}" {{ $fp->funds == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
-                                                @endforeach
-                                            @endif
-                                        </select>
+                                        <div>
+                                            <label class="form-label">Funds</label>
+                                            <input list="list-funds" name="workplans[{{$index}}][financials][{{$fIndex}}][funds]" value="{{ $fp->funds }}" class="form-input" placeholder="Select or type funds..." oninput="updateSummary()">
+                                        </div>
                                         <div><label class="form-label">Program</label><input name="workplans[{{$index}}][financials][{{$fIndex}}][programs]" class="form-input fin-program-input" value="{{$fp->programs}}" readonly></div>
-                                        <select name="workplans[{{$index}}][financials][{{$fIndex}}][expense_class]" class="form-input" onchange="updateSummary()">
-                                            <option value="">-- Select Expense Class --</option>
-                                            @if(isset($dropdownOptions['expense_class']))
-                                                @foreach($dropdownOptions['expense_class'] as $option)
-                                                    <option value="{{ $option->value }}" {{ $fp->expense_class == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
-                                                @endforeach
-                                            @endif
-                                        </select>                                    
+                                        <div>
+                                            <label class="form-label">Expense Class</label>
+                                            <input list="list-expense-class" name="workplans[{{$index}}][financials][{{$fIndex}}][expense_class]" value="{{ $fp->expense_class }}" class="form-input fin-expense-input" placeholder="Select or type expense..." onchange="updateSummary()">
+                                        </div>                                    
                                     </div>
                                     <div class="grid-3">
                                         <div><label class="form-label">Project</label><input name="workplans[{{$index}}][financials][{{$fIndex}}][projects]" class="form-input fin-project-input-{{$index}}" value="{{$fp->projects}}" readonly></div>
@@ -210,10 +209,50 @@
         </div>
     </form>
 
-    <datalist id="list-objectives"><option value="Environment"><option value="Stakeholders"></datalist>
+    <datalist id="list-planning-year">
+        @if(isset($dropdownOptions['planning_year']))
+            @foreach($dropdownOptions['planning_year'] as $option) <option value="{{ $option->value }}"> @endforeach
+        @else
+            @foreach(['2027', '2028', '2029', '2030'] as $year) <option value="{{ $year }}"> @endforeach
+        @endif
+    </datalist>
+
+    <datalist id="list-strategic-perspective">
+        @if(isset($dropdownOptions['strategic_perspective']))
+            @foreach($dropdownOptions['strategic_perspective'] as $option) <option value="{{ $option->value }}"> @endforeach
+        @endif
+    </datalist>
+
+    <datalist id="list-major-program">
+        @if(isset($dropdownOptions['programs']))
+            @foreach($dropdownOptions['programs'] as $option) <option value="{{ $option->value }}"> @endforeach
+        @endif
+    </datalist>
+
+    <datalist id="list-strategic-objective">
+        @if(isset($dropdownOptions['strategic_objective']))
+            @foreach($dropdownOptions['strategic_objective'] as $option) <option value="{{ $option->value }}"> @endforeach
+        @else
+            <option value="Environment"><option value="Stakeholders">
+        @endif
+    </datalist>
+
+    <datalist id="list-funds">
+        @if(isset($dropdownOptions['funds']))
+            @foreach($dropdownOptions['funds'] as $option) <option value="{{ $option->value }}"> @endforeach
+        @endif
+    </datalist>
+
+    <datalist id="list-expense-class">
+        @if(isset($dropdownOptions['expense_class']))
+            @foreach($dropdownOptions['expense_class'] as $option) <option value="{{ $option->value }}"> @endforeach
+        @endif
+    </datalist>
+
     <datalist id="list-measures"><option value="Measure 1"><option value="Measure 2"></datalist>
     <datalist id="list-accounts"><option value="Traveling Expenses"><option value="Office Supplies"><option value="Training Expenses"></datalist>
-
+    <datalist id="activity"></datalist>
+</div>
     <script>
         let wpCount = {{ count($workplans) }};
         let fileQueue = {}; 
@@ -226,6 +265,7 @@
         function addNewInitiative() {
             const wrapper = document.getElementById('wp-wrapper');
             const newIndex = wpCount++;
+            
             const html = `
                 <div class="repeater-item" data-index="${newIndex}">
                     <div class="grid-2">
@@ -334,36 +374,23 @@
             if(container.querySelector('.no-fin-msg')) container.querySelector('.no-fin-msg').remove();
             const fIndex = container.querySelectorAll('.fin-row').length;
             
-            // BUG FIX SAFEGUARD: Checks if master element exists before fetching value
             const masterProgElement = document.getElementById('master_program');
             const programVal = masterProgElement ? masterProgElement.value : '';
             
             const initiativeTextarea = document.querySelector(`textarea[name="workplans[${wpIndex}][strategic_initiatives]"]`);
             const projectVal = initiativeTextarea ? initiativeTextarea.value : '';
 
-            // Generate Select HTML for Funds from Database Array
-            let fundOptionsHtml = '<option value="">-- Select Source of Funds --</option>';
-            fundOptions.forEach(opt => { fundOptionsHtml += `<option value="${opt.value}">${opt.value}</option>`; });
-
-            // Generate Select HTML for Expense Class from Database Array
-            let expenseOptionsHtml = '<option value="">-- Select Expense Class --</option>';
-            expenseOptions.forEach(opt => { expenseOptionsHtml += `<option value="${opt.value}">${opt.value}</option>`; });
-
             const html = `
                 <div class="fin-row" style="background:white; padding:15px; border-radius:8px; margin-bottom:10px; border:1px solid #d1fae5;">
                     <div class="grid-3">
                         <div>
                             <label class="form-label">Funds</label>
-                            <select name="workplans[${wpIndex}][financials][${fIndex}][funds]" class="form-input">
-                                ${fundOptionsHtml}
-                            </select>
+                            <input list="list-funds" name="workplans[${wpIndex}][financials][${fIndex}][funds]" class="form-input fin-funds-input" placeholder="Select or type funds..." oninput="updateSummary()">
                         </div>
                         <div><label class="form-label">Program</label><input name="workplans[${wpIndex}][financials][${fIndex}][programs]" class="form-input fin-program-input" value="${programVal}" readonly></div>
                         <div>
                             <label class="form-label">Expense Class</label>
-                            <select name="workplans[${wpIndex}][financials][${fIndex}][expense_class]" class="form-input fin-expense-input" onchange="updateSummary()">
-                                ${expenseOptionsHtml}
-                            </select>
+                            <input list="list-expense-class" name="workplans[${wpIndex}][financials][${fIndex}][expense_class]" class="form-input fin-expense-input" placeholder="Select or type expense..." onchange="updateSummary()">
                         </div>
                     </div>
                     <div class="grid-2">
@@ -383,7 +410,23 @@
             updateSummary();
         }
 
-        // --- SUBMIT DRAFT FIX ---
+        // --- AUTOMATIC PROGRAM AND PROJECT SYNCING ---
+        function syncProgram(val) {
+            document.querySelectorAll('.fin-program-input').forEach(input => {
+                input.value = val;
+            });
+        }
+
+        function syncProject(textarea) {
+            const idx = textarea.closest('.repeater-item').dataset.index;
+            const val = textarea.value;
+            document.querySelectorAll(`.fin-project-input-${idx}`).forEach(input => {
+                input.value = val;
+            });
+            updateSummary();
+        }
+
+        // --- SUBMIT DRAFT ---
         function submitDraft() {
             document.getElementById('formStatus').value = 'draft';
             document.getElementById('planForm').submit();
@@ -417,11 +460,17 @@
 
                     if(rowTotal > 0) {
                         grandTotal += rowTotal;
+                        
+                        const progInput = row.querySelector('.fin-program-input').value || '';
+                        const projInput = row.querySelector('[class*="fin-project-input"]').value || '';
+                        const expInput = row.querySelector('.fin-expense-input').value || '';
+                        const accInput = row.querySelector('.fin-account-input').value || '';
+
                         summaryBody.insertAdjacentHTML('beforeend', `
                             <tr>
                                 <td>${initName}</td>
-                                <td>${row.querySelector('.fin-program-input').value} / ${row.querySelector('[class*="fin-project-input"]').value}</td>
-                                <td>${row.querySelector('.fin-expense-input').value} - ${row.querySelector('.fin-account-input').value}</td>
+                                <td>${progInput} / ${projInput}</td>
+                                <td>${expInput} - ${accInput}</td>
                                 <td><strong>PHP ${rowTotal.toLocaleString()}</strong></td>
                             </tr>`);
                     }
@@ -441,14 +490,13 @@
             return true;
         };
 
-        function syncProgram(v) { document.querySelectorAll('.fin-program-input').forEach(el => el.value = v); }
-        
-        function syncProject(t) { 
-            const idx = t.closest('.repeater-item').dataset.index;
-            document.querySelectorAll(`.fin-project-input-${idx}`).forEach(el => el.value = t.value);
-            updateSummary();
+        const planModal = document.getElementById('planModal');
+        const openPlanBtn = document.getElementById('openPlanModal');
+        if (openPlanBtn && planModal) {
+            openPlanBtn.addEventListener('click', () => {
+                planModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            });
         }
-
-        window.onload = updateSummary;
     </script>
 </body>

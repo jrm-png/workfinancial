@@ -238,12 +238,15 @@
 </div>
 
 
-                <button class="btn-primary"
-                        id="openPlanModal"
-                        {{ $submissionClosed ? 'disabled style=opacity:0.5;cursor:not-allowed;' : '' }}>
-                    <i class="fas fa-plus"></i>
-                    {{ $submissionClosed ? 'Submissions Closed' : 'Add New Plan' }}
-                </button>
+                @if($submissionClosed)
+    <button class="btn-primary" disabled style="opacity:0.5; cursor:not-allowed;">
+        <i class="fas fa-plus"></i> Submissions Closed
+    </button>
+@else
+    <a href="{{ route('plans.create') }}" class="btn-primary" style="text-decoration: none;">
+        <i class="fas fa-plus"></i> Add New Plan
+    </a>
+@endif
 
                     <button class="btn-csv" onclick="exportCSV()"><i class="fas fa-file-csv"></i> Export CSV</button>
                 </div>
@@ -546,17 +549,6 @@ function toggleFilterSidebar() {
     document.getElementById('filterSidebar').classList.toggle('active');
     document.getElementById('filterOverlay').classList.toggle('active');
 }
-
-// 3. Admin Edit Protection
-// Sa loob ng columnDefs Actions renderer, i-update ang editIcon logic:
-/*
-    const userRole = @json(auth()->user()->role); // Or however you identify the admin
-    const isOwner = params.data.user_id === @json(auth()->id()); // Assumes user_id is in rowData
-
-    const editIcon = (status === 'approved' || (userRole === 'admin' && !isOwner)) 
-        ? `<i class="fas fa-edit" style="color:#cbd5e1; cursor:not-allowed;" title="No permission to edit"></i>`
-        : `<i class="fas fa-edit" style="color:#10b981; cursor:pointer;" onclick="openEditModal(${params.data.form_id})"></i>`;
-*/
 
 // 4. Fixed Filter Logic
 function applyFilters() {

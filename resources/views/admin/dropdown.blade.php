@@ -100,7 +100,7 @@
                         @foreach($options[$key] as $item)
                             <div class="option-item" data-search-value="{{ strtolower($item->value) }}">
                                 <span style="font-weight: 500; font-size: 15px;">{{ $item->value }}</span>
-                                <form action="{{ route('admin.dropdowns.destroy', $item->id) }}" method="POST" onsubmit="return confirm('Sigurado ka bang nais mong tanggalin ito?');">
+                                <form action="{{ route('admin.dropdowns.destroy', $item->id) }}" method="POST" onsubmit="return confirm('Sure?');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn-delete"><i class="fas fa-trash-alt"></i> Remove</button>
@@ -121,18 +121,14 @@
     <script>
         // --- TAB SWITCHER LOGIC ---
         function switchTab(typeKey) {
-            // Remove active status across tabs
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-            // Activate target components
             document.getElementById(`tab-btn-${typeKey}`).classList.add('active');
             document.getElementById(`tab-content-${typeKey}`).classList.add('active');
 
-            // I-sync din yung Form Select para kung ano yung tinitingnan mong tab, doon mag-aadd
             document.getElementById('form-type-select').value = typeKey;
 
-            // Clear search field automatic pag nag-palit ng tab
             const searchBar = document.getElementById('searchBar');
             searchBar.value = '';
             filterDropdownItems();
@@ -141,7 +137,6 @@
         // --- REAL-TIME JAVASCRIPT FILTER/SEARCH LOGIC ---
         function filterDropdownItems() {
             const query = document.getElementById('searchBar').value.toLowerCase().trim();
-            // Hanapin lang natin ang mga active items sa kasalukuyang nakabukas na tab content
             const activeTabContent = document.querySelector('.tab-content.active');
             
             if (!activeTabContent) return;
@@ -151,9 +146,9 @@
             items.forEach(item => {
                 const textValue = item.getAttribute('data-search-value');
                 if (textValue.includes(query)) {
-                    item.classList.remove('hidden'); // Ipakita kapag match
+                    item.classList.remove('hidden'); 
                 } else {
-                    item.classList.add('hidden');    // Itago kapag hindi match
+                    item.classList.add('hidden');  
                 }
             });
         }

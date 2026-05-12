@@ -47,7 +47,7 @@ class DropdownSettingsController extends Controller
             'value' => trim($request->value)
         ]);
 
-        return back()->with('success', 'Bagong option matagumpay na naidagdag!');
+        return back()->with('success', 'Option added successfully!');
     }
 
     public function destroy($id)
@@ -55,6 +55,6 @@ class DropdownSettingsController extends Controller
         $option = Dropdown::findOrFail($id);
         $option->delete();
 
-        return back()->with('success', 'Option matagumpay na natanggal.');
+        return back()->with('success', 'option removed successfully.');
     }
 }
