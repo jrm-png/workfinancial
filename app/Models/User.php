@@ -24,6 +24,7 @@ class User extends Authenticatable
         'responsibility_center',
         'operating_department',
         'role',
+        'has_changed_password',
     ];
 
     /**

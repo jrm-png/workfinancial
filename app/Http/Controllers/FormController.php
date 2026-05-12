@@ -505,3 +505,4 @@ public function divisionProfile($r_center)
 
     return view('division.profile', compact('r_center', 'workPlans', 'financialPlans', 'stats'));
 }
+}

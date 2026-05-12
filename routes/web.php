@@ -6,13 +6,15 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\WorkPlanController;
 use App\Http\Controllers\FinancialPlanController;
 use App\Http\Controllers\FormController;
+use App\Http\Controllers\Auth\PasswordChangeController;
+
 
 Route::get('/', function () {
     return view('auth.login');
 });
 
 // --- AUTHENTICATED ROUTES ---
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::delete('/workplan/{id}', [FormController::class, 'destroy']);
 
     // Dashboard (Main Hub)
@@ -57,6 +59,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/division/{r_center}', [FormController::class, 'divisionProfile'])->name('division.profile');
 });
+
+Route::get('/change-password', [PasswordChangeController::class, 'showForm'])->name('password.change.form');
+Route::post('/change-password', [PasswordChangeController::class, 'update'])->name('password.change.update');
 
 // --- ADMIN ONLY ROUTES ---
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {

@@ -11,11 +11,10 @@ use Illuminate\Support\Str;
 class UserController extends Controller
 {
     public function index()
-    {
-        return view('admin.users.index', [
-            'users' => \App\Models\User::where('role', 'user')->orWhere('role', 'ENCODER')->orWhere('role', 'FOCAL')->get()
-        ]);
-    }
+{
+    $users = \App\Models\User::latest()->get(); 
+    return view('admin.users.index', compact('users'));
+}
 
     public function store(Request $request)
     {
@@ -23,8 +22,8 @@ class UserController extends Controller
             'name' => 'required',
             'email' => 'required|email|unique:users',
         ]);
-
-        $password = Str::random(10);
+    
+        $password = 'default123';
 
         User::create([
             'name' => $request->name,
@@ -40,12 +39,17 @@ class UserController extends Controller
 
     public function reset(User $user)
     {
-        $newPassword = Str::random(10);
+        $newPassword = 'default123';
 
         $user->update([
-            'password' => Hash::make($newPassword)
+            'password' => Hash::make($newPassword),
+            'has_changed_password' => false
         ]);
-
-        return back()->with('success', "Password reset. New password: $newPassword");
+        return back()->with('success', 'Password reset to default.');
     }
+
+    public function showChangePassword() {
+        return view('auth.change-password');
+    }
+
 }

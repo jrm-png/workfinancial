@@ -84,8 +84,10 @@
                         <label class="form-label">Role</label>
                         <select name="role" class="form-input" required>
                             <option value="">-- Select Role --</option>
-                            <option value="FOCAL">FOCAL</option>
-                            <option value="ENCODER">ENCODER</option>
+                            <option value="PREPARER">PREPARER</option>
+                            <option value="APPROVER">APPROVER</option>
+                            <option value="REVIEWER">REVIEWER</option>
+                            <option value="DEPARTMENT MANAGER">DEPARTMENT MANAGER</option>
                             <option value="MONITOR">MONITOR (For PPIMD Only)</option>
                         </select>
                     </div>
