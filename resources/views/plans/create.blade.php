@@ -56,8 +56,23 @@
         <div class="section-card">
             <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
                 <div class="grid-3">
-                    <div><label class="form-label">Strategic Perspective</label><input list="list-perspectives" name="common_wp[strategic_perspective]" value="{{ $workplans[0]->strategic_perspective ?? '' }}" class="form-input"></div>
-                    <div><label class="form-label">Major Program</label><input list="list-programs" name="common_wp[major_program]" id="master_program" value="{{ $workplans[0]->major_program ?? '' }}" class="form-input" oninput="syncProgram(this.value)"></div>
+                    <select name="common_wp[strategic_perspective]" class="form-input" required>
+                        <option value="">-- Select Strategic Perspective --</option>
+                        @if(isset($dropdownOptions['strategic_perspective']))
+                            @foreach($dropdownOptions['strategic_perspective'] as $option)
+                                <option value="{{ $option->value }}">{{ $option->value }}</option>
+                            @endforeach
+                        @endif
+                    </select>
+
+                    <select id="master_program" name="common_wp[major_program]" class="form-input" required onchange="syncProgram(this.value)">
+                        <option value="">-- Select Major Program --</option>
+                        @if(isset($dropdownOptions['programs']))
+                            @foreach($dropdownOptions['programs'] as $option)
+                                <option value="{{ $option->value }}">{{ $option->value }}</option>
+                            @endforeach
+                        @endif
+                    </select>
                     <div><label class="form-label">Strategic Objective</label><input list="list-objectives" name="common_wp[strategic_objective]" value="{{ $workplans[0]->strategic_objective ?? '' }}" class="form-input"></div>
                 </div>
                 <div style="margin-top: 15px;"><label class="form-label">Strategic Measure</label><input list="list-measures" name="common_wp[strategic_measure]" value="{{ $workplans[0]->strategic_measure ?? '' }}" class="form-input"></div>
@@ -98,9 +113,23 @@
                             @forelse($financials as $fIndex => $fp)
                                 <div class="fin-row" style="background:white; padding:15px; border-radius:8px; margin-bottom:10px; border:1px solid #d1fae5;">
                                     <div class="grid-3">
-                                        <div><label class="form-label">Funds</label><input list="list-funds" name="workplans[{{$index}}][financials][{{$fIndex}}][funds]" value="{{$fp->funds}}" class="form-input"></div>
+                                        <select name="workplans[{{$index}}][financials][{{$fIndex}}][funds]" class="form-input">
+                                            <option value="">-- Select Source of Funds --</option>
+                                            @if(isset($dropdownOptions['funds']))
+                                                @foreach($dropdownOptions['funds'] as $option)
+                                                    <option value="{{ $option->value }}" {{ $fp->funds == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
+                                                @endforeach
+                                            @endif
+                                        </select>
                                         <div><label class="form-label">Program</label><input name="workplans[{{$index}}][financials][{{$fIndex}}][programs]" class="form-input fin-program-input" value="{{$fp->programs}}" readonly></div>
-                                        <div><label class="form-label">Expense Class</label><input list="list-expense" name="workplans[{{$index}}][financials][{{$fIndex}}][expense_class]" value="{{$fp->expense_class}}" class="form-input fin-expense-input" oninput="updateSummary()"></div>
+                                        <select name="workplans[{{$index}}][financials][{{$fIndex}}][expense_class]" class="form-input" onchange="updateSummary()">
+                                            <option value="">-- Select Expense Class --</option>
+                                            @if(isset($dropdownOptions['expense_class']))
+                                                @foreach($dropdownOptions['expense_class'] as $option)
+                                                    <option value="{{ $option->value }}" {{ $fp->expense_class == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
+                                                @endforeach
+                                            @endif
+                                        </select>                                    
                                     </div>
                                     <div class="grid-3">
                                         <div><label class="form-label">Project</label><input name="workplans[{{$index}}][financials][{{$fIndex}}][projects]" class="form-input fin-project-input-{{$index}}" value="{{$fp->projects}}" readonly></div>
@@ -181,15 +210,17 @@
         </div>
     </form>
 
-    <datalist id="list-perspectives"><option value="Environment"><option value="Stakeholders"><option value="Financial"><option value="Internal Processes"></datalist>
-    <datalist id="list-programs"><option value="Water Quality Management"><option value="Resource Management"></datalist>
-    <datalist id="list-funds"><option value="COB"><option value="WQMA"></datalist>
-    <datalist id="list-expense"><option value="CO"><option value="MOOE"><option value="PS"></datalist>
+    <datalist id="list-objectives"><option value="Environment"><option value="Stakeholders"></datalist>
+    <datalist id="list-measures"><option value="Measure 1"><option value="Measure 2"></datalist>
     <datalist id="list-accounts"><option value="Traveling Expenses"><option value="Office Supplies"><option value="Training Expenses"></datalist>
 
     <script>
         let wpCount = {{ count($workplans) }};
         let fileQueue = {}; 
+
+        // --- BLADE DROPDOWNS TO JAVASCRIPT OBJECT ---
+        const fundOptions = @json(isset($dropdownOptions['funds']) ? $dropdownOptions['funds'] : []);
+        const expenseOptions = @json(isset($dropdownOptions['expense_class']) ? $dropdownOptions['expense_class'] : []);
 
         // --- INITIATIVE LOGIC ---
         function addNewInitiative() {
@@ -302,18 +333,42 @@
             const container = document.getElementById(`fin-container-${wpIndex}`);
             if(container.querySelector('.no-fin-msg')) container.querySelector('.no-fin-msg').remove();
             const fIndex = container.querySelectorAll('.fin-row').length;
-            const programVal = document.getElementById('master_program').value;
-            const projectVal = document.querySelector(`textarea[name="workplans[${wpIndex}][strategic_initiatives]"]`).value;
+            
+            // BUG FIX SAFEGUARD: Checks if master element exists before fetching value
+            const masterProgElement = document.getElementById('master_program');
+            const programVal = masterProgElement ? masterProgElement.value : '';
+            
+            const initiativeTextarea = document.querySelector(`textarea[name="workplans[${wpIndex}][strategic_initiatives]"]`);
+            const projectVal = initiativeTextarea ? initiativeTextarea.value : '';
+
+            // Generate Select HTML for Funds from Database Array
+            let fundOptionsHtml = '<option value="">-- Select Source of Funds --</option>';
+            fundOptions.forEach(opt => { fundOptionsHtml += `<option value="${opt.value}">${opt.value}</option>`; });
+
+            // Generate Select HTML for Expense Class from Database Array
+            let expenseOptionsHtml = '<option value="">-- Select Expense Class --</option>';
+            expenseOptions.forEach(opt => { expenseOptionsHtml += `<option value="${opt.value}">${opt.value}</option>`; });
 
             const html = `
                 <div class="fin-row" style="background:white; padding:15px; border-radius:8px; margin-bottom:10px; border:1px solid #d1fae5;">
                     <div class="grid-3">
-                        <div><label class="form-label">Funds</label><input list="list-funds" name="workplans[${wpIndex}][financials][${fIndex}][funds]" class="form-input"></div>
+                        <div>
+                            <label class="form-label">Funds</label>
+                            <select name="workplans[${wpIndex}][financials][${fIndex}][funds]" class="form-input">
+                                ${fundOptionsHtml}
+                            </select>
+                        </div>
                         <div><label class="form-label">Program</label><input name="workplans[${wpIndex}][financials][${fIndex}][programs]" class="form-input fin-program-input" value="${programVal}" readonly></div>
-                        <div><label class="form-label">Expense Class</label><input list="list-expense" name="workplans[${wpIndex}][financials][${fIndex}][expense_class]" class="form-input fin-expense-input" oninput="updateSummary()"></div>
+                        <div>
+                            <label class="form-label">Expense Class</label>
+                            <select name="workplans[${wpIndex}][financials][${fIndex}][expense_class]" class="form-input fin-expense-input" onchange="updateSummary()">
+                                ${expenseOptionsHtml}
+                            </select>
+                        </div>
                     </div>
                     <div class="grid-2">
                         <div><label class="form-label">Project</label><input name="workplans[${wpIndex}][financials][${fIndex}][projects]" class="form-input fin-project-input-${wpIndex}" value="${projectVal}" readonly></div>
+                        <div><label class="form-label">Activity</label><input list="activity" name="workplans[${wpIndex}][financials][${fIndex}][activity]" class="form-input fin-activity-input" oninput="updateSummary()"></div>
                         <div><label class="form-label">Account Title</label><input list="list-accounts" name="workplans[${wpIndex}][financials][${fIndex}][account_title]" class="form-input fin-account-input" oninput="updateSummary()"></div>
                     </div>
                     <div class="grid-4" style="margin-top:10px;">
@@ -335,29 +390,19 @@
         }
 
         function closePlanModal() {
-            // Check kung may laman ang kahit anong text field
             const fields = document.querySelectorAll('.form-input');
             const hasData = Array.from(fields).some(f => f.value.trim() !== "" && f.name !== 'year');
 
             if (hasData) {
-                // Ito yung "Twitter" moment
                 if (confirm("Save plan? You can save this to drafts and submit it later.")) {
-                    submitDraft(); // I-trigger yung save logic
+                    submitDraft();
                 } else {
-                    // Kung ayaw i-save, rekta labas (Discard)
                     window.location.href = "{{ route('workplan.list') }}";
                 }
             } else {
                 window.location.href = "{{ route('workplan.list') }}";
             }
         }
-
-                                // --- Modal Open/Close ---
-                const planModal = document.getElementById('planModal');
-                document.getElementById('openPlanModal').addEventListener('click', () => {
-                    planModal.style.display = 'block';
-                    document.body.style.overflow = 'hidden';
-                });
 
         function updateSummary() {
             const summaryBody = document.getElementById('summary-body');
@@ -397,6 +442,7 @@
         };
 
         function syncProgram(v) { document.querySelectorAll('.fin-program-input').forEach(el => el.value = v); }
+        
         function syncProject(t) { 
             const idx = t.closest('.repeater-item').dataset.index;
             document.querySelectorAll(`.fin-project-input-${idx}`).forEach(el => el.value = t.value);

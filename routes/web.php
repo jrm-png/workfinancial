@@ -7,6 +7,7 @@ use App\Http\Controllers\WorkPlanController;
 use App\Http\Controllers\FinancialPlanController;
 use App\Http\Controllers\FormController;
 use App\Http\Controllers\Auth\PasswordChangeController;
+use App\Http\Controllers\Admin\DropdownSettingController;
 
 
 Route::get('/', function () {
@@ -74,9 +75,29 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     // SETTINGS & CONTROL PANEL
     Route::get('/settings', [FormController::class, 'settings'])->name('admin.settings');
     Route::post('/settings', [FormController::class, 'updateSettings'])->name('settings.update');
+
+Route::prefix('admin')->name('admin.')->group(function () {
+    // Main View page for dropdown management
+    Route::get('/dropdowns', [App\Http\Controllers\Admin\DropdownSettingsController::class, 'index'])->name('dropdowns.index');
     
+    // Actions for adding and deleting options
+    Route::post('/dropdowns', [App\Http\Controllers\Admin\DropdownSettingsController::class, 'store'])->name('dropdowns.store');
+    Route::delete('/dropdowns/{id}', [App\Http\Controllers\Admin\DropdownSettingsController::class, 'destroy'])->name('dropdowns.destroy');
+});
+
     // AJAX Route for the Override Toggle (impressive UI/UX)
     Route::post('/users/{user}/toggle-override', [FormController::class, 'toggleOverride'])->name('admin.users.toggle_override');
 });
+
+Route::middleware(['auth'])->group(function () {
+    // Admin & Monitor Settings Panel Routes
+    Route::get('/admin/settings', [FormController::class, 'settings'])->name('admin.settings');
+    Route::post('/admin/settings/dropdowns', [FormController::class, 'storeDropdownItem'])->name('admin.dropdowns.store');
+    Route::delete('/admin/settings/dropdowns/{id}', [FormController::class, 'deleteDropdownItem'])->name('admin.dropdowns.delete');
+    
+    // Core Forms Processing Paths
+    Route::get('/plans/create', [FormController::class, 'create'])->name('plans.create');
+});
+
 
 require __DIR__.'/auth.php';

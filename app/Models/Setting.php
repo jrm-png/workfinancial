@@ -12,6 +12,7 @@ class Setting extends Model
     'submission_start',
     'submission_end',
     'is_viewing_open',
+    ''
 ];
 
 }

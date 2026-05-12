@@ -196,6 +196,10 @@
                     <i class="fas fa-user-gear"></i>
                     <span class="nav-text">Manage Users</span>
                 </a>
+                <a href="{{ route('admin.dropdowns.index') }}" class="nav-link {{ request()->routeIs('admin.dropdowns.index') ? 'active' : '' }}">
+                    <i class="fas fa-sliders-h"></i>
+                    <span class="nav-text">Dropdown Settings</span>
+                </a>
                 <a href="{{ route('admin.settings') }}" class="nav-link">
                     <i class="fas fa-gear"></i>
                     <span class="nav-text">Settings</span>

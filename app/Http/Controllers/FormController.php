@@ -14,13 +14,11 @@ class FormController extends Controller
 {
 public function create()
 {
-    // $submissions_open = (bool) \DB::table('settings')
-    //     ->where('key', 'submissions_open')
-    //     ->value('value');
+    $dropdownOptions = DB::table('dropdown_settings')
+        ->get()
+        ->groupBy('type');
 
-    
-    // return view('plans.create', compact('submissions_open'));
-    return view('plans.create');
+    return view('plans.create', compact('dropdownOptions'));
 }
 
 public function store(Request $request)
@@ -156,10 +154,50 @@ public function store(Request $request)
 
 public function settings()
 {
+    if (!in_array(auth()->user()->role, ['admin', 'MONITOR'])) {
+        abort(403, 'Unauthorized access.');
+    }
+
     $settings = DB::table('settings')->first();
     $users = \App\Models\User::where('role', '!=', 'admin')->get();
-    return view('admin.settings', compact('settings', 'users'));
+    
+    $dropdowns = DB::table('dropdown_settings')
+        ->orderBy('type')
+        ->orderBy('value')
+        ->get()
+        ->groupBy('type'); 
+
+    return view('admin.settings', compact('settings', 'users', 'dropdowns'));
 }
+
+public function storeDropdownItem(Request $request)
+{
+    if (!in_array(auth()->user()->role, ['admin', 'MONITOR'])) { abort(403); }
+
+    $request->validate([
+        'type' => 'required|string',
+        'value' => 'required|string|max:255',
+    ]);
+
+    DB::table('dropdown_settings')->insert([
+        'type' => $request->type,
+        'value' => trim($request->value),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    return back()->with('success', 'New dropdown option added successfully!');
+}
+
+public function deleteDropdownItem($id)
+{
+    if (!in_array(auth()->user()->role, ['admin', 'MONITOR'])) { abort(403); }
+
+    DB::table('dropdown_settings')->where('id', $id)->delete();
+
+    return back()->with('success', 'Dropdown option removed successfully!');
+}
+
 
 public function updateSettings(Request $request)
 {
@@ -377,93 +415,88 @@ public function update(Request $request, $id)
 
     DB::transaction(function () use ($request, $form, $status) {
         
-        // 1. Kunin ang natitirang "Old Files" na hindi pinili para burahin
-        $firstWp = $form->workPlans()->first();
-        $oldFiles = $firstWp && $firstWp->attachments ? json_decode($firstWp->attachments, true) : [];
-        $deletedFiles = $request->input('deleted_files', []);
-        
-        // Filter out the deleted ones
-        $remainingFiles = array_diff($oldFiles, $deletedFiles);
-
-        // 2. I-upload ang "New Files"
-        $newFilePaths = [];
-        if ($request->hasFile('attachments')) {
-            $yearFolder = $request->year ?? date('Y');
-            $deptFolder = Str::slug(auth()->user()->responsibility_center);
-            $destinationPath = "submissions/{$yearFolder}/{$deptFolder}";
-
-            foreach ($request->file('attachments') as $file) {
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $path = $file->storeAs($destinationPath, $fileName, 'public');
-                $newFilePaths[] = $path; 
-            }
-        }
-
-        // 3. PAGSAMAHIN (Merge) ang natira at ang bago
-        $finalAttachments = array_merge($remainingFiles, $newFilePaths);
-
-        // 4. Burahin sa physical storage yung mga tinanggal na files
-        foreach ($deletedFiles as $fileToDelete) {
-            \Storage::disk('public')->delete($fileToDelete);
-        }
-
-        // Parent Update
         $form->update([
-            'year' => $request->year,
+            'year'   => $request->year,
             'status' => $status,
         ]);
 
-        // Refresh Work Plans
+       $form->financialPlans()->delete();
         $form->workPlans()->delete();
+
         $common = $request->input('common_wp');
-        foreach ($request->workplans as $index => $wp) {
-            if ($status !== 'draft' && empty($wp['strategic_initiatives'])) continue;
 
-            WorkPlan::create([
-                'form_id' => $form->id,
-                'user_id' => auth()->id(),
-                'strategic_perspective' => $common['strategic_perspective'],
-                'major_program'         => $common['major_program'],
-                'strategic_objective'   => $common['strategic_objective'],
-                'strategic_measure'     => $common['strategic_measure'],
-                'strategic_initiatives' => $wp['strategic_initiatives'],
-                'success_indicator'     => $wp['success_indicator'],
-                'q1' => $wp['q1'] ?? 0, 'q2' => $wp['q2'] ?? 0, 'q3' => $wp['q3'] ?? 0, 'q4' => $wp['q4'] ?? 0,
-                'status' => $status,
-                'year' => $request->year,
-                'r_center' => auth()->user()->responsibility_center,
-                'department' => auth()->user()->operating_department,
-                // Dito i-save ang final merged list
-                'attachments' => !empty($finalAttachments) ? json_encode(array_values($finalAttachments)) : null,
-            ]);
-        }
+        if ($request->has('workplans')) {
+            foreach ($request->workplans as $index => $wpData) {
+                
+                if ($status !== 'draft' && empty($wpData['strategic_initiatives'])) {
+                    continue;
+                }
+                $currentFilePaths = [];
 
-        // Financial Plans (Delete old, Insert new)
-$form->financialPlans()->delete();
+                if (isset($wpData['existing_attachments'])) {
+                    $currentFilePaths = $wpData['existing_attachments']; 
+                }
 
-if ($request->has('financials')) {
-    foreach ($request->financials as $fp) {
-                // Same logic: Pag hindi draft, skip ang empty rows
-                if ($status !== 'draft' && empty($fp['account_title']) && empty($fp['activity'])) continue;
+                if ($request->hasFile("workplans.{$index}.attachments")) {
+                    $yearFolder = $request->year ?? date('Y');
+                    $deptFolder = Str::slug(auth()->user()->responsibility_center);
+                    $destinationPath = "submissions/{$yearFolder}/{$deptFolder}";
 
-                FinancialPlan::create([
-                    'form_id' => $form->id,
-                    'user_id' => auth()->id(),
-                    'funds' => $fp['funds'] ?? null,
-                    'programs' => $fp['programs'] ?? null,
-                    'expense_class' => $fp['expense_class'] ?? null,
-                    'projects' => $fp['projects'] ?? null,
-                    'activity' => $fp['activity'] ?? null,
-                    'account_title' => $fp['account_title'] ?? null,
-                    'description' => $fp['description'] ?? null,
-                    'q1' => $fp['q1'] ?? 0,
-                    'q2' => $fp['q2'] ?? 0,
-                    'q3' => $fp['q3'] ?? 0,
-                    'q4' => $fp['q4'] ?? 0,
-                    'year' => $request->year,
-                    'r_center' => auth()->user()->responsibility_center,
+                    foreach ($request->file("workplans.{$index}.attachments") as $file) {
+                        $fileName = time() . '_' . $file->getClientOriginalName();
+                        $path = $file->storeAs($destinationPath, $fileName, 'public');
+                        $currentFilePaths[] = $path;
+                    }
+                }
+
+                // 4. I-save ang WorkPlan Row
+                $workplan = WorkPlan::create([
+                    'form_id'               => $form->id,
+                    'user_id'               => auth()->id(),
+                    'strategic_perspective' => $common['strategic_perspective'] ?? null,
+                    'major_program'         => $common['major_program'] ?? null,
+                    'strategic_objective'   => $common['strategic_objective'] ?? null,
+                    'strategic_measure'     => $common['strategic_measure'] ?? null,
+                    'strategic_initiatives' => $wpData['strategic_initiatives'] ?? null,
+                    'success_indicator'     => $wpData['success_indicator'] ?? null,
+                    'unit_type'             => $wpData['unit_type'] ?? 'number',
+                    'q1' => $wpData['q1'] ?? 0,
+                    'q2' => $wpData['q2'] ?? 0,
+                    'q3' => $wpData['q3'] ?? 0,
+                    'q4' => $wpData['q4'] ?? 0,
+                    'status'     => $status,
+                    'year'       => $request->year,
+                    'r_center'   => auth()->user()->responsibility_center,
                     'department' => auth()->user()->operating_department,
+                    'attachments' => !empty($currentFilePaths) ? json_encode(array_values($currentFilePaths)) : null,
                 ]);
+
+               if (isset($wpData['financials'])) {
+                    foreach ($wpData['financials'] as $fp) {
+                        // Laktawan ang walang kwentang row
+                        if (empty($fp['account_title']) && empty($fp['funds'])) {
+                            continue;
+                        }
+
+                        FinancialPlan::create([
+                            'form_id'       => $form->id,
+                            'workplan_id'   => $workplan->id, // Eto yung nawawala kanina!
+                            'user_id'       => auth()->id(),
+                            'funds'         => $fp['funds'] ?? null,
+                            'programs'      => $fp['programs'] ?? null,
+                            'expense_class' => $fp['expense_class'] ?? null,
+                            'projects'      => $fp['projects'] ?? null,
+                            'account_title' => $fp['account_title'] ?? null,
+                            'q1' => $fp['q1'] ?? 0,
+                            'q2' => $fp['q2'] ?? 0,
+                            'q3' => $fp['q3'] ?? 0,
+                            'q4' => $fp['q4'] ?? 0,
+                            'year'       => $request->year,
+                            'r_center'   => auth()->user()->responsibility_center,
+                            'department' => auth()->user()->operating_department,
+                        ]);
+                    }
+                }
             }
         }
     });
