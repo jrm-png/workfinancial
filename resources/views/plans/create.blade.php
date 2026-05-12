@@ -5,14 +5,30 @@
 @endphp
 
 <head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; color: #1e293b; }
-            .content { margin-left: 260px; padding: 40px; background: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif; }
+        .content { margin-left: 260px; padding: 40px; background: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif; }
     
         .section-card { background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 40px; }
         .form-label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 8px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
         .form-input { width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box; transition: all 0.2s; background: white; color: #1e293b; }
+        
+        /* Select2 Custom overrides para pumantay sa form-input mo */
+        .select2-container--default .select2-selection--single {
+            height: 44px !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 8px !important;
+            padding: 7px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 42px !important;
+        }
+        
         .repeater-item { border: 2px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 30px; background: #fff; position: relative; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 15px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px; }
@@ -29,14 +45,6 @@
         .sticky-bar { position: sticky; bottom: 0; background: white; padding: 20px; border-top: 2px solid #e2e8f0; text-align: right; z-index: 100; }
         .file-pill { display: inline-flex; align-items: center; background: white; padding: 4px 10px; border-radius: 20px; border: 1px solid #f9a8d4; font-size: 11px; margin: 2px; }
         .file-pill i { margin-left: 8px; cursor: pointer; color: #ef4444; }
-    
-::-webkit-calendar-picker-indicator {
-    z-index: 999999 !important;
-}
-datalist {
-    position: absolute;
-    z-index: 999999 !important;
-}
     </style>
 </head>
 
@@ -57,7 +65,18 @@ datalist {
             <h1 style="border-left: 5px solid #2563eb; padding-left: 20px; font-size: 28px; font-weight: 800; margin: 0;">{{ $isEdit ? 'Update Plan' : 'Prepare Plan' }}</h1>
             <div style="width: 200px;">
                 <label class="form-label">Planning Year</label>
-                <input list="list-planning-year" name="year" value="{{ $isEdit ? $form->year : '2027' }}" class="form-input" placeholder="Select or type year" required autocomplete="off">
+                <select name="year" class="form-input select2-tags" required>
+                    <option value="">Select Year</option>
+                    @if(isset($dropdownOptions['planning_year']))
+                        @foreach($dropdownOptions['planning_year'] as $option)
+                            <option value="{{ $option->value }}" {{ ($isEdit ? $form->year : '2027') == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
+                        @endforeach
+                    @else
+                        @foreach(['2027', '2028', '2029', '2030'] as $y)
+                            <option value="{{ $y }}" {{ ($isEdit ? $form->year : '2027') == $y ? 'selected' : '' }}>{{ $y }}</option>
+                        @endforeach
+                    @endif
+                </select>
             </div>
         </div>
 
@@ -66,22 +85,56 @@ datalist {
                 <div class="grid-3">
                     <div>
                         <label class="form-label">Strategic Perspective</label>
-                        <input list="list-strategic-perspective" name="common_wp[strategic_perspective]" value="{{ $workplans[0]->strategic_perspective ?? '' }}" class="form-input" placeholder="Select or type perspective..." required autocomplete="off">
+                        <select name="common_wp[strategic_perspective]" class="form-input select2-tags" required>
+                            <option value="">Select perspective...</option>
+                            @if(isset($dropdownOptions['strategic_perspective']))
+                                @foreach($dropdownOptions['strategic_perspective'] as $option)
+                                    <option value="{{ $option->value }}" {{ ($workplans[0]->strategic_perspective ?? '') == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
+                                @endforeach
+                            @endif
+                        </select>
                     </div>
 
                     <div>
                         <label class="form-label">Major Program</label>
-                        <input list="list-major-program" id="master_program" name="common_wp[major_program]" value="{{ $workplans[0]->major_program ?? '' }}" class="form-input" placeholder="Select or type program..." required autocomplete="off" oninput="syncProgram(this.value)">
+                        <select id="master_program" name="common_wp[major_program]" class="form-input select2-tags" required onchange="syncProgram(this.value)">
+                            <option value="">Select program...</option>
+                            @if(isset($dropdownOptions['programs']))
+                                @foreach($dropdownOptions['programs'] as $option)
+                                    <option value="{{ $option->value }}" {{ ($workplans[0]->major_program ?? '') == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
+                                @endforeach
+                            @endif
+                        </select>
                     </div>
 
                     <div>
                         <label class="form-label">Strategic Objective</label>
-                        <input list="list-strategic-objective" name="common_wp[strategic_objective]" value="{{ $workplans[0]->strategic_objective ?? '' }}" class="form-input" placeholder="Select or type objective..." autocomplete="off">
+                        <select name="common_wp[strategic_objective]" class="form-input select2-tags">
+                            <option value="">Select objective...</option>
+                            @if(isset($dropdownOptions['strategic_objective']))
+                                @foreach($dropdownOptions['strategic_objective'] as $option)
+                                    <option value="{{ $option->value }}" {{ ($workplans[0]->strategic_objective ?? '') == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
+                                @endforeach
+                            @else
+                                <option value="Environment" {{ ($workplans[0]->strategic_objective ?? '') == 'Environment' ? 'selected' : '' }}>Environment</option>
+                                <option value="Stakeholders" {{ ($workplans[0]->strategic_objective ?? '') == 'Stakeholders' ? 'selected' : '' }}>Stakeholders</option>
+                            @endif
+                        </select>
                     </div>
                 </div>
                 <div style="margin-top: 15px;">
                     <label class="form-label">Strategic Measure</label>
-                    <input list="list-measures" name="common_wp[strategic_measure]" value="{{ $workplans[0]->strategic_measure ?? '' }}" class="form-input" placeholder="Select or type measure..." autocomplete="off">
+                    <select name="common_wp[strategic_measure]" class="form-input select2-tags">
+                        <option value="">Select measure...</option>
+                        @if(isset($dropdownOptions['strategic_measure']))
+                            @foreach($dropdownOptions['strategic_measure'] as $option)
+                                <option value="{{ $option->value }}" {{ ($workplans[0]->strategic_measure ?? '') == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
+                            @endforeach
+                        @else
+                            <option value="Measure 1" {{ ($workplans[0]->strategic_measure ?? '') == 'Measure 1' ? 'selected' : '' }}>Measure 1</option>
+                            <option value="Measure 2" {{ ($workplans[0]->strategic_measure ?? '') == 'Measure 2' ? 'selected' : '' }}>Measure 2</option>
+                        @endif
+                    </select>
                 </div>
             </div>
 
@@ -122,26 +175,55 @@ datalist {
                                     <div class="grid-3">
                                         <div>
                                             <label class="form-label">Funds</label>
-                                            <input list="list-funds" name="workplans[{{$index}}][financials][{{$fIndex}}][funds]" value="{{ $fp->funds }}" class="form-input" placeholder="Select or type funds..." oninput="updateSummary()">
+                                            <select name="workplans[{{$index}}][financials][{{$fIndex}}][funds]" class="form-input select2-tags" onchange="updateSummary()">
+                                                <option value="">Select funds...</option>
+                                                @if(isset($dropdownOptions['funds']))
+                                                    @foreach($dropdownOptions['funds'] as $option)
+                                                        <option value="{{ $option->value }}" {{ $fp->funds == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
+                                                    @endforeach
+                                                @endif
+                                            </select>
                                         </div>
                                         <div><label class="form-label">Program</label><input name="workplans[{{$index}}][financials][{{$fIndex}}][programs]" class="form-input fin-program-input" value="{{$fp->programs}}" readonly></div>
                                         <div>
                                             <label class="form-label">Expense Class</label>
-                                            <input list="list-expense-class" name="workplans[{{$index}}][financials][{{$fIndex}}][expense_class]" value="{{ $fp->expense_class }}" class="form-input fin-expense-input" placeholder="Select or type expense..." onchange="updateSummary()">
+                                            <select name="workplans[{{$index}}][financials][{{$fIndex}}][expense_class]" class="form-input select2-tags" onchange="updateSummary()">
+                                                <option value="">Select expense...</option>
+                                                @if(isset($dropdownOptions['expense_class']))
+                                                    @foreach($dropdownOptions['expense_class'] as $option)
+                                                        <option value="{{ $option->value }}" {{ $fp->expense_class == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
+                                                    @endforeach
+                                                @endif
+                                            </select>
                                         </div>                                    
                                     </div>
-                                    <div class="grid-3">
+                                    
+                                    <div class="grid-3" style="margin-top: 15px;">
                                         <div><label class="form-label">Project</label><input name="workplans[{{$index}}][financials][{{$fIndex}}][projects]" class="form-input fin-project-input-{{$index}}" value="{{$fp->projects}}" readonly></div>
-                                        <div><label class="form-label">Activity</label><input list="activity" name="workplans[{{$index}}][financials][{{$fIndex}}][activity]" value="{{$fp->activity}}" class="form-input fin-activity-input" oninput="updateSummary()"></div>
-                                        <div><label class="form-label">Account Title</label><input list="list-accounts" name="workplans[{{$index}}][financials][{{$fIndex}}][account_title]" value="{{$fp->account_title}}" class="form-input fin-account-input" oninput="updateSummary()"></div>
+                                        <div><label class="form-label">Activity</label><input type="text" name="workplans[{{$index}}][financials][{{$fIndex}}][activity]" value="{{$fp->activity}}" class="form-input fin-activity-input" placeholder="Type activity details..." oninput="updateSummary()"></div>
+                                        <div>
+                                            <label class="form-label">Account Title</label>
+                                            <select name="workplans[{{$index}}][financials][{{$fIndex}}][account_title]" class="form-input select2-tags" onchange="updateSummary()">
+                                                <option value="">Select account...</option>
+                                                @foreach(['Traveling Expenses', 'Office Supplies', 'Training Expenses'] as $acc)
+                                                    <option value="{{ $acc }}" {{ $fp->account_title == $acc ? 'selected' : '' }}>{{ $acc }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div class="grid-4" style="margin-top:10px;">
+
+                                    <div style="margin-top: 15px;">
+                                        <label class="form-label">Description / Justification</label>
+                                        <textarea name="workplans[{{$index}}][financials][{{$fIndex}}][description]" class="form-input" rows="2">{{ $fp->description ?? '' }}</textarea>
+                                    </div>
+
+                                    <div class="grid-4" style="margin-top:15px;">
                                         <input type="number" name="workplans[{{$index}}][financials][{{$fIndex}}][q1]" value="{{$fp->q1}}" class="form-input cost-input" placeholder="Q1 Amount" oninput="updateSummary()">
                                         <input type="number" name="workplans[{{$index}}][financials][{{$fIndex}}][q2]" value="{{$fp->q2}}" class="form-input cost-input" placeholder="Q2 Amount" oninput="updateSummary()">
                                         <input type="number" name="workplans[{{$index}}][financials][{{$fIndex}}][q3]" value="{{$fp->q3}}" class="form-input cost-input" placeholder="Q3 Amount" oninput="updateSummary()">
                                         <input type="number" name="workplans[{{$index}}][financials][{{$fIndex}}][q4]" value="{{$fp->q4}}" class="form-input cost-input" placeholder="Q4 Amount" oninput="updateSummary()">
                                     </div>
-                                    <button type="button" class="btn-remove" style="margin-top:10px; padding:4px 10px;" onclick="this.closest('.fin-row').remove(); updateSummary();">Remove Budget</button>
+                                    <button type="button" class="btn-remove" style="margin-top:15px; padding:4px 10px;" onclick="this.closest('.fin-row').remove(); updateSummary();">Remove Budget</button>
                                 </div>
                             @empty
                                 <p class="no-fin-msg" style="font-size: 12px; color: #6b7280; font-style: italic;">No financial plan added.</p>
@@ -158,12 +240,12 @@ datalist {
                             <input type="file" id="file-input-{{$index}}" name="workplans[{{$index}}][attachments][]" multiple style="display:none;" onchange="handleFileSelect(this, {{$index}})">
                             <div id="file-list-{{$index}}" style="flex:1;">
                                 @if($isEdit && $wp->attachments)
-                                    @foreach(json_decode($wp->attachments) as $path)
+                                     @foreach(json_decode($wp->attachments) as $path)
                                         <div class="file-pill existing" data-path="{{$path}}">
                                             {{ basename($path) }}
                                             <i class="fas fa-times" onclick="removeExistingFile(this, '{{$path}}')"></i>
                                         </div>
-                                    @endforeach
+                                     @endforeach
                                 @endif
                             </div>
                         </div>
@@ -208,295 +290,295 @@ datalist {
             <button type="submit" style="background: #2563eb; color: white; border: none; padding: 15px 50px; border-radius: 8px; font-weight: 700; cursor: pointer;">SUBMIT PLAN</button>
         </div>
     </form>
-
-    <datalist id="list-planning-year">
-        @if(isset($dropdownOptions['planning_year']))
-            @foreach($dropdownOptions['planning_year'] as $option) <option value="{{ $option->value }}"> @endforeach
-        @else
-            @foreach(['2027', '2028', '2029', '2030'] as $year) <option value="{{ $year }}"> @endforeach
-        @endif
-    </datalist>
-
-    <datalist id="list-strategic-perspective">
-        @if(isset($dropdownOptions['strategic_perspective']))
-            @foreach($dropdownOptions['strategic_perspective'] as $option) <option value="{{ $option->value }}"> @endforeach
-        @endif
-    </datalist>
-
-    <datalist id="list-major-program">
-        @if(isset($dropdownOptions['programs']))
-            @foreach($dropdownOptions['programs'] as $option) <option value="{{ $option->value }}"> @endforeach
-        @endif
-    </datalist>
-
-    <datalist id="list-strategic-objective">
-        @if(isset($dropdownOptions['strategic_objective']))
-            @foreach($dropdownOptions['strategic_objective'] as $option) <option value="{{ $option->value }}"> @endforeach
-        @else
-            <option value="Environment"><option value="Stakeholders">
-        @endif
-    </datalist>
-
-    <datalist id="list-funds">
-        @if(isset($dropdownOptions['funds']))
-            @foreach($dropdownOptions['funds'] as $option) <option value="{{ $option->value }}"> @endforeach
-        @endif
-    </datalist>
-
-    <datalist id="list-expense-class">
-        @if(isset($dropdownOptions['expense_class']))
-            @foreach($dropdownOptions['expense_class'] as $option) <option value="{{ $option->value }}"> @endforeach
-        @endif
-    </datalist>
-
-    <datalist id="list-measures"><option value="Measure 1"><option value="Measure 2"></datalist>
-    <datalist id="list-accounts"><option value="Traveling Expenses"><option value="Office Supplies"><option value="Training Expenses"></datalist>
-    <datalist id="activity"></datalist>
 </div>
-    <script>
-        let wpCount = {{ count($workplans) }};
-        let fileQueue = {}; 
 
-        // --- BLADE DROPDOWNS TO JAVASCRIPT OBJECT ---
-        const fundOptions = @json(isset($dropdownOptions['funds']) ? $dropdownOptions['funds'] : []);
-        const expenseOptions = @json(isset($dropdownOptions['expense_class']) ? $dropdownOptions['expense_class'] : []);
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-        // --- INITIATIVE LOGIC ---
-        function addNewInitiative() {
-            const wrapper = document.getElementById('wp-wrapper');
-            const newIndex = wpCount++;
-            
-            const html = `
-                <div class="repeater-item" data-index="${newIndex}">
-                    <div class="grid-2">
-                        <div><label class="form-label">Strategic Initiative #<span class="init-number"></span></label>
-                        <textarea name="workplans[${newIndex}][strategic_initiatives]" class="form-input initiative-text" rows="2" oninput="syncProject(this)"></textarea></div>
-                        <div><label class="form-label">Success Indicator</label><textarea name="workplans[${newIndex}][success_indicator]" class="form-input" rows="2"></textarea></div>
-                    </div>
-                    <div class="target-box">
-                        <div class="grid-4">
-                            <input type="text" name="workplans[${newIndex}][q1]" class="form-input target-input" placeholder="Q1" oninput="formatTarget(this)">
-                            <input type="text" name="workplans[${newIndex}][q2]" class="form-input target-input" placeholder="Q2" oninput="formatTarget(this)">
-                            <input type="text" name="workplans[${newIndex}][q3]" class="form-input target-input" placeholder="Q3" oninput="formatTarget(this)">
-                            <input type="text" name="workplans[${newIndex}][q4]" class="form-input target-input" placeholder="Q4" oninput="formatTarget(this)">
-                        </div>
-                        <div style="margin-top: 10px; font-size: 12px;">
-                            <label><input type="radio" name="workplans[${newIndex}][unit_type]" value="number" class="unit-toggle" checked onclick="reformatAllTargets(this)"> Whole Number</label>
-                            <label style="margin-left: 15px;"><input type="radio" name="workplans[${newIndex}][unit_type]" value="percent" class="unit-toggle" onclick="reformatAllTargets(this)"> Percentage (%)</label>
-                        </div>
-                    </div>
-                    <div class="inner-repeater">
-                        <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 10px;">
-                            <h4 style="margin:0; color:#065f46;">Financial Plan</h4>
-                            <button type="button" class="btn-add" style="background:#10b981; font-size:11px;" onclick="addFinancialRow(${newIndex})">+ Add Budget Row</button>
-                        </div>
-                        <div class="fin-rows-container" id="fin-container-${newIndex}"><p class="no-fin-msg" style="font-size: 12px; color: #6b7280; font-style: italic;">No financial plan added.</p></div>
-                    </div>
-                    <div class="file-section">
-                        <label class="form-label" style="color:#831843">Attachments</label>
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <button type="button" onclick="triggerFileInput(${newIndex})" style="background:#b9106d; color:white; border:none; padding:8px 15px; border-radius:6px; font-size:12px; cursor:pointer;"><i class="fas fa-paperclip"></i> Select Files</button>
-                            <input type="file" id="file-input-${newIndex}" name="workplans[${newIndex}][attachments][]" multiple style="display:none;" onchange="handleFileSelect(this, ${newIndex})">
-                            <div id="file-list-${newIndex}" style="flex:1;"></div>
-                        </div>
-                        <div id="deleted-files-${newIndex}"></div>
-                    </div>
-                    <div style="margin-top: 15px; text-align: right;"><button type="button" class="btn-remove" onclick="removeInitiative(this)">Remove Initiative</button></div>
-                </div>`;
-            wrapper.insertAdjacentHTML('beforeend', html);
-            reindexInitiatives();
-        }
+<script>
+    let wpCount = {{ count($workplans) }};
+    let fileQueue = {}; 
 
-        function removeInitiative(btn) {
-            btn.closest('.repeater-item').remove();
-            reindexInitiatives();
-            updateSummary();
-        }
+    // Dropdowns for JS templates
+    const fundOptions = @json(isset($dropdownOptions['funds']) ? $dropdownOptions['funds'] : []);
+    const expenseOptions = @json(isset($dropdownOptions['expense_class']) ? $dropdownOptions['expense_class'] : []);
 
-        function reindexInitiatives() {
-            document.querySelectorAll('#wp-wrapper .repeater-item').forEach((item, i) => {
-                item.querySelector('.init-number').innerText = i + 1;
-            });
-        }
-
-        // --- TARGET FORMATTING ---
-        function formatTarget(input) {
-            let val = input.value.replace(/%/g, '');
-            const isPercent = input.closest('.target-box').querySelector('.unit-toggle[value="percent"]').checked;
-            if (val !== '' && isPercent) {
-                input.value = val + '%';
-            } else {
-                input.value = val;
+    // ⭐ SCOPED SELECT2 INITIALIZATION FUNCTION
+    function initSelect2(context = document) {
+        $(context).find('.select2-tags').each(function() {
+            if (!$(this).hasClass("select2-hidden-accessible")) {
+                $(this).select2({
+                    tags: true,
+                    placeholder: "Select or type...",
+                    allowClear: true,
+                    width: '100%'
+                });
             }
-        }
+        });
+    }
 
-        function reformatAllTargets(radio) {
-            const box = radio.closest('.target-box');
-            box.querySelectorAll('.target-input').forEach(input => formatTarget(input));
-        }
+    $(document).ready(function() {
+        initSelect2();
+    });
 
-        // --- FILE HANDLING ---
-        function triggerFileInput(idx) { document.getElementById(`file-input-${idx}`).click(); }
-
-        function handleFileSelect(input, idx) {
-            if (!fileQueue[idx]) fileQueue[idx] = [];
-            const files = Array.from(input.files);
-            const list = document.getElementById(`file-list-${idx}`);
-
-            files.forEach(file => {
-                fileQueue[idx].push(file);
-                const pill = document.createElement('div');
-                pill.className = 'file-pill';
-                pill.innerHTML = `${file.name} <i class="fas fa-times"></i>`;
-                pill.querySelector('i').onclick = () => {
-                    fileQueue[idx] = fileQueue[idx].filter(f => f !== file);
-                    pill.remove();
-                };
-                list.appendChild(pill);
-            });
-            input.value = ""; 
-        }
-
-        function removeExistingFile(icon, path) {
-            const idx = icon.closest('.repeater-item').dataset.index;
-            const container = document.getElementById(`deleted-files-${idx}`);
-            const input = document.createElement('input');
-            input.type = "hidden";
-            input.name = `workplans[${idx}][deleted_files][]`;
-            input.value = path;
-            container.appendChild(input);
-            icon.closest('.file-pill').remove();
-        }
-
-        // --- FINANCIAL LOGIC ---
-        function addFinancialRow(wpIndex) {
-            const container = document.getElementById(`fin-container-${wpIndex}`);
-            if(container.querySelector('.no-fin-msg')) container.querySelector('.no-fin-msg').remove();
-            const fIndex = container.querySelectorAll('.fin-row').length;
+    // --- INITIATIVE LOGIC ---
+    function addNewInitiative() {
+        const wrapper = document.getElementById('wp-wrapper');
+        const newIndex = wpCount++;
+        
+        const html = `
+            <div class="repeater-item" data-index="${newIndex}">
+                <div class="grid-2">
+                    <div><label class="form-label">Strategic Initiative #<span class="init-number"></span></label>
+                    <textarea name="workplans[${newIndex}][strategic_initiatives]" class="form-input initiative-text" rows="2" oninput="syncProject(this)"></textarea></div>
+                    <div><label class="form-label">Success Indicator</label><textarea name="workplans[${newIndex}][success_indicator]" class="form-input" rows="2"></textarea></div>
+                </div>
+                <div class="target-box">
+                    <div class="grid-4">
+                        <input type="text" name="workplans[${newIndex}][q1]" class="form-input target-input" placeholder="Q1" oninput="formatTarget(this)">
+                        <input type="text" name="workplans[${newIndex}][q2]" class="form-input target-input" placeholder="Q2" oninput="formatTarget(this)">
+                        <input type="text" name="workplans[${newIndex}][q3]" class="form-input target-input" placeholder="Q3" oninput="formatTarget(this)">
+                        <input type="text" name="workplans[${newIndex}][q4]" class="form-input target-input" placeholder="Q4" oninput="formatTarget(this)">
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px;">
+                        <label><input type="radio" name="workplans[${newIndex}][unit_type]" value="number" class="unit-toggle" checked onclick="reformatAllTargets(this)"> Whole Number</label>
+                        <label style="margin-left: 15px;"><input type="radio" name="workplans[${newIndex}][unit_type]" value="percent" class="unit-toggle" onclick="reformatAllTargets(this)"> Percentage (%)</label>
+                    </div>
+                </div>
+                <div class="inner-repeater">
+                    <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 10px;">
+                        <h4 style="margin:0; color:#065f46;">Financial Plan</h4>
+                        <button type="button" class="btn-add" style="background:#10b981; font-size:11px;" onclick="addFinancialRow(${newIndex})">+ Add Budget Row</button>
+                    </div>
+                    <div class="fin-rows-container" id="fin-container-${newIndex}"><p class="no-fin-msg" style="font-size: 12px; color: #6b7280; font-style: italic;">No financial plan added.</p></div>
+                </div>
+                <div class="file-section">
+                    <label class="form-label" style="color:#831843">Attachments</label>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <button type="button" onclick="triggerFileInput(${newIndex})" style="background:#b9106d; color:white; border:none; padding:8px 15px; border-radius:6px; font-size:12px; cursor:pointer;"><i class="fas fa-paperclip"></i> Select Files</button>
+                        <input type="file" id="file-input-${newIndex}" name="workplans[${newIndex}][attachments][]" multiple style="display:none;" onchange="handleFileSelect(this, ${newIndex})">
+                        <div id="file-list-${newIndex}" style="flex:1;"></div>
+                    </div>
+                    <div id="deleted-files-${newIndex}"></div>
+                </div>
+                <div style="margin-top: 15px; text-align: right;"><button type="button" class="btn-remove" onclick="removeInitiative(this)">Remove Initiative</button></div>
+            </div>`;
             
-            const masterProgElement = document.getElementById('master_program');
-            const programVal = masterProgElement ? masterProgElement.value : '';
+        const $html = $(html);
+        $(wrapper).append($html);
+        reindexInitiatives();
+        initSelect2($html);
+    }
+
+    function removeInitiative(btn) {
+        btn.closest('.repeater-item').remove();
+        reindexInitiatives();
+        updateSummary();
+    }
+
+    function reindexInitiatives() {
+        document.querySelectorAll('#wp-wrapper .repeater-item').forEach((item, i) => {
+            item.querySelector('.init-number').innerText = i + 1;
+        });
+    }
+
+    // --- TARGET FORMATTING ---
+    function formatTarget(input) {
+        let val = input.value.replace(/%/g, '');
+        const isPercent = input.closest('.target-box').querySelector('.unit-toggle[value="percent"]').checked;
+        if (val !== '' && isPercent) {
+            input.value = val + '%';
+        } else {
+            input.value = val;
+        }
+    }
+
+    function reformatAllTargets(radio) {
+        const box = radio.closest('.target-box');
+        box.querySelectorAll('.target-input').forEach(input => formatTarget(input));
+    }
+
+    // --- FILE HANDLING ---
+    function triggerFileInput(idx) { document.getElementById(`file-input-${idx}`).click(); }
+
+    function handleFileSelect(input, idx) {
+        if (!fileQueue[idx]) fileQueue[idx] = [];
+        const files = Array.from(input.files);
+        const list = document.getElementById(`file-list-${idx}`);
+
+        files.forEach(file => {
+            fileQueue[idx].push(file);
+            const pill = document.createElement('div');
+            pill.className = 'file-pill';
+            pill.innerHTML = `${file.name} <i class="fas fa-times"></i>`;
             
-            const initiativeTextarea = document.querySelector(`textarea[name="workplans[${wpIndex}][strategic_initiatives]"]`);
-            const projectVal = initiativeTextarea ? initiativeTextarea.value : '';
+            pill.querySelector('i').onclick = () => {
+                fileQueue[idx] = fileQueue[idx].filter(f => f !== file);
+                pill.remove();
+            };
+            list.appendChild(pill);
+        });
+        input.value = ""; 
+    }
 
-            const html = `
-                <div class="fin-row" style="background:white; padding:15px; border-radius:8px; margin-bottom:10px; border:1px solid #d1fae5;">
-                    <div class="grid-3">
-                        <div>
-                            <label class="form-label">Funds</label>
-                            <input list="list-funds" name="workplans[${wpIndex}][financials][${fIndex}][funds]" class="form-input fin-funds-input" placeholder="Select or type funds..." oninput="updateSummary()">
-                        </div>
-                        <div><label class="form-label">Program</label><input name="workplans[${wpIndex}][financials][${fIndex}][programs]" class="form-input fin-program-input" value="${programVal}" readonly></div>
-                        <div>
-                            <label class="form-label">Expense Class</label>
-                            <input list="list-expense-class" name="workplans[${wpIndex}][financials][${fIndex}][expense_class]" class="form-input fin-expense-input" placeholder="Select or type expense..." onchange="updateSummary()">
-                        </div>
+    function removeExistingFile(icon, path) {
+        const idx = icon.closest('.repeater-item').dataset.index;
+        const container = document.getElementById(`deleted-files-${idx}`);
+        const input = document.createElement('input');
+        input.type = "hidden";
+        input.name = `workplans[${idx}][deleted_files][]`;
+        input.value = path;
+        container.appendChild(input);
+        icon.closest('.file-pill').remove();
+    }
+
+    // --- FINANCIAL LOGIC ---
+    function addFinancialRow(wpIndex) {
+        const container = document.getElementById(`fin-container-${wpIndex}`);
+        if(container.querySelector('.no-fin-msg')) container.querySelector('.no-fin-msg').remove();
+        const fIndex = container.querySelectorAll('.fin-row').length;
+        
+        const masterProgElement = document.getElementById('master_program');
+        const programVal = masterProgElement ? masterProgElement.value : '';
+        const initiativeTextarea = document.querySelector(`textarea[name="workplans[${wpIndex}][strategic_initiatives]"]`);
+        const projectVal = initiativeTextarea ? initiativeTextarea.value : '';
+
+        let fundOptionsHtml = '<option value="">Select funds...</option>';
+        fundOptions.forEach(opt => { fundOptionsHtml += `<option value="${opt.value}">${opt.value}</option>`; });
+        
+        let expenseOptionsHtml = '<option value="">Select expense...</option>';
+        expenseOptions.forEach(opt => { expenseOptionsHtml += `<option value="${opt.value}">${opt.value}</option>`; });
+
+        const html = `
+            <div class="fin-row" style="background:white; padding:15px; border-radius:8px; margin-bottom:10px; border:1px solid #d1fae5;">
+                <div class="grid-3">
+                    <div>
+                        <label class="form-label">Funds</label>
+                        <select name="workplans[${wpIndex}][financials][${fIndex}][funds]" class="form-input select2-tags" onchange="updateSummary()">
+                            ${fundOptionsHtml}
+                        </select>
                     </div>
-                    <div class="grid-2">
-                        <div><label class="form-label">Project</label><input name="workplans[${wpIndex}][financials][${fIndex}][projects]" class="form-input fin-project-input-${wpIndex}" value="${projectVal}" readonly></div>
-                        <div><label class="form-label">Activity</label><input list="activity" name="workplans[${wpIndex}][financials][${fIndex}][activity]" class="form-input fin-activity-input" oninput="updateSummary()"></div>
-                        <div><label class="form-label">Account Title</label><input list="list-accounts" name="workplans[${wpIndex}][financials][${fIndex}][account_title]" class="form-input fin-account-input" oninput="updateSummary()"></div>
+                    <div><label class="form-label">Program</label><input name="workplans[${wpIndex}][financials][${fIndex}][programs]" class="form-input fin-program-input" value="${programVal}" readonly></div>
+                    <div>
+                        <label class="form-label">Expense Class</label>
+                        <select name="workplans[${wpIndex}][financials][${fIndex}][expense_class]" class="form-input select2-tags" onchange="updateSummary()">
+                            ${expenseOptionsHtml}
+                        </select>
                     </div>
-                    <div class="grid-4" style="margin-top:10px;">
-                        <input type="number" name="workplans[${wpIndex}][financials][${fIndex}][q1]" class="form-input cost-input" placeholder="Q1" oninput="updateSummary()">
-                        <input type="number" name="workplans[${wpIndex}][financials][${fIndex}][q2]" class="form-input cost-input" placeholder="Q2" oninput="updateSummary()">
-                        <input type="number" name="workplans[${wpIndex}][financials][${fIndex}][q3]" class="form-input cost-input" placeholder="Q3" oninput="updateSummary()">
-                        <input type="number" name="workplans[${wpIndex}][financials][${fIndex}][q4]" class="form-input cost-input" placeholder="Q4" oninput="updateSummary()">
+                </div>
+                
+                <div class="grid-3" style="margin-top: 15px;">
+                    <div><label class="form-label">Project</label><input name="workplans[${wpIndex}][financials][${fIndex}][projects]" class="form-input fin-project-input-${wpIndex}" value="${projectVal}" readonly></div>
+                    <div><label class="form-label">Activity</label><textarea name="workplans[${wpIndex}][financials][${fIndex}][activity]" class="form-input fin-activity-input" oninput="updateSummary()"></textarea></div>
+                    <div>
+                        <label class="form-label">Account Title</label>
+                        <select name="workplans[${wpIndex}][financials][${fIndex}][account_title]" class="form-input select2-tags" onchange="updateSummary()">
+                            <option value="">Select account...</option>
+                            <option value="Traveling Expenses">Traveling Expenses</option>
+                            <option value="Office Supplies">Office Supplies</option>
+                            <option value="Training Expenses">Training Expenses</option>
+                        </select>
                     </div>
-                    <button type="button" class="btn-remove" style="margin-top:10px; padding:4px 10px;" onclick="this.closest('.fin-row').remove(); updateSummary();">Remove Budget</button>
-                </div>`;
-            container.insertAdjacentHTML('beforeend', html);
-            updateSummary();
-        }
+                </div>
 
-        // --- AUTOMATIC PROGRAM AND PROJECT SYNCING ---
-        function syncProgram(val) {
-            document.querySelectorAll('.fin-program-input').forEach(input => {
-                input.value = val;
-            });
-        }
+                <div style="margin-top: 15px;">
+                    <label class="form-label">Description</label>
+                    <textarea name="workplans[${wpIndex}][financials][${fIndex}][description]" class="form-input" rows="2"></textarea>
+                </div>
 
-        function syncProject(textarea) {
-            const idx = textarea.closest('.repeater-item').dataset.index;
-            const val = textarea.value;
-            document.querySelectorAll(`.fin-project-input-${idx}`).forEach(input => {
-                input.value = val;
-            });
-            updateSummary();
-        }
+                <div class="grid-4" style="margin-top:15px;">
+                    <input type="number" name="workplans[${wpIndex}][financials][${fIndex}][q1]" class="form-input cost-input" placeholder="Q1" oninput="updateSummary()">
+                    <input type="number" name="workplans[${wpIndex}][financials][${fIndex}][q2]" class="form-input cost-input" placeholder="Q2" oninput="updateSummary()">
+                    <input type="number" name="workplans[${wpIndex}][financials][${fIndex}][q3]" class="form-input cost-input" placeholder="Q3" oninput="updateSummary()">
+                    <input type="number" name="workplans[${wpIndex}][financials][${fIndex}][q4]" class="form-input cost-input" placeholder="Q4" oninput="updateSummary()">
+                </div>
+                <button type="button" class="btn-remove" style="margin-top:15px; padding:4px 10px;" onclick="this.closest('.fin-row').remove(); updateSummary();">Remove Budget</button>
+            </div>`;
+            
+        const $html = $(html);
+        $(container).append($html);
+        updateSummary();
+        initSelect2($html);
+    }
 
-        // --- SUBMIT DRAFT ---
-        function submitDraft() {
-            document.getElementById('formStatus').value = 'draft';
-            document.getElementById('planForm').submit();
-        }
+    // --- AUTOMATIC PROGRAM AND PROJECT SYNCING ---
+    function syncProgram(val) {
+        document.querySelectorAll('.fin-program-input').forEach(input => {
+            input.value = val;
+        });
+    }
 
-        function closePlanModal() {
-            const fields = document.querySelectorAll('.form-input');
-            const hasData = Array.from(fields).some(f => f.value.trim() !== "" && f.name !== 'year');
+    function syncProject(textarea) {
+        const idx = textarea.closest('.repeater-item').dataset.index;
+        const val = textarea.value;
+        document.querySelectorAll(`.fin-project-input-${idx}`).forEach(input => {
+            input.value = val;
+        });
+        updateSummary();
+    }
 
-            if (hasData) {
-                if (confirm("Save plan? You can save this to drafts and submit it later.")) {
-                    submitDraft();
-                } else {
-                    window.location.href = "{{ route('workplan.list') }}";
-                }
+    // --- SUBMIT DRAFT ---
+    function submitDraft() {
+        document.getElementById('formStatus').value = 'draft';
+        document.getElementById('planForm').submit();
+    }
+
+    function closePlanModal() {
+        const fields = document.querySelectorAll('.form-input');
+        const hasData = Array.from(fields).some(f => f.value.trim() !== "" && f.name !== 'year');
+        if (hasData) {
+            if (confirm("Save plan? You can save this to drafts and submit it later.")) {
+                submitDraft();
             } else {
                 window.location.href = "{{ route('workplan.list') }}";
             }
+        } else {
+            window.location.href = "{{ route('workplan.list') }}";
         }
+    }
 
-        function updateSummary() {
-            const summaryBody = document.getElementById('summary-body');
-            let grandTotal = 0;
-            summaryBody.innerHTML = '';
+    function updateSummary() {
+        const summaryBody = document.getElementById('summary-body');
+        let grandTotal = 0;
+        summaryBody.innerHTML = '';
+        
+        document.querySelectorAll('.repeater-item').forEach((item, i) => {
+            const initName = item.querySelector('.initiative-text').value || `Initiative #${i+1}`;
+            item.querySelectorAll('.fin-row').forEach(row => {
+                let rowTotal = 0;
+                row.querySelectorAll('.cost-input').forEach(ci => rowTotal += Number(ci.value || 0));
+
+                if(rowTotal > 0) {
+                    grandTotal += rowTotal;
+                    
+                    const progInput = row.querySelector('.fin-program-input').value || '';
+                    const projInput = row.querySelector('[class*="fin-project-input"]').value || '';
+                    const expInput = row.querySelector('.fin-expense-input').value || '';
+                    const accInput = row.querySelector('.fin-account-input').value || '';
+
+                    summaryBody.insertAdjacentHTML('beforeend', `
+                        <tr>
+                            <td>${initName}</td>
+                            <td>${progInput} / ${projInput}</td>
+                            <td>${expInput} - ${accInput}</td>
+                            <td><strong>PHP ${rowTotal.toLocaleString()}</strong></td>
+                        </tr>`);
+                }
+            });
+        });
+        document.getElementById('grand-total-val').innerText = `PHP ${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+    }
+
+    // --- FINAL SYNC & SUBMIT ---
+    document.getElementById('planForm').onsubmit = function() {
+        Object.keys(fileQueue).forEach(idx => {
+            const dt = new DataTransfer();
+            fileQueue[idx].forEach(file => dt.items.add(file));
             
-            document.querySelectorAll('.repeater-item').forEach((item, i) => {
-                const initName = item.querySelector('.initiative-text').value || `Initiative #${i+1}`;
-                item.querySelectorAll('.fin-row').forEach(row => {
-                    let rowTotal = 0;
-                    row.querySelectorAll('.cost-input').forEach(ci => rowTotal += Number(ci.value || 0));
-
-                    if(rowTotal > 0) {
-                        grandTotal += rowTotal;
-                        
-                        const progInput = row.querySelector('.fin-program-input').value || '';
-                        const projInput = row.querySelector('[class*="fin-project-input"]').value || '';
-                        const expInput = row.querySelector('.fin-expense-input').value || '';
-                        const accInput = row.querySelector('.fin-account-input').value || '';
-
-                        summaryBody.insertAdjacentHTML('beforeend', `
-                            <tr>
-                                <td>${initName}</td>
-                                <td>${progInput} / ${projInput}</td>
-                                <td>${expInput} - ${accInput}</td>
-                                <td><strong>PHP ${rowTotal.toLocaleString()}</strong></td>
-                            </tr>`);
-                    }
-                });
-            });
-            document.getElementById('grand-total-val').innerText = `PHP ${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-        }
-
-        // --- FINAL SYNC & SUBMIT ---
-        document.getElementById('planForm').onsubmit = function() {
-            Object.keys(fileQueue).forEach(idx => {
-                const dt = new DataTransfer();
-                fileQueue[idx].forEach(file => dt.items.add(file));
-                const input = document.getElementById(`file-input-${idx}`);
-                if (input) input.files = dt.files;
-            });
-            return true;
-        };
-
-        const planModal = document.getElementById('planModal');
-        const openPlanBtn = document.getElementById('openPlanModal');
-        if (openPlanBtn && planModal) {
-            openPlanBtn.addEventListener('click', () => {
-                planModal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
-            });
-        }
-    </script>
+            const input = document.getElementById(`file-input-${idx}`);
+            if (input) input.files = dt.files;
+        });
+        return true;
+    };
+</script>
 </body>

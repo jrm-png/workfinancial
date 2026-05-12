@@ -19,6 +19,7 @@ class DropdownSettingsController extends Controller
             'strategic_perspective' => 'Strategic Perspective',
             'major_program' => 'Major Program',
             'strategic_objective' => 'Strategic Objective',
+            'strategic_measure' => 'Strategic Measure',
             'funds' => 'Funds',
             'expense_class' => 'Expense Class'
         ];
