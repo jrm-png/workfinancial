@@ -106,6 +106,8 @@ public function store(Request $request)
                                 'expense_class' => $fp['expense_class'] ?? null,
                                 'projects'      => $fp['projects'] ?? null,
                                 'account_title' => $fp['account_title'] ?? null,
+                                'activity' => $fp['activity'] ?? null,
+                                'description' => $fp['description'] ?? null,
                                 'q1' => $fp['q1'] ?? 0,
                                 'q2' => $fp['q2'] ?? 0,
                                 'q3' => $fp['q3'] ?? 0,
@@ -387,15 +389,23 @@ public function updateStatus(Request $request, $formId)
 
 public function edit($id)
 {
-    $form = Form::with(['workPlans', 'financialPlans'])->findOrFail($id);
-    
-    if ($form->created_by !== auth()->user()->responsibility_center) {
-        abort(403);
+    $user = auth()->user();
+
+    // Explicit Role Security Boundary Verification
+    $allowedRoles = ['PREPARER', 'APPROVER', 'MONITOR', 'admin'];
+    if (!in_array($user->role, $allowedRoles)) {
+        abort(403, 'Unauthorized Access: Your profile tier cannot edit performance plans.');
     }
 
-    $draftCount = Form::where('status', 'draft')->where('created_by', auth()->user()->responsibility_center)->count();
+    // Retrieve master entry form with corresponding relations loaded
+    $form = \App\Models\Form::findOrFail($id);
+    $workPlans = $form->workPlans; 
+    $financials = \App\Models\FinancialPlan::whereIn('workplan_id', $workPlans->pluck('id'))->get();
 
-    return view('plans.edit', compact('form', 'draftCount'));
+    // 🌟 FIXED LOGIC: Naka-group sa 'type' column mula sa iyong dropdown_settings table
+    $dropdownOptions = \App\Models\Dropdown::all()->groupBy('type'); 
+
+    return view('plans.edit', compact('form', 'workPlans', 'financials', 'dropdownOptions'));
 }
 
 public function getDrafts()
@@ -487,6 +497,8 @@ public function update(Request $request, $id)
                             'expense_class' => $fp['expense_class'] ?? null,
                             'projects'      => $fp['projects'] ?? null,
                             'account_title' => $fp['account_title'] ?? null,
+                            'activity' => $fp['activity'] ?? null,
+                            'description' => $fp['description'] ?? null,
                             'q1' => $fp['q1'] ?? 0,
                             'q2' => $fp['q2'] ?? 0,
                             'q3' => $fp['q3'] ?? 0,

@@ -87,6 +87,7 @@
                             <option value="PREPARER">PREPARER</option>
                             <option value="APPROVER">APPROVER</option>
                             <option value="REVIEWER">REVIEWER</option>
+                            <option value="FINANCE">FINANCE</option>
                             <option value="DEPARTMENT MANAGER">DEPARTMENT MANAGER</option>
                             <option value="MONITOR">MONITOR (For PPIMD Only)</option>
                         </select>

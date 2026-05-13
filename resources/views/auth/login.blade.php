@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WFP System | Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -111,6 +113,30 @@
             box-shadow: 0 0 0 3px rgba(76, 161, 175, 0.1);
         }
 
+        /* ⭐ BAGONG STYLES PARA SA EYE WRAPPER AT ICON */
+        .password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-wrapper .form-control {
+            padding-right: 45px; /* Para hindi matakpan ng icon ang mahabang password */
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            color: #64748b;
+            cursor: pointer;
+            transition: color 0.2s;
+            z-index: 10;
+        }
+
+        .toggle-password:hover {
+            color: #4ca1af;
+        }
+
         .btn-primary {
             width: 100%;
             padding: 14px;
@@ -183,17 +209,37 @@
                                 <a href="{{ route('password.request') }}" style="font-size: 11px; text-decoration: none; color: #4ca1af;">Forgot?</a>
                             @endif
                         </div>
-                        <input id="password" type="password" name="password" required class="form-control" placeholder="••••••••">
+                        
+                        <div class="password-wrapper">
+                            <input id="password" type="password" name="password" required class="form-control" placeholder="••••••••">
+                            <i class="fa-solid fa-eye toggle-password" id="eyeIcon"></i>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn-primary">Sign In</button>
                 </form>
-<!-- 
-                <div style="margin-top: 25px; font-size: 13px; color: #64748b; text-align: center;">
-                    Admin concerns? <a href="#" style="color: #0a5346; font-weight: 700; text-decoration: none;">Contact ICT</a>
-                </div> -->
             </div>
         </div>
     </div>
+
+    <script>
+        const passwordInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('eyeIcon');
+
+        eyeIcon.addEventListener('click', function () {
+            // I-check kung kasalukuyang password o text ang uri ng input
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                // Palitan ang icon sa eye-slash (may guhit)
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                // Ibalik sa normal na eye icon
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        });
+    </script>
 </body>
 </html>

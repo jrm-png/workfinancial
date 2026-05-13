@@ -7,22 +7,85 @@
                 <h2 style="margin:0; color:#1e293b; font-size: 24px; font-weight: 900;" id="modalTitleHeading">Work & Financial Plan</h2>
             </div>
 
-            <div style="display: flex; gap: 15px; align-items: center;">
-                @if(auth()->user()->isAdmin())
-                <div style="display: flex; align-items: center; gap: 10px; background: #f1f5f9; padding: 8px 15px; border-radius: 12px; border: 1px solid #cbd5e1;">
-                    <label style="font-size:13px; font-weight:700; color:#475569;">STATUS:</label>
-                    <select id="adminStatusSelect" style="padding: 6px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 800; font-size: 13px; color: #1e293b; background: white;">
-                        <option value="PENDING">PENDING</option>
-                        <option value="APPROVED">APPROVED</option>
-                        <option value="FOR SUBMISSION">FOR SUBMISSION</option>
-                        <option value="REJECTED">REJECTED</option>
-                    </select>
-                    <button onclick="updateStatusAndComment()" style="background:#2563eb; color:white; border:none; padding: 8px 16px; border-radius:8px; font-size: 13px; font-weight:700; cursor:pointer; transition: 0.2s;">Update</button>
-                </div>
+<div style="display: flex; gap: 15px; align-items: center;">
+    @php
+        $currentStatus = strtoupper($form->status ?? 'PENDING');
+        $userRole = auth()->user()->role;
+        $hasModifierAccess = in_array($userRole, ['admin', 'MONITOR', 'APPROVER', 'REVIEWER', 'FINANCE']);
+    @endphp
+
+    {{-- Only authorized roles can interact with status modification controls --}}
+    @if($hasModifierAccess)
+    <div style="display: flex; align-items: center; gap: 10px; background: #f1f5f9; padding: 8px 15px; border-radius: 12px; border: 1px solid #cbd5e1;">
+        <label style="font-size:13px; font-weight:700; color:#475569;">STATUS:</label>
+        
+        <select id="adminStatusSelect" style="padding: 6px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 800; font-size: 13px; color: #1e293b; background: white;">
+            
+            {{-- SYSTEM ADMIN & MONITOR FULL OVERRIDE OVER ALL STATES --}}
+            @if(in_array($userRole, ['admin', 'MONITOR']))
+                <option value="PENDING" {{ $currentStatus == 'PENDING' ? 'selected' : '' }}>PENDING</option>
+                <option value="FOR REVIEWAL" {{ $currentStatus == 'FOR REVIEWAL' ? 'selected' : '' }}>FOR REVIEWAL</option>
+                <option value="FOR SUBMISSION TO FINANCE" {{ $currentStatus == 'FOR SUBMISSION TO FINANCE' ? 'selected' : '' }}>FOR SUBMISSION TO FINANCE</option>
+                <option value="APPROVED" {{ $currentStatus == 'APPROVED' ? 'selected' : '' }}>APPROVED</option>
+                <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED</option>
+            @endif
+
+            {{-- APPROVER WORKFLOW BOUNDARY --}}
+            {{-- Actionable only if current state is PENDING --}}
+            @if($userRole === 'APPROVER')
+                @if($currentStatus === 'PENDING')
+                    <option value="PENDING" selected>PENDING</option>
+                    <option value="FOR REVIEWAL">FOR REVIEWAL (Approve)</option>
+                    <option value="REJECTED">REJECTED (Return to Preparer)</option>
+                @else
+                    {{-- Read-only lookahead protection if already processed --}}
+                    <option value="{{ $currentStatus }}" selected>{{ $currentStatus }}</option>
                 @endif
-                <button onclick="window.print()" style="background:#64748b; color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:600;"><i class="fas fa-print"></i> Print</button>
-                <button onclick="closeModal()" style="background:white; border:2px solid #e2e8f0; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:700; color:#475569; transition: 0.2s;">✕ Close</button>
-            </div>
+            @endif
+
+            {{-- REVIEWER WORKFLOW BOUNDARY --}}
+            {{-- Actionable only if current state is FOR REVIEWAL --}}
+            @if($userRole === 'REVIEWER')
+                @if($currentStatus === 'FOR REVIEWAL')
+                    <option value="FOR REVIEWAL" selected>FOR REVIEWAL</option>
+                    <option value="FOR SUBMISSION TO FINANCE">FOR SUBMISSION TO FINANCE (Approve)</option>
+                    <option value="REJECTED">REJECTED (Return to Preparer)</option>
+                @else
+                    {{-- Read-only lookahead protection if already processed --}}
+                    <option value="{{ $currentStatus }}" selected>{{ $currentStatus }}</option>
+                @endif
+            @endif
+
+            {{-- FINANCE WORKFLOW BOUNDARY --}}
+            {{-- Actionable only if current state is FOR SUBMISSION TO FINANCE --}}
+            @if($userRole === 'FINANCE')
+                @if($currentStatus === 'FOR SUBMISSION TO FINANCE')
+                    <option value="FOR SUBMISSION TO FINANCE" selected>FOR SUBMISSION TO FINANCE</option>
+                    <option value="APPROVED">APPROVED (Final Endorse)</option>
+                    <option value="REJECTED">REJECTED (Return to Preparer)</option>
+                @else
+                    {{-- Read-only lookahead protection if already processed --}}
+                    <option value="{{ $currentStatus }}" selected>{{ $currentStatus }}</option>
+                @endif
+            @endif
+
+        </select>
+        
+        {{-- Action execution button trigger --}}
+        <button onclick="updateStatusAndComment()" style="background:#2563eb; color:white; border:none; padding: 8px 16px; border-radius:8px; font-size: 13px; font-weight:700; cursor:pointer; transition: 0.2s;">Update</button>
+    </div>
+    @else
+    {{-- Static standard view interface fallback for PREPARER or generic non-privileged entities --}}
+    <div style="display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 8px 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
+        <label style="font-size:13px; font-weight:700; color:#64748b;">STATUS:</label>
+        <span id="preparerStatusLabel" style="font-weight: 800; font-size: 13px; color: #1e293b;">{{ $currentStatus }}</span>
+    </div>
+    @endif
+    
+    {{-- Utility structural action interface anchors --}}
+    <button onclick="window.print()" style="background:#64748b; color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:600;"><i class="fas fa-print"></i> Print</button>
+    <button onclick="closeModal()" style="background:white; border:2px solid #e2e8f0; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:700; color:#475569; transition: 0.2s;">✕ Close</button>
+</div>
         </div>
 
         <div style="padding: 40px;">
@@ -31,14 +94,14 @@
                 <div id="modalSubtitle" style="text-align: right; font-weight: 700; color: #64748b; font-size: 16px; background: white; padding: 10px 20px; border-radius: 10px; border: 1px solid #e2e8f0;"></div>
             </div>
 
-            <div id="wpContent">
-                </div>
+            <div id="wpContent"></div>
 
+            {{-- Comments Section --}}
             <div style="background: white; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-top: 20px;">
-                <label style="font-weight:800; font-size:14px; text-transform:uppercase; color:#475569; display:block; margin-bottom:15px; letter-spacing: 0.5px;">Admin Comments / Feedback</label>
-                <textarea id="adminCommentBox" placeholder="No feedback from admin yet..." 
+                <label style="font-weight:800; font-size:14px; text-transform:uppercase; color:#475569; display:block; margin-bottom:15px; letter-spacing: 0.5px;">Admin / Evaluator Feedback</label>
+                <textarea id="adminCommentBox" placeholder="No feedback submitted yet..." 
                     style="width: 100%; min-height: 120px; padding: 15px; border-radius: 12px; border: 2px solid #f1f5f9; font-size: 16px; color: #1e293b; background: #f8fafc; resize: vertical;"
-                    @if(!auth()->user()->isAdmin()) readonly @endif></textarea>
+                    @if(in_array(auth()->user()->role, ['PREPARER'])) readonly @endif></textarea>
             </div>
         </div>
     </div>
@@ -49,39 +112,69 @@
 <style>
     .view-card { background: white; padding: 35px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 40px; position: relative; }
     .view-label { display: block; font-weight: 700; font-size: 12px; margin-bottom: 6px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-    .view-value { font-size: 16px; font-weight: 600; color: #1e293b; line-height: 1.5; }
+    .view-value { font-size: 14px; font-weight: 600; color: #1e293b; line-height: 1.5; }
     .initiative-header { background: #1e293b; color: white; padding: 10px 20px; border-radius: 8px; font-weight: 800; font-size: 14px; display: inline-block; margin-bottom: 25px; }
     .target-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
     .target-item { text-align: center; border-right: 1px solid #e2e8f0; }
     .target-item:last-child { border-right: none; }
-    .fin-row-view { background: #f0fdf4; padding: 20px; border-radius: 12px; border: 1px solid #dcfce7; margin-bottom: 15px; }
+    .fin-row-view { background: #f0fdf4; padding: 22px; border-radius: 12px; border: 1px solid #dcfce7; margin-bottom: 20px; }
     .attachment-pill { display: inline-flex; align-items: center; background: #fdf2f8; color: #9d174d; padding: 8px 16px; border-radius: 50px; border: 1px solid #fbcfe8; font-size: 13px; font-weight: 600; text-decoration: none; transition: 0.2s; }
     .attachment-pill:hover { background: #fbcfe8; }
 </style>
 
 <script>
+// Pass authenticated user role context straight into JS
+const currentAuthRole = "{{ auth()->user()->role }}";
+
 function showDetails(id) {
     fetch(`/workplan/unified/${id}`)
         .then(res => res.json())
         .then(data => {
             const workPlans = data.workPlans || [];
-            const financials = data.financials || []; // Lahat ng financials para sa form
+            const financials = data.financials || []; 
             
-            if (workPlans.length === 0) return alert("No data found.");
+            if (workPlans.length === 0) return alert("No records discovered.");
 
             const firstWP = workPlans[0];
+            const currentStatus = (firstWP.status || 'PENDING').toUpperCase();
+
+            // --- ROLE & STATUS VISIBILITY MATRIX CHECK ---
+            let accessGranted = false;
+
+            if (currentStatus === 'PENDING' || currentStatus === 'REJECTED') {
+                accessGranted = true; // Open to everyone
+            } else if (currentStatus === 'FOR REVIEWAL') {
+                if (['APPROVER', 'admin', 'MONITOR'].includes(currentAuthRole)) accessGranted = true;
+            } else if (currentStatus === 'FOR SUBMISSION TO FINANCE') {
+                if (['REVIEWER', 'admin', 'MONITOR'].includes(currentAuthRole)) accessGranted = true;
+            } else if (currentStatus === 'APPROVED') {
+                if (['FINANCE', 'MONITOR', 'admin'].includes(currentAuthRole)) accessGranted = true;
+            }
+
+            if (!accessGranted) {
+                return alert("Access Denied: Your assigned role lacks permissions to view entries currently marked as " + currentStatus);
+            }
+
+            // --- RENDER MODAL DATA IF ACCESS GRANTED ---
             document.getElementById('currentViewingFormId').value = firstWP.form_id;
             document.getElementById('modalSubtitle').innerText = `${firstWP.r_center || 'RC'} | Planning Year: ${firstWP.year || '2026'}`;
-            document.getElementById('adminStatusSelect').value = (firstWP.status || 'PENDING').toUpperCase();
+            
+            // Sync status controls
+            const selectElement = document.getElementById('adminStatusSelect');
+            if(selectElement) {
+                selectElement.value = currentStatus;
+            } else {
+                const labelElement = document.getElementById('preparerStatusLabel');
+                if(labelElement) labelElement.innerText = currentStatus;
+            }
+            
             document.getElementById('adminCommentBox').value = firstWP.comment || '';
 
             let mainContentHtml = '';
 
             workPlans.forEach((wp, index) => {
-                // Filter financials specifically for this workplan_id
                 const wpFinancials = financials.filter(f => f.workplan_id == wp.id);
                 
-                // Parse Attachments
                 let attachmentHtml = '';
                 if (wp.attachments) {
                     try {
@@ -112,8 +205,8 @@ function showDetails(id) {
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
-                        <div><label class="view-label">Strategic Initiative</label><div class="view-value" style="background: white; padding:15px; border-radius:10px; border:1px solid #e2e8f0;">${wp.strategic_initiatives || '-'}</div></div>
-                        <div><label class="view-label">Success Indicator</label><div class="view-value" style="background: white; padding:15px; border-radius:10px; border:1px solid #e2e8f0;">${wp.success_indicator || '-'}</div></div>
+                        <div><label class="view-label">Strategic Initiative</label><div class="view-value" style="background: white; padding:15px; border-radius:10px; border:1px solid #e2e8f0; min-height: 45px;">${wp.strategic_initiatives || '-'}</div></div>
+                        <div><label class="view-label">Success Indicator</label><div class="view-value" style="background: white; padding:15px; border-radius:10px; border:1px solid #e2e8f0; min-height: 45px;">${wp.success_indicator || '-'}</div></div>
                     </div>
 
                     <div style="margin-bottom: 35px;">
@@ -132,21 +225,31 @@ function showDetails(id) {
                         </h4>
                         ${wpFinancials.length > 0 ? wpFinancials.map(f => `
                             <div class="fin-row-view">
-                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
-                                    <div><label class="view-label">Funds</label><div class="view-value">${f.funds || '-'}</div></div>
-                                    <div><label class="view-label">Program</label><div class="view-value">${f.programs  || '-'}</div></div>
-                                    <div><label class="view-label">Expense Class</label><div class="view-value">${f.expense_class || '-'}</div></div>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 15px;">
+                                    <div><label class="view-label">Funds</label><div class="view-value" style="background:white; padding:10px; border-radius:6px; border:1px solid #cbd5e1;">${f.funds || '-'}</div></div>
+                                    <div><label class="view-label">Program</label><div class="view-value" style="background:white; padding:10px; border-radius:6px; border:1px solid #cbd5e1;">${f.programs || '-'}</div></div>
+                                    <div><label class="view-label">Expense Class</label><div class="view-value" style="background:white; padding:10px; border-radius:6px; border:1px solid #cbd5e1;">${f.expense_class || '-'}</div></div>
                                 </div>
-                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
-                                    <div><label class="view-label">Project</label><div class="view-value">${f.projects || '-'}</div></div>
-                                    <div><label class="view-label">Account Title</label><div class="view-value">${f.account_title || '-'}</div></div>
+                                
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 15px;">
+                                    <div><label class="view-label">Project</label><div class="view-value" style="background:white; padding:10px; border-radius:6px; border:1px solid #cbd5e1;">${f.projects || '-'}</div></div>
+                                    <div><label class="view-label">Activity</label><div class="view-value" style="background:white; padding:10px; border-radius:6px; border:1px solid #cbd5e1;">${f.activity || '-'}</div></div>
+                                    <div><label class="view-label">Account Title</label><div class="view-value" style="background:white; padding:10px; border-radius:6px; border:1px solid #cbd5e1;">${f.account_title || '-'}</div></div>
                                 </div>
-                                <div style="background: white; padding: 15px; border-radius: 10px; display: grid; grid-template-columns: repeat(5, 1fr); text-align: right;">
-                                    <div><span class="view-label">Q1</span><div class="view-value">₱${Number(f.q1).toLocaleString()}</div></div>
-                                    <div><span class="view-label">Q2</span><div class="view-value">₱${Number(f.q2).toLocaleString()}</div></div>
-                                    <div><span class="view-label">Q3</span><div class="view-value">₱${Number(f.q3).toLocaleString()}</div></div>
-                                    <div><span class="view-label">Q4</span><div class="view-value">₱${Number(f.q4).toLocaleString()}</div></div>
-                                    <div style="color: #059669;"><span class="view-label">Total</span><div class="view-value" style="font-weight: 900;">₱${(Number(f.q1)+Number(f.q2)+Number(f.q3)+Number(f.q4)).toLocaleString()}</div></div>
+
+                                <div style="margin-bottom: 15px;">
+                                    <label class="view-label">Description / Justification</label>
+                                    <div class="view-value" style="background: white; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; min-height: 38px; font-weight: normal; font-style: italic; color:#475569;">
+                                        ${f.description || 'No additional justification specified.'}
+                                    </div>
+                                </div>
+
+                                <div style="background: white; padding: 15px; border-radius: 10px; display: grid; grid-template-columns: repeat(5, 1fr); text-align: right; border: 1px solid #cbd5e1;">
+                                    <div><span class="view-label">Q1 Amount</span><div class="view-value" style="font-weight:700;">₱${Number(f.q1 || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</div></div>
+                                    <div><span class="view-label">Q2 Amount</span><div class="view-value" style="font-weight:700;">₱${Number(f.q2 || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</div></div>
+                                    <div><span class="view-label">Q3 Amount</span><div class="view-value" style="font-weight:700;">₱${Number(f.q3 || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</div></div>
+                                    <div><span class="view-label">Q4 Amount</span><div class="view-value" style="font-weight:700;">₱${Number(f.q4 || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</div></div>
+                                    <div style="color: #059669; border-left: 1px dashed #cbd5e1; padding-left: 5px;"><span class="view-label" style="color: #059669;">Row Total</span><div class="view-value" style="font-weight: 900; font-size:15px;">₱${(Number(f.q1||0)+Number(f.q2||0)+Number(f.q3||0)+Number(f.q4||0)).toLocaleString(undefined, {minimumFractionDigits: 2})}</div></div>
                                 </div>
                             </div>
                         `).join('') : '<p style="color:#94a3b8; font-style:italic; font-size:14px;">No financial rows added.</p>'}
@@ -168,10 +271,14 @@ function showDetails(id) {
 
 function updateStatusAndComment() {
     const formId = document.getElementById('currentViewingFormId').value;
-    const status = document.getElementById('adminStatusSelect').value;
+    const selectElement = document.getElementById('adminStatusSelect');
+    
+    if(!selectElement) return alert("Action unauthorized for your account scope.");
+    
+    const status = selectElement.value;
     const comment = document.getElementById('adminCommentBox').value;
 
-    if (!formId || formId === "undefined") return alert("Error: Form ID is missing.");
+    if (!formId || formId === "undefined") return alert("Error: Form unique reference is missing.");
 
     fetch(`/workplan/update-status/${formId}`, {
         method: 'POST',
@@ -184,10 +291,10 @@ function updateStatusAndComment() {
     })
     .then(res => res.json())
     .then(data => {
-        alert('Plan updated successfully!');
+        alert('Plan status updated successfully!');
         location.reload(); 
     })
-    .catch(err => alert('Failed to save.'));
+    .catch(err => alert('Process failed during state save.'));
 }
 
 function closeModal() { document.getElementById('viewModal').style.display = 'none'; }

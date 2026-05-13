@@ -509,26 +509,7 @@
     }
 
 function openEditModal(formId) {
-    const modal = document.getElementById('editPlanModal');
-    const container = document.getElementById('editPlanContent');
-
-    modal.style.display = 'block';
-    container.innerHTML = 'Loading...';
-
-    fetch(`/plans/${formId}/edit`)
-        .then(res => res.text())
-        .then(html => {
-            container.innerHTML = html;
-            
-            // MANUALLY EXECUTE SCRIPTS
-            const scripts = container.querySelectorAll("script");
-            scripts.forEach(oldScript => {
-                const newScript = document.createElement("script");
-                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-                newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-                oldScript.parentNode.replaceChild(newScript, oldScript);
-            });
-        });
+    window.location.href = `/plans/${formId}/edit`;
 }
 function closeEditModal() {
     document.getElementById('editPlanModal').style.display = 'none';

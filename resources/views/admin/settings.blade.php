@@ -145,7 +145,7 @@
                             <option value="strategic_perspective">Strategic Perspective</option>
                             <option value="expense_class">Expense Class</option>
                             <option value="funds">Source of Funds</option>
-                            <option value="programs">Major Programs</option>
+                            <option value="major_program">Major Programs</option>
                         </select>
                     </div>
                     <div>
@@ -166,7 +166,7 @@
                         'strategic_perspective' => 'Strategic Perspectives',
                         'expense_class' => 'Expense Classes',
                         'funds' => 'Source of Funds',
-                        'programs' => 'Major Programs'
+                        'major_program' => 'Major Programs'
                     ];
                 @endphp
 

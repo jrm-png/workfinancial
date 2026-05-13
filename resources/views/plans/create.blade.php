@@ -18,15 +18,29 @@
         .form-label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 8px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
         .form-input { width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box; transition: all 0.2s; background: white; color: #1e293b; }
         
-        /* Select2 Custom overrides para pumantay sa form-input mo */
+        /* Premium Overrides para pumantay ang Select2 sa native inputs mo */
         .select2-container--default .select2-selection--single {
             height: 44px !important;
             border: 1px solid #cbd5e1 !important;
             border-radius: 8px !important;
-            padding: 7px;
+            padding: 7px 12px !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #1e293b !important;
+            font-size: 14px !important;
+            padding-left: 0 !important;
         }
         .select2-container--default .select2-selection--single .select2-selection__arrow {
             height: 42px !important;
+            right: 8px !important;
+        }
+        .select2-dropdown {
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+            z-index: 999999 !important;
         }
         
         .repeater-item { border: 2px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 30px; background: #fff; position: relative; }
@@ -187,7 +201,7 @@
                                         <div><label class="form-label">Program</label><input name="workplans[{{$index}}][financials][{{$fIndex}}][programs]" class="form-input fin-program-input" value="{{$fp->programs}}" readonly></div>
                                         <div>
                                             <label class="form-label">Expense Class</label>
-                                            <select name="workplans[{{$index}}][financials][{{$fIndex}}][expense_class]" class="form-input select2-tags" onchange="updateSummary()">
+                                            <select name="workplans[{{$index}}][financials][{{$fIndex}}][expense_class]" class="form-input select2-tags fin-expense-input" onchange="updateSummary()">
                                                 <option value="">Select expense...</option>
                                                 @if(isset($dropdownOptions['expense_class']))
                                                     @foreach($dropdownOptions['expense_class'] as $option)
@@ -203,7 +217,7 @@
                                         <div><label class="form-label">Activity</label><input type="text" name="workplans[{{$index}}][financials][{{$fIndex}}][activity]" value="{{$fp->activity}}" class="form-input fin-activity-input" placeholder="Type activity details..." oninput="updateSummary()"></div>
                                         <div>
                                             <label class="form-label">Account Title</label>
-                                            <select name="workplans[{{$index}}][financials][{{$fIndex}}][account_title]" class="form-input select2-tags" onchange="updateSummary()">
+                                            <select name="workplans[{{$index}}][financials][{{$fIndex}}][account_title]" class="form-input select2-tags fin-account-input" onchange="updateSummary()">
                                                 <option value="">Select account...</option>
                                                 @foreach(['Traveling Expenses', 'Office Supplies', 'Training Expenses'] as $acc)
                                                     <option value="{{ $acc }}" {{ $fp->account_title == $acc ? 'selected' : '' }}>{{ $acc }}</option>
@@ -213,7 +227,7 @@
                                     </div>
 
                                     <div style="margin-top: 15px;">
-                                        <label class="form-label">Description / Justification</label>
+                                        <label class="form-label">Description</label>
                                         <textarea name="workplans[{{$index}}][financials][{{$fIndex}}][description]" class="form-input" rows="2">{{ $fp->description ?? '' }}</textarea>
                                     </div>
 
@@ -299,11 +313,9 @@
     let wpCount = {{ count($workplans) }};
     let fileQueue = {}; 
 
-    // Dropdowns for JS templates
     const fundOptions = @json(isset($dropdownOptions['funds']) ? $dropdownOptions['funds'] : []);
     const expenseOptions = @json(isset($dropdownOptions['expense_class']) ? $dropdownOptions['expense_class'] : []);
 
-    // ⭐ SCOPED SELECT2 INITIALIZATION FUNCTION
     function initSelect2(context = document) {
         $(context).find('.select2-tags').each(function() {
             if (!$(this).hasClass("select2-hidden-accessible")) {
@@ -319,6 +331,7 @@
 
     $(document).ready(function() {
         initSelect2();
+        updateSummary(); // I-run kapag naka-edit mode para magpakita agad ang summary data
     });
 
     // --- INITIATIVE LOGIC ---
@@ -461,7 +474,7 @@
                     <div><label class="form-label">Program</label><input name="workplans[${wpIndex}][financials][${fIndex}][programs]" class="form-input fin-program-input" value="${programVal}" readonly></div>
                     <div>
                         <label class="form-label">Expense Class</label>
-                        <select name="workplans[${wpIndex}][financials][${fIndex}][expense_class]" class="form-input select2-tags" onchange="updateSummary()">
+                        <select name="workplans[${wpIndex}][financials][${fIndex}][expense_class]" class="form-input select2-tags fin-expense-input" onchange="updateSummary()">
                             ${expenseOptionsHtml}
                         </select>
                     </div>
@@ -469,10 +482,10 @@
                 
                 <div class="grid-3" style="margin-top: 15px;">
                     <div><label class="form-label">Project</label><input name="workplans[${wpIndex}][financials][${fIndex}][projects]" class="form-input fin-project-input-${wpIndex}" value="${projectVal}" readonly></div>
-                    <div><label class="form-label">Activity</label><textarea name="workplans[${wpIndex}][financials][${fIndex}][activity]" class="form-input fin-activity-input" oninput="updateSummary()"></textarea></div>
+                    <div><label class="form-label">Activity</label><input type="text" name="workplans[${wpIndex}][financials][${fIndex}][activity]" class="form-input fin-activity-input" placeholder="Type activity details..." oninput="updateSummary()"></div>
                     <div>
                         <label class="form-label">Account Title</label>
-                        <select name="workplans[${wpIndex}][financials][${fIndex}][account_title]" class="form-input select2-tags" onchange="updateSummary()">
+                        <select name="workplans[${wpIndex}][financials][${fIndex}][account_title]" class="form-input select2-tags fin-account-input" onchange="updateSummary()">
                             <option value="">Select account...</option>
                             <option value="Traveling Expenses">Traveling Expenses</option>
                             <option value="Office Supplies">Office Supplies</option>
@@ -482,8 +495,8 @@
                 </div>
 
                 <div style="margin-top: 15px;">
-                    <label class="form-label">Description</label>
-                    <textarea name="workplans[${wpIndex}][financials][${fIndex}][description]" class="form-input" rows="2"></textarea>
+                    <label class="form-label">Description / Justification</label>
+                    <textarea name="workplans[${wpIndex}][financials][${fIndex}][description]" class="form-input" rows="2" placeholder="Enter specific breakdown or reasoning..."></textarea>
                 </div>
 
                 <div class="grid-4" style="margin-top:15px;">
@@ -537,8 +550,11 @@
         }
     }
 
+    // --- REMOVED THE BREAKING LOGIC FROM VALUE RETRIEVAL TO MAKE SURE CALCULATION IS STABLE ---
     function updateSummary() {
         const summaryBody = document.getElementById('summary-body');
+        if (!summaryBody) return;
+        
         let grandTotal = 0;
         summaryBody.innerHTML = '';
         
@@ -553,8 +569,13 @@
                     
                     const progInput = row.querySelector('.fin-program-input').value || '';
                     const projInput = row.querySelector('[class*="fin-project-input"]').value || '';
-                    const expInput = row.querySelector('.fin-expense-input').value || '';
-                    const accInput = row.querySelector('.fin-account-input').value || '';
+                    
+                    // ⭐ GINAWANG LIGTAS ANG PAGKUHA NG VALUE SA SELECT2 PARA HINDI MAG-CRASH ANG GRAND TOTAL
+                    const expElement = row.querySelector('.fin-expense-input');
+                    const accElement = row.querySelector('.fin-account-input');
+                    
+                    const expInput = expElement ? expElement.value : '';
+                    const accInput = accElement ? accElement.value : '';
 
                     summaryBody.insertAdjacentHTML('beforeend', `
                         <tr>
