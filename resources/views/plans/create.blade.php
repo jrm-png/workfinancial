@@ -113,8 +113,8 @@
                         <label class="form-label">Major Program</label>
                         <select id="master_program" name="common_wp[major_program]" class="form-input select2-tags" required onchange="syncProgram(this.value)">
                             <option value="">Select program...</option>
-                            @if(isset($dropdownOptions['programs']))
-                                @foreach($dropdownOptions['programs'] as $option)
+                            @if(isset($dropdownOptions['major_program']))
+                                @foreach($dropdownOptions['major_program'] as $option)
                                     <option value="{{ $option->value }}" {{ ($workplans[0]->major_program ?? '') == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
                                 @endforeach
                             @endif
@@ -198,7 +198,7 @@
                                                 @endif
                                             </select>
                                         </div>
-                                        <div><label class="form-label">Program</label><input name="workplans[{{$index}}][financials][{{$fIndex}}][programs]" class="form-input fin-program-input" value="{{$fp->programs}}" readonly></div>
+                                        <div><label class="form-label">Program</label><input name="workplans[{{$index}}][financials][{{$fIndex}}][major_program]" class="form-input fin-program-input" value="{{$fp->major_program}}" readonly></div>
                                         <div>
                                             <label class="form-label">Expense Class</label>
                                             <select name="workplans[{{$index}}][financials][{{$fIndex}}][expense_class]" class="form-input select2-tags fin-expense-input" onchange="updateSummary()">
@@ -471,7 +471,7 @@
                             ${fundOptionsHtml}
                         </select>
                     </div>
-                    <div><label class="form-label">Program</label><input name="workplans[${wpIndex}][financials][${fIndex}][programs]" class="form-input fin-program-input" value="${programVal}" readonly></div>
+                    <div><label class="form-label">Program</label><input name="workplans[${wpIndex}][financials][${fIndex}][major_program]" class="form-input fin-program-input" value="${programVal}" readonly></div>
                     <div>
                         <label class="form-label">Expense Class</label>
                         <select name="workplans[${wpIndex}][financials][${fIndex}][expense_class]" class="form-input select2-tags fin-expense-input" onchange="updateSummary()">

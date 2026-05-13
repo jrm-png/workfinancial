@@ -115,8 +115,8 @@
                             @else
                                 <option value="">Select program...</option>
                             @endif
-                            @if(isset($dropdownOptions['programs']))
-                                @foreach($dropdownOptions['programs'] as $option)
+                            @if(isset($dropdownOptions['major_program']))
+                                @foreach($dropdownOptions['major_program'] as $option)
                                     @if($option->value != $currentProgram)
                                         <option value="{{ $option->value }}">{{ $option->value }}</option>
                                     @endif
@@ -225,7 +225,7 @@
                    
                                         <div>
                                             <label class="form-label">Program</label>
-                                            <input name="workplans[{{$index}}][financials][{{$fIndex}}][programs]" class="form-input fin-program-input" value="{{ $fp->programs }}" readonly>
+                                            <input name="workplans[{{$index}}][financials][{{$fIndex}}][major_program]" class="form-input fin-program-input" value="{{ $fp->major_program }}" readonly>
                                         </div>
 
                                         <div>
@@ -525,7 +525,7 @@
                         ${fundsOptions}
                     </select>
                 </div>
-                <div><label class="form-label">Program</label><input name="workplans[${wpIdx}][financials][${fIndex}][programs]" class="form-input fin-program-input" value="${currentProgram}" readonly></div>
+                <div><label class="form-label">Program</label><input name="workplans[${wpIdx}][financials][${fIndex}][major_program]" class="form-input fin-program-input" value="${currentProgram}" readonly></div>
                 <div>
                     <label class="form-label">Expense Class</label>
                     <select name="workplans[${wpIdx}][financials][${fIndex}][expense_class]" class="form-input select2-tags fin-expense-input" onchange="updateSummary()">
