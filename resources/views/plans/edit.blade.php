@@ -268,8 +268,8 @@
                                     </div>
 
                                     <div style="margin-top: 15px;">
-                                        <label class="form-label">Description / Justification</label>
-                                        <textarea name="workplans[{{$index}}][financials][{{$fIndex}}][description]" class="form-input" rows="2" placeholder="Input rationale details...">{{ $fp->description }}</textarea>
+                                        <label class="form-label">Description</label>
+                                        <textarea name="workplans[{{$index}}][financials][{{$fIndex}}][description]" class="form-input" rows="2">{{ $fp->description }}</textarea>
                                     </div>
 
                                     <div class="grid-4" style="margin-top:15px;">
@@ -546,8 +546,8 @@
             </div>
 
             <div style="margin-top: 15px;">
-                <label class="form-label">Description / Justification</label>
-                <textarea name="workplans[${wpIdx}][financials][${fIndex}][description]" class="form-input" rows="2" placeholder="Input rationale details..."></textarea>
+                <label class="form-label">Description</label>
+                <textarea name="workplans[${wpIdx}][financials][${fIndex}][description]" class="form-input" rows="2"></textarea>
             </div>
 
             <div class="grid-4" style="margin-top:15px;">

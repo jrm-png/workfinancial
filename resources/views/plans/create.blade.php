@@ -495,8 +495,8 @@
                 </div>
 
                 <div style="margin-top: 15px;">
-                    <label class="form-label">Description / Justification</label>
-                    <textarea name="workplans[${wpIndex}][financials][${fIndex}][description]" class="form-input" rows="2" placeholder="Enter specific breakdown or reasoning..."></textarea>
+                    <label class="form-label">Description</label>
+                    <textarea name="workplans[${wpIndex}][financials][${fIndex}][description]" class="form-input" rows="2"></textarea>
                 </div>
 
                 <div class="grid-4" style="margin-top:15px;">
