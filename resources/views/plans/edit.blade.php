@@ -225,7 +225,7 @@
                    
                                         <div>
                                             <label class="form-label">Program</label>
-                                            <input name="workplans[{{$index}}][financials][{{$fIndex}}][major_program]" class="form-input fin-program-input" value="{{ $fp->major_program }}" readonly>
+                                            <input name="workplans[{{$index}}][financials][{{$fIndex}}][programs]" class="form-input fin-program-input" value="{{ $fp->major_program }}" readonly>
                                         </div>
 
                                         <div>
