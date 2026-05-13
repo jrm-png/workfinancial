@@ -238,9 +238,9 @@ function showDetails(id) {
                                 </div>
 
                                 <div style="margin-bottom: 15px;">
-                                    <label class="view-label">Description / Justification</label>
+                                    <label class="view-label">Description</label>
                                     <div class="view-value" style="background: white; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; min-height: 38px; font-weight: normal; font-style: italic; color:#475569;">
-                                        ${f.description || 'No additional justification specified.'}
+                                        ${f.description || 'No additional description specified.'}
                                     </div>
                                 </div>
 
@@ -256,7 +256,7 @@ function showDetails(id) {
                     </div>
 
                     <div style="margin-top: 20px; background: #fff1f2; padding: 20px; border-radius: 12px; border: 1px solid #fecdd3;">
-                        <label class="view-label" style="color: #be123c;">Attachments / Proof</label>
+                        <label class="view-label" style="color: #be123c;">Attachments</label>
                         <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
                             ${attachmentHtml || '<span style="color:#fb7185; font-size:13px;">No files attached for this initiative.</span>'}
                         </div>

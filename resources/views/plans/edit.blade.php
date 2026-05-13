@@ -287,7 +287,7 @@
                     </div>
 
                     <div class="file-section">
-                        <label class="form-label" style="color:#831843">Attachments / Verification Proof</label>
+                        <label class="form-label" style="color:#831843">Attachments</label>
                         <div style="display:flex; gap:10px; align-items:center;">
                             <input type="file" name="workplans[{{$index}}][attachments][]" id="file-input-{{$index}}" multiple style="display:none;" onchange="handleFileSelect(this, {{$index}})">
                             <button type="button" class="btn-add" style="background:#db2777; font-size:12px;" onclick="document.getElementById('file-input-{{$index}}').click()">
@@ -451,7 +451,7 @@
             </div>
 
             <div class="file-section">
-                <label class="form-label" style="color:#831843">Attachments / Verification Proof</label>
+                <label class="form-label" style="color:#831843">Attachments</label>
                 <div style="display:flex; gap:10px; align-items:center;">
                     <input type="file" name="workplans[${nextIdx}][attachments][]" id="file-input-${nextIdx}" multiple style="display:none;" onchange="handleFileSelect(this, ${nextIdx})">
                     <button type="button" class="btn-add" style="background:#db2777; font-size:12px;" onclick="document.getElementById('file-input-${nextIdx}').click()">
