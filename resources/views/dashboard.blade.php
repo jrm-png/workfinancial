@@ -8,6 +8,8 @@
     :root {
         --primary-gradient: linear-gradient(135deg, #f8fafc 0%, #dfe5ec 100%);
         --accent-color: #38bdf8;
+        --primary: #2563eb;
+        --success: #10b981;
     }
 
     .dashboard-container {
@@ -18,7 +20,7 @@
 
     .schedule-banner {
         background: var(--primary-gradient);
-        color: #1e293b; /* Dark text for light gradient */
+        color: #1e293b; 
         padding: 2rem;
         border-radius: 1.25rem;
         margin-bottom: 2rem;
@@ -38,6 +40,38 @@
         align-items: center;
         justify-content: center;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    /* Style for the new department metric row summary boxes */
+    .stats-container { 
+        display: grid; 
+        grid-template-columns: repeat(3, 1fr); 
+        gap: 20px; 
+        margin-bottom: 2rem; 
+    }
+
+    .stat-card { 
+        background: white; 
+        padding: 25px; 
+        border-radius: 12px; 
+        border: 1px solid #e2e8f0; 
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+    }
+
+    .stat-label { 
+        font-size: 11px; 
+        font-weight: 800; 
+        color: #94a3b8; 
+        text-transform: uppercase; 
+        margin-bottom: 8px; 
+        letter-spacing: 0.05em;
+    }
+
+    .stat-value { 
+        font-size: 28px; 
+        font-weight: 800; 
+        color: #1e293b; 
+        letter-spacing: -1px;
     }
 
     .main-card {
@@ -64,20 +98,17 @@
         font-size: 0.75rem;
     }
 
-    /* Custom AG Grid Tweaks */
     .ag-theme-alpine {
         --ag-header-background-color: #f8fafc;
         --ag-border-color: #f1f5f9;
         --ag-row-hover-color: #f1f5f9;
     }
 
-            /* Modal */
-        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); overflow-y: auto; }
-        .modal-container { background: white; margin: 2% auto; padding: 0; border-radius: 16px; width: 95%; max-width: 1200px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative; overflow-y: auto; max-height: 90vh; }
-
+    /* Modal Structure Parameters */
+    .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); overflow-y: auto; }
+    .modal-container { background: white; margin: 2% auto; padding: 0; border-radius: 16px; width: 95%; max-width: 1200px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative; overflow-y: auto; max-height: 90vh; }
 </style>
 
-<!-- Edit Modal -->
 <div id="editPlanModal" class="modal">
     <div class="modal-container">
         <div id="editPlanContent" style="padding:20px;">
@@ -89,18 +120,18 @@
 </div>
 
 <div class="content dashboard-container">
-    {{-- 1. Hero Banner --}}
+    {{-- 1. Hero Banner Setup Control Layout Elements --}}
     <div class="schedule-banner">
         <div class="icon-box">
             <i class="fas fa-calendar-alt" style="color: var(--accent-color); font-size: 1.5rem;"></i>
         </div>
         <div style="flex: 1;">
-            <h2 style="margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 700;">2026 Submission Period</h2>
+            <h2 style="margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 700;">2027 Submission Period</h2>
             <p style="margin: 5px 0 0; color: #64748b; font-size: 0.95rem;">
                 @if($settings && $settings->submission_start)
                     Active from <b>{{ \Carbon\Carbon::parse($settings->submission_start)->format('M d') }}</b> to <b>{{ \Carbon\Carbon::parse($settings->submission_end)->format('M d, Y') }}</b>
                 @else
-                    <i>Schedule not set.</i>
+                    <i>Schedule parameters not configured.</i>
                 @endif
             </p>
         </div>
@@ -116,7 +147,23 @@
         @endif
     </div>
 
-    {{-- 2. Grid Container --}}
+    {{-- NEW ADDITION: Department/Division Budget Performance Counter Cards Element --}}
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-label">Total Submissions ({{ $stats['r_center'] }})</div>
+            <div class="stat-value">{{ $stats['total_submitted'] }}</div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid var(--primary);">
+            <div class="stat-label">Proposed Budget</div>
+            <div class="stat-value">₱{{ number_format($stats['proposed_budget'], 2) }}</div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid var(--success);">
+            <div class="stat-label">Approved Budget</div>
+            <div class="stat-value" style="color: var(--success);">₱{{ number_format($stats['approved_budget'], 2) }}</div>
+        </div>
+    </div>
+
+    {{-- 2. Grid Notifications Feedback Module Container (KEPT EXACTLY AS ORIGINAL) --}}
     <div class="main-card">
         <div class="card-header">
             <div>
@@ -131,7 +178,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Double check kung nandoon si agGrid
         if (typeof agGrid === 'undefined') {
             console.error('AG Grid library is still not loaded!');
             return;
@@ -175,22 +221,22 @@
                 width: 100,
                 pinned: 'right',
                 cellRenderer: p => {
-                const btn = document.createElement("button");
-                btn.innerText = "FIX PLAN";
-                btn.className = "btn-fix";
-                btn.style.background = "#ef4444";
-                btn.style.color = "white";
-                btn.style.border = "none";
-                btn.style.padding = "6px 12px";
-                btn.style.borderRadius = "6px";
-                btn.style.fontSize = "11px";
-                btn.style.fontWeight = "bold";
-                btn.style.cursor = "pointer";
+                    const btn = document.createElement("button");
+                    btn.innerText = "FIX PLAN";
+                    btn.className = "btn-fix";
+                    btn.style.background = "#ef4444";
+                    btn.style.color = "white";
+                    btn.style.border = "none";
+                    btn.style.padding = "6px 12px";
+                    btn.style.borderRadius = "6px";
+                    btn.style.fontSize = "11px";
+                    btn.style.fontWeight = "bold";
+                    btn.style.cursor = "pointer";
 
-                btn.onclick = () => openEditModal(p.data.form_id);
+                    btn.onclick = () => openEditModal(p.data.form_id);
 
-                return btn;
-             }
+                    return btn;
+                }
             }
         ];
 
@@ -211,25 +257,25 @@
         agGrid.createGrid(gridDiv, gridOptions);
     });
 
-function openEditModal(formId) {
+    function openEditModal(formId) {
+        const modal = document.getElementById('editPlanModal');
+        const container = document.getElementById('editPlanContent');
 
-    const modal = document.getElementById('editPlanModal');
-    const container = document.getElementById('editPlanContent');
+        modal.style.display = 'block';
+        container.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
 
-    modal.style.display = 'block';
-    container.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        fetch(`/plans/${formId}/edit`)
+            .then(res => res.text())
+            .then(html => {
+                container.innerHTML = html;
+            })
+            .catch(err => {
+                console.error(err);
+                container.innerHTML = '<p style="color:red">Failed to load form.</p>';
+            });
+    }
 
-    fetch(`/plans/${formId}/edit`)
-        .then(res => res.text())
-        .then(html => {
-            container.innerHTML = html;
-        })
-        .catch(err => {
-            console.error(err);
-            container.innerHTML = '<p style="color:red">Failed to load form.</p>';
-        });
-}
-function closeEditModal() {
-    document.getElementById('editPlanModal').style.display = 'none';
-}
+    function closeEditModal() {
+        document.getElementById('editPlanModal').style.display = 'none';
+    }
 </script>

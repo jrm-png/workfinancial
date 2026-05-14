@@ -155,17 +155,27 @@
             </button>
             <div class="user-pill">
                 <i class="fas fa-user-circle" style="margin-right: 8px; color:var(--accentname)" ></i>
-                <span style="color:var(--accentname)">{{ Auth::user()->name }} — </span> <span style="color:var(--accent)">{{ Auth::user()->responsibility_center }}</span>
+                <span style="color:var(--accentname)">{{ Auth::user()->name }} — </span> <span style="color:var(--accent)">{{ Auth::user()->responsibility_center }} ({{ Auth::user()->role }})</span>
             </div>
         </div>
     </header>
 
     <nav class="sidebar" id="sidebar">
         <div style="flex-grow: 1;">
-            <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                <i class="fas fa-th-large"></i>
-                <span class="nav-text">Dashboard</span>
-            </a>
+                @if(auth()->user()->role === 'FINANCE')
+                    {{-- Show Finance Dashboard link --}}
+                    <a href="{{ route('dashfinance') }}" class="nav-link {{ request()->routeIs('dashfinance') ? 'active' : '' }}">
+                        <i class="fas fa-th-large"></i>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                @else
+                    {{-- Show Standard Dashboard link --}}
+                    <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                        <i class="fas fa-th-large"></i>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                @endif
+        
 @if(auth()->user()->isAdmin())
             <div class="sidebar-section">Planning</div>
             <a href="{{ route('plans.create') }}" class="nav-link {{ request()->routeIs('plans.create') ? 'active' : '' }}">

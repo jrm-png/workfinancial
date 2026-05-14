@@ -7,85 +7,65 @@
                 <h2 style="margin:0; color:#1e293b; font-size: 24px; font-weight: 900;" id="modalTitleHeading">Work & Financial Plan</h2>
             </div>
 
-<div style="display: flex; gap: 15px; align-items: center;">
-    @php
-        $currentStatus = strtoupper($form->status ?? 'PENDING');
-        $userRole = auth()->user()->role;
-        $hasModifierAccess = in_array($userRole, ['admin', 'MONITOR', 'APPROVER', 'REVIEWER', 'FINANCE']);
-    @endphp
+            <div style="display: flex; gap: 15px; align-items: center;">
+                @php
+                    $currentStatus = strtoupper($form->status ?? 'PENDING');
+                    $userRole = auth()->user()->role;
+                    $hasModifierAccess = in_array($userRole, ['admin', 'MONITOR', 'APPROVER', 'REVIEWER', 'FINANCE']);
+                @endphp
 
-    {{-- Only authorized roles can interact with status modification controls --}}
-    @if($hasModifierAccess)
-    <div style="display: flex; align-items: center; gap: 10px; background: #f1f5f9; padding: 8px 15px; border-radius: 12px; border: 1px solid #cbd5e1;">
-        <label style="font-size:13px; font-weight:700; color:#475569;">STATUS:</label>
-        
-        <select id="adminStatusSelect" style="padding: 6px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 800; font-size: 13px; color: #1e293b; background: white;">
-            
-            {{-- SYSTEM ADMIN & MONITOR FULL OVERRIDE OVER ALL STATES --}}
-            @if(in_array($userRole, ['admin', 'MONITOR']))
-                <option value="PENDING" {{ $currentStatus == 'PENDING' ? 'selected' : '' }}>PENDING</option>
-                <option value="FOR REVIEWAL" {{ $currentStatus == 'FOR REVIEWAL' ? 'selected' : '' }}>FOR REVIEWAL</option>
-                <option value="FOR SUBMISSION TO FINANCE" {{ $currentStatus == 'FOR SUBMISSION TO FINANCE' ? 'selected' : '' }}>FOR SUBMISSION TO FINANCE</option>
-                <option value="APPROVED" {{ $currentStatus == 'APPROVED' ? 'selected' : '' }}>APPROVED</option>
-                <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED</option>
-            @endif
+                @if($hasModifierAccess)
+                {{-- Status modifier selector block wrapper --}}
+                <div id="statusActionWrapper" style="display: flex; align-items: center; gap: 10px; background: #f1f5f9; padding: 8px 15px; border-radius: 12px; border: 1px solid #cbd5e1;">
+                    <label style="font-size:13px; font-weight:700; color:#475569;">STATUS:</label>
+                    
+                    <select id="adminStatusSelect" style="padding: 6px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 800; font-size: 13px; color: #1e293b; background: white;">
+                        
+                        {{-- SYSTEM ADMIN & MONITOR OVERRIDE --}}
+                        @if(in_array($userRole, ['admin', 'MONITOR']))
+                            <option value="PENDING" {{ $currentStatus == 'PENDING' ? 'selected' : '' }}>PENDING</option>
+                            <option value="FOR REVIEWAL" {{ $currentStatus == 'FOR REVIEWAL' ? 'selected' : '' }}>FOR REVIEWAL</option>
+                            <option value="FOR SUBMISSION TO FINANCE" {{ $currentStatus == 'FOR SUBMISSION TO FINANCE' ? 'selected' : '' }}>FOR SUBMISSION TO FINANCE</option>
+                            <option value="APPROVED" {{ $currentStatus == 'APPROVED' ? 'selected' : '' }}>APPROVED</option>
+                            <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED</option>
+                        @endif
 
-            {{-- APPROVER WORKFLOW BOUNDARY --}}
-            {{-- Actionable only if current state is PENDING --}}
-            @if($userRole === 'APPROVER')
-                @if($currentStatus === 'PENDING')
-                    <option value="PENDING" selected>PENDING</option>
-                    <option value="FOR REVIEWAL">FOR REVIEWAL (Approve)</option>
-                    <option value="REJECTED">REJECTED (Return to Preparer)</option>
-                @else
-                    {{-- Read-only lookahead protection if already processed --}}
-                    <option value="{{ $currentStatus }}" selected>{{ $currentStatus }}</option>
+                        {{-- APPROVER DROPDOWN INTERFACE OPTIONS --}}
+                        @if($userRole === 'APPROVER')
+                            <option value="PENDING" {{ $currentStatus == 'PENDING' ? 'selected' : '' }}>PENDING</option>
+                            <option value="FOR REVIEWAL" {{ $currentStatus == 'FOR REVIEWAL' ? 'selected' : '' }}>FOR REVIEWAL (Approve)</option>
+                            <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED (Return to Preparer)</option>
+                        @endif
+
+                        {{-- REVIEWER DROPDOWN INTERFACE OPTIONS --}}
+                        @if($userRole === 'REVIEWER')
+                            <option value="FOR REVIEWAL" {{ $currentStatus == 'FOR REVIEWAL' ? 'selected' : '' }}>FOR REVIEWAL</option>
+                            <option value="FOR SUBMISSION TO FINANCE" {{ $currentStatus == 'FOR SUBMISSION TO FINANCE' ? 'selected' : '' }}>FOR SUBMISSION TO FINANCE (Forward)</option>
+                            <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED (Return to Preparer)</option>
+                        @endif
+
+                        {{-- FINANCE DROPDOWN INTERFACE OPTIONS --}}
+                        @if($userRole === 'FINANCE')
+                            <option value="FOR SUBMISSION TO FINANCE" {{ $currentStatus == 'FOR SUBMISSION TO FINANCE' ? 'selected' : '' }}>FOR SUBMISSION TO FINANCE</option>
+                            <option value="APPROVED" {{ $currentStatus == 'APPROVED' ? 'selected' : '' }}>APPROVED (Final Authorize)</option>
+                            <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED (Return to Preparer)</option>
+                        @endif
+
+                    </select>
+                    
+                    <button id="adminStatusUpdateButton" onclick="updateStatusAndComment()" style="background:#2563eb; color:white; border:none; padding: 8px 16px; border-radius:8px; font-size: 13px; font-weight:700; cursor:pointer; transition: 0.2s;">Update</button>
+                </div>
                 @endif
-            @endif
 
-            {{-- REVIEWER WORKFLOW BOUNDARY --}}
-            {{-- Actionable only if current state is FOR REVIEWAL --}}
-            @if($userRole === 'REVIEWER')
-                @if($currentStatus === 'FOR REVIEWAL')
-                    <option value="FOR REVIEWAL" selected>FOR REVIEWAL</option>
-                    <option value="FOR SUBMISSION TO FINANCE">FOR SUBMISSION TO FINANCE (Approve)</option>
-                    <option value="REJECTED">REJECTED (Return to Preparer)</option>
-                @else
-                    {{-- Read-only lookahead protection if already processed --}}
-                    <option value="{{ $currentStatus }}" selected>{{ $currentStatus }}</option>
-                @endif
-            @endif
-
-            {{-- FINANCE WORKFLOW BOUNDARY --}}
-            {{-- Actionable only if current state is FOR SUBMISSION TO FINANCE --}}
-            @if($userRole === 'FINANCE')
-                @if($currentStatus === 'FOR SUBMISSION TO FINANCE')
-                    <option value="FOR SUBMISSION TO FINANCE" selected>FOR SUBMISSION TO FINANCE</option>
-                    <option value="APPROVED">APPROVED (Final Endorse)</option>
-                    <option value="REJECTED">REJECTED (Return to Preparer)</option>
-                @else
-                    {{-- Read-only lookahead protection if already processed --}}
-                    <option value="{{ $currentStatus }}" selected>{{ $currentStatus }}</option>
-                @endif
-            @endif
-
-        </select>
-        
-        {{-- Action execution button trigger --}}
-        <button onclick="updateStatusAndComment()" style="background:#2563eb; color:white; border:none; padding: 8px 16px; border-radius:8px; font-size: 13px; font-weight:700; cursor:pointer; transition: 0.2s;">Update</button>
-    </div>
-    @else
-    {{-- Static standard view interface fallback for PREPARER or generic non-privileged entities --}}
-    <div style="display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 8px 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
-        <label style="font-size:13px; font-weight:700; color:#64748b;">STATUS:</label>
-        <span id="preparerStatusLabel" style="font-weight: 800; font-size: 13px; color: #1e293b;">{{ $currentStatus }}</span>
-    </div>
-    @endif
-    
-    {{-- Utility structural action interface anchors --}}
-    <button onclick="window.print()" style="background:#64748b; color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:600;"><i class="fas fa-print"></i> Print</button>
-    <button onclick="closeModal()" style="background:white; border:2px solid #e2e8f0; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:700; color:#475569; transition: 0.2s;">✕ Close</button>
-</div>
+                {{-- Non-modifiable static layout fallback badge --}}
+                <div id="readOnlyStatusLabelWrapper" style="display: none; align-items: center; gap: 8px; background: #f8fafc; padding: 8px 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <label style="font-size:13px; font-weight:700; color:#64748b;">STATUS:</label>
+                    <span id="preparerStatusLabel" style="font-weight: 800; font-size: 13px; color: #1e293b;"></span>
+                </div>
+                
+                <button onclick="window.print()" style="background:#64748b; color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:600;"><i class="fas fa-print"></i> Print</button>
+                <button onclick="closeModal()" style="background:white; border:2px solid #e2e8f0; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:700; color:#475569; transition: 0.2s;">✕ Close</button>
+            </div>
         </div>
 
         <div style="padding: 40px;">
@@ -100,8 +80,7 @@
             <div style="background: white; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-top: 20px;">
                 <label style="font-weight:800; font-size:14px; text-transform:uppercase; color:#475569; display:block; margin-bottom:15px; letter-spacing: 0.5px;">Admin / Evaluator Feedback</label>
                 <textarea id="adminCommentBox" placeholder="No feedback submitted yet..." 
-                    style="width: 100%; min-height: 120px; padding: 15px; border-radius: 12px; border: 2px solid #f1f5f9; font-size: 16px; color: #1e293b; background: #f8fafc; resize: vertical;"
-                    @if(in_array(auth()->user()->role, ['PREPARER'])) readonly @endif></textarea>
+                    style="width: 100%; min-height: 120px; padding: 15px; border-radius: 12px; border: 2px solid #f1f5f9; font-size: 16px; color: #1e293b; background: #f8fafc; resize: vertical;"></textarea>
             </div>
         </div>
     </div>
@@ -123,7 +102,6 @@
 </style>
 
 <script>
-// Pass authenticated user role context straight into JS
 const currentAuthRole = "{{ auth()->user()->role }}";
 
 function showDetails(id) {
@@ -138,36 +116,48 @@ function showDetails(id) {
             const firstWP = workPlans[0];
             const currentStatus = (firstWP.status || 'PENDING').toUpperCase();
 
-            // --- ROLE & STATUS VISIBILITY MATRIX CHECK ---
-            let accessGranted = false;
-
-            if (currentStatus === 'PENDING' || currentStatus === 'REJECTED') {
-                accessGranted = true; // Open to everyone
-            } else if (currentStatus === 'FOR REVIEWAL') {
-                if (['APPROVER', 'admin', 'MONITOR'].includes(currentAuthRole)) accessGranted = true;
-            } else if (currentStatus === 'FOR SUBMISSION TO FINANCE') {
-                if (['REVIEWER', 'admin', 'MONITOR'].includes(currentAuthRole)) accessGranted = true;
-            } else if (currentStatus === 'APPROVED') {
-                if (['FINANCE', 'MONITOR', 'admin'].includes(currentAuthRole)) accessGranted = true;
+            // --- 1. GLOBAL ACCESS ALL PRIVILEGED ROLES ---
+            const authorizedManagementRoles = ['PREPARER', 'APPROVER', 'REVIEWER', 'FINANCE', 'admin', 'MONITOR'];
+            if (!authorizedManagementRoles.includes(currentAuthRole)) {
+                return alert("Access Denied: Your account role tier is not authorized to interact with this module.");
             }
 
-            if (!accessGranted) {
-                return alert("Access Denied: Your assigned role lacks permissions to view entries currently marked as " + currentStatus);
+            // --- 2. ADJUSTED WORKFLOW POSITION WINDOW RULES ---
+            let isActionableState = false;
+
+            if (['admin', 'MONITOR'].includes(currentAuthRole)) {
+                isActionableState = true; 
+            } else if (currentAuthRole === 'APPROVER' && ['PENDING', 'FOR REVIEWAL', 'REJECTED'].includes(currentStatus)) {
+                isActionableState = true; // Still actionable until it hits Finance states
+            } else if (currentAuthRole === 'REVIEWER' && ['FOR REVIEWAL', 'FOR SUBMISSION TO FINANCE'].includes(currentStatus)) {
+                isActionableState = true; // Still actionable until Final Authorization
+            } else if (currentAuthRole === 'FINANCE' && ['FOR SUBMISSION TO FINANCE', 'APPROVED'].includes(currentStatus)) {
+                isActionableState = true; 
             }
 
-            // --- RENDER MODAL DATA IF ACCESS GRANTED ---
+            // --- 3. DYNAMIC CONTROL PANEL VISIBILITY TOGGLING ---
+            const actionContainer = document.getElementById('statusActionWrapper');
+            const labelContainer = document.getElementById('readOnlyStatusLabelWrapper');
+            const commentTextArea = document.getElementById('adminCommentBox');
+            const statusLabel = document.getElementById('preparerStatusLabel');
+
+            if (isActionableState) {
+                if (actionContainer) actionContainer.style.display = 'flex';
+                if (labelContainer) labelContainer.style.display = 'none';
+                if (commentTextArea) commentTextArea.removeAttribute('readonly');
+                
+                const selectElement = document.getElementById('adminStatusSelect');
+                if (selectElement) selectElement.value = currentStatus;
+            } else {
+                if (actionContainer) actionContainer.style.display = 'none';
+                if (labelContainer) labelContainer.style.display = 'flex';
+                if (statusLabel) statusLabel.innerText = currentStatus;
+                if (commentTextArea) commentTextArea.setAttribute('readonly', 'true');
+            }
+
+            // --- 4. POPULATE DATA CONTENT ---
             document.getElementById('currentViewingFormId').value = firstWP.form_id;
             document.getElementById('modalSubtitle').innerText = `${firstWP.r_center || 'RC'} | Planning Year: ${firstWP.year || '2026'}`;
-            
-            // Sync status controls
-            const selectElement = document.getElementById('adminStatusSelect');
-            if(selectElement) {
-                selectElement.value = currentStatus;
-            } else {
-                const labelElement = document.getElementById('preparerStatusLabel');
-                if(labelElement) labelElement.innerText = currentStatus;
-            }
-            
             document.getElementById('adminCommentBox').value = firstWP.comment || '';
 
             let mainContentHtml = '';

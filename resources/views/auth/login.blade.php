@@ -205,9 +205,9 @@
                     <div class="form-group">
                         <div style="display: flex; justify-content: space-between;">
                             <label for="password" class="form-label">Password</label>
-                            @if (Route::has('password.request'))
+                            <!-- @if (Route::has('password.request'))
                                 <a href="{{ route('password.request') }}" style="font-size: 11px; text-decoration: none; color: #4ca1af;">Forgot?</a>
-                            @endif
+                            @endif -->
                         </div>
                         
                         <div class="password-wrapper">
@@ -227,15 +227,12 @@
         const eyeIcon = document.getElementById('eyeIcon');
 
         eyeIcon.addEventListener('click', function () {
-            // I-check kung kasalukuyang password o text ang uri ng input
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
-                // Palitan ang icon sa eye-slash (may guhit)
                 eyeIcon.classList.remove('fa-eye');
                 eyeIcon.classList.add('fa-eye-slash');
             } else {
                 passwordInput.type = 'password';
-                // Ibalik sa normal na eye icon
                 eyeIcon.classList.remove('fa-eye-slash');
                 eyeIcon.classList.add('fa-eye');
             }

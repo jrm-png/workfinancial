@@ -318,30 +318,27 @@ public function index()
 {
     $user = auth()->user();
 
-    // 1. Logic for Data Visibility
-    if ($user->role === 'admin') {
+    // 1. Logic for Data Visibility based on Roles & Responsibility Center
+    if (in_array($user->role, ['admin', 'MONITOR', 'FINANCE'])) {
         $workPlans = \App\Models\WorkPlan::all();
     } else {
-        // Regular users see only their division/responsible center
-        // Option A: If you filter by user_id
-        $workPlans = \App\Models\WorkPlan::where('user_id', $user->id)->get();
-
-        /* Option B: If you filter by division name/Responsible Center 
-           (assuming 'division' is a column in your users table)
-           $workPlans = \App\Models\WorkPlan::where('r_center', $user->division)->get(); 
-        */
+        $workPlans = \App\Models\WorkPlan::where('r_center', $user->responsibility_center)->get(); 
     }
     
-    // 2. Fetch settings
+    $availableStatuses = $workPlans->pluck('status')->unique()->filter()->toArray();
+    $availableYears = $workPlans->pluck('year')->unique()->filter()->sort()->toArray();
+
     $settings = \DB::table('settings')->where('id', 1)->first(); 
 
-    return view('workplan.list', compact('workPlans', 'settings'));
+    return view('workplan.list', compact('workPlans', 'settings', 'availableStatuses', 'availableYears'));
 }
 
 public function dashboard()
 {
+    // Fetch global system parameters setup settings
     $settings = DB::table('settings')->where('id', 1)->first();
 
+    // Fetch unique rejected rows intended for the user's recent remarks feedback alert grid
     $notifications = DB::table('workplan')
         ->where('user_id', auth()->id()) 
         ->where('status', 'rejected')    
@@ -357,7 +354,48 @@ public function dashboard()
         ->unique('form_id')
         ->values();
 
-    return view('dashboard', compact('settings', 'notifications'));
+    // 1. Identify the user's assigned operational division group identifier string
+    // This looks at recent submissions from this user to discover their r_center
+    $userRCenter = auth()->user()->responsibility_center;
+
+    // 2. Fetch related transactional models if a department reference profile exists
+    if ($userRCenter) {
+        $workPlans = \App\Models\WorkPlan::where('r_center', $userRCenter)->get();
+        $financialPlans = \App\Models\FinancialPlan::with('workPlan')
+            ->where('r_center', $userRCenter)
+            ->get();
+            
+        // Compute proposed budget accumulations across target records
+        $proposedBudget = $financialPlans->reduce(function ($carry, $plan) {
+            $rowTotal = (float)($plan->q1 ?? 0) + (float)($plan->q2 ?? 0) + (float)($plan->q3 ?? 0) + (float)($plan->q4 ?? 0);
+            return $carry + $rowTotal;
+        }, 0);
+
+        // Compute approved budget accumulations (filtered where parent status matches approved)
+        $approvedBudget = $financialPlans->filter(function ($plan) {
+            return strtolower($plan->workPlan->status ?? '') === 'approved';
+        })->reduce(function ($carry, $plan) {
+            $rowTotal = (float)($plan->q1 ?? 0) + (float)($plan->q2 ?? 0) + (float)($plan->q3 ?? 0) + (float)($plan->q4 ?? 0);
+            return $carry + $rowTotal;
+        }, 0);
+
+        $totalSubmitted = $workPlans->count();
+    } else {
+        // Fallback structures if the user profile does not contain prior submissions history
+        $totalSubmitted = 0;
+        $proposedBudget = 0;
+        $approvedBudget = 0;
+    }
+
+    // Combine calculated parameters into safe variables payload properties array 
+    $stats = [
+        'total_submitted' => $totalSubmitted,
+        'proposed_budget' => $proposedBudget,
+        'approved_budget' => $approvedBudget,
+        'r_center'        => $userRCenter ?? 'N/A'
+    ];
+
+    return view('dashboard', compact('settings', 'notifications', 'stats'));
 }
 
 public function updateStatus(Request $request, $formId)
@@ -549,5 +587,67 @@ public function divisionProfile($r_center)
     ];
 
     return view('division.profile', compact('r_center', 'workPlans', 'financialPlans', 'stats'));
+}
+
+public function financeDashboard()
+{
+    // Fetch global system control settings
+    $settings = \DB::table('settings')->where('id', 1)->first();
+
+    // Fetch all work plans grouped by division (r_center) to count submissions
+    $workPlansGrouped = \App\Models\WorkPlan::all()->groupBy('r_center');
+
+    // Fetch all financial line items to compute proposed vs approved balances per division
+    $financialPlans = \App\Models\FinancialPlan::with('workPlan')->get();
+
+    // Prepare container array for processing the grid rows
+    $divisionRows = [];
+    
+    // Global Accumulators for the top stats cards
+    $globalTotalSubmissions = \App\Models\WorkPlan::count();
+    $globalProposedBudget = 0;
+    $globalApprovedBudget = 0;
+
+    // Loop through each distinct division group to build row data dynamically
+    foreach ($workPlansGrouped as $r_center => $plans) {
+        
+        // Filter financial entries belonging exclusively to this current loop center
+        $divisionFinances = $financialPlans->where('r_center', $r_center);
+
+        // Compute total proposed values for this division row
+        $proposedSum = $divisionFinances->reduce(function ($carry, $item) {
+            $totalRow = (float)($item->q1 ?? 0) + (float)($item->q2 ?? 0) + (float)($item->q3 ?? 0) + (float)($item->q4 ?? 0);
+            return $carry + $totalRow;
+        }, 0);
+
+        // Compute approved values for this division row (where status is APPROVED)
+        $approvedSum = $divisionFinances->filter(function ($item) {
+            return strtolower($item->workPlan->status ?? '') === 'approved';
+        })->reduce(function ($carry, $item) {
+            $totalRow = (float)($item->q1 ?? 0) + (float)($item->q2 ?? 0) + (float)($item->q3 ?? 0) + (float)($item->q4 ?? 0);
+            return $carry + $totalRow;
+        }, 0);
+
+        // Append calculated balances to system-wide global metrics
+        $globalProposedBudget += $proposedSum;
+        $globalApprovedBudget += $approvedSum;
+
+        // Structure individual row layout for AG Grid initialization injection
+        $divisionRows[] = [
+            'r_center' => $r_center,
+            'total_submissions' => $plans->count(),
+            'proposed_budget' => $proposedSum,
+            'approved_budget' => $approvedSum
+        ];
+    }
+
+    // Wrap structured global calculations into an easily referenceable stats block
+    $globalStats = [
+        'total_submissions' => $globalTotalSubmissions,
+        'proposed_budget' => $globalProposedBudget,
+        'approved_budget' => $globalApprovedBudget,
+    ];
+
+    return view('dashfinance', compact('settings', 'divisionRows', 'globalStats'));
 }
 }

@@ -20,6 +20,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Dashboard (Main Hub)
     Route::get('/dashboard', [FormController::class, 'dashboard'])->name('dashboard');
+    
+
+Route::get('/dashboardfinance', [FormController::class, 'financeDashboard'])->name('dashfinance');
 
     // Profile Management
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
