@@ -9,6 +9,7 @@ use App\Models\FinancialPlan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Http;
 
 class FormController extends Controller
 {
@@ -26,18 +27,17 @@ public function store(Request $request)
     $settings = DB::table('settings')->first();
     $now = now();
 
-    // Check submission window
     if (!$settings || !$settings->submission_start || !$settings->submission_end ||
         $now->lt($settings->submission_start) || $now->gt($settings->submission_end)) {
         return back()->with('error', 'Submissions are currently closed.');
     }
 
     $status = $request->input('status', 'pending');
+    $apiEndpoint = 'http://54.255.221.225/ReceiverWFP.php'; 
 
     try {
-        DB::transaction(function () use ($request, $status) {
+        DB::transaction(function () use ($request, $status, $apiEndpoint) {
             
-            // 1. Create the Parent Form
             $form = Form::create([
                 'form_ref'      => 'REF-' . strtoupper(Str::random(8)),
                 'year'          => $request->year,
@@ -48,28 +48,38 @@ public function store(Request $request)
 
             $common = $request->input('common_wp');
 
-            // 2. Loop through Work Plans 
             if ($request->has('workplans')) {
                 foreach ($request->workplans as $index => $wpData) {
                     
-                    // Skip empty initiatives if not a draft
                     if ($status !== 'draft' && empty($wpData['strategic_initiatives'])) continue;
 
-                    // --- Handle Attachments for specific initiative ---
                     $currentFilePaths = [];
-                    if ($request->hasFile("workplans.{$index}.attachments")) {
-                        $yearFolder = $request->year ?? date('Y');
-                        $deptFolder = Str::slug(auth()->user()->responsibility_center);
-                        $destinationPath = "submissions/{$yearFolder}/{$deptFolder}";
 
+                    if ($request->hasFile("workplans.{$index}.attachments")) {
                         foreach ($request->file("workplans.{$index}.attachments") as $file) {
+                            
+                          
                             $fileName = time() . '_' . $file->getClientOriginalName();
-                            $path = $file->storeAs($destinationPath, $fileName, 'public');
-                            $currentFilePaths[] = $path;
+
+                            try {
+                                $response = Http::attach(
+                                    'attachment_file',         
+                                    file_get_contents($file->getRealPath()), 
+                                    $fileName               
+                                )->post($apiEndpoint);
+
+                                if ($response->successful()) {
+                                    
+                                    $currentFilePaths[] = 'uploads/' . $fileName;
+                                } else {
+                                    throw new \Exception("Failed to upload file to S3 API: " . $file->getClientOriginalName());
+                                }
+                            } catch (\Exception $e) {
+                                throw new \Exception("S3 API Error: " . $e->getMessage());
+                            }
                         }
                     }
 
-                    // 3. Create the WorkPlan
                     $workplan = WorkPlan::create([
                         'form_id'               => $form->id,
                         'user_id'               => auth()->id(),
@@ -79,7 +89,7 @@ public function store(Request $request)
                         'strategic_measure'     => $common['strategic_measure'] ?? null,
                         'strategic_initiatives' => $wpData['strategic_initiatives'] ?? null,
                         'success_indicator'     => $wpData['success_indicator'] ?? null,
-                        'unit_type'             => $wpData['unit_type'] ?? 'number', // Added this to track % vs Whole
+                        'unit_type'             => $wpData['unit_type'] ?? 'number',
                         'q1' => $wpData['q1'] ?? 0,
                         'q2' => $wpData['q2'] ?? 0,
                         'q3' => $wpData['q3'] ?? 0,
@@ -91,23 +101,21 @@ public function store(Request $request)
                         'attachments' => !empty($currentFilePaths) ? json_encode($currentFilePaths) : null,
                     ]);
 
-                    // 4. Save Financial Plans for specific WorkPlan
                     if (isset($wpData['financials'])) {
                         foreach ($wpData['financials'] as $fp) {
-                            // Skip empty financial rows
                             if (empty($fp['account_title']) && empty($fp['funds'])) continue;
 
                             FinancialPlan::create([
                                 'form_id'       => $form->id,
-                                'workplan_id'   => $workplan->id, // Important: Linking to the initiative
+                                'workplan_id'   => $workplan->id,
                                 'user_id'       => auth()->id(),
                                 'funds'         => $fp['funds'] ?? null,
                                 'programs'      => $fp['programs'] ?? null,
                                 'expense_class' => $fp['expense_class'] ?? null,
                                 'projects'      => $fp['projects'] ?? null,
                                 'account_title' => $fp['account_title'] ?? null,
-                                'activity' => $fp['activity'] ?? null,
-                                'description' => $fp['description'] ?? null,
+                                'activity'      => $fp['activity'] ?? null,
+                                'description'   => $fp['description'] ?? null,
                                 'q1' => $fp['q1'] ?? 0,
                                 'q2' => $fp['q2'] ?? 0,
                                 'q3' => $fp['q3'] ?? 0,
@@ -649,5 +657,26 @@ public function financeDashboard()
     ];
 
     return view('dashfinance', compact('settings', 'divisionRows', 'globalStats'));
+}
+
+public function viewAttachmentWFP(Request $request)
+{
+    $filePath = $request->query('path'); 
+
+    if (!$filePath) {
+        return abort(404, 'File path is missing.');
+    }
+
+    $fileName = basename($filePath);
+
+    $baseUrl = 'http://54.255.221.225/ViewattachmentWFP.php';
+    
+    $queryParams = [
+        'key' => $fileName,
+    ];
+    
+    $fullUrl = $baseUrl . '?' . http_build_query($queryParams);
+    
+    return redirect()->away($fullUrl);
 }
 }

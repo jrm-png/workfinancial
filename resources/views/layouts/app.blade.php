@@ -200,7 +200,7 @@
                 <span class="nav-text">PDF Export</span>
             </a>
 
-            @if(auth()->user()->isAdmin())
+           @if(auth()->user()->isAdmin() || auth()->user()->role === 'MONITOR')
                 <div class="sidebar-section">Admin</div>
                 <a href="{{ route('admin.users') }}" class="nav-link">
                     <i class="fas fa-user-gear"></i>

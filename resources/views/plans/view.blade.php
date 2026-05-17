@@ -169,13 +169,15 @@ function showDetails(id) {
                 if (wp.attachments) {
                     try {
                         const files = typeof wp.attachments === 'string' ? JSON.parse(wp.attachments) : wp.attachments;
-                        files.forEach(path => {
-                            const fileName = path.split('/').pop();
-                            attachmentHtml += `
-                                <a href="/storage/${path}" target="_blank" class="attachment-pill">
-                                    <i class="fas fa-paperclip" style="margin-right:8px;"></i> ${fileName}
-                                </a>`;
-                        });
+                            files.forEach(path => {
+                                const fileName = path.split('/').pop();
+                                const secureViewUrl = `/workplan/view-attachment?path=${encodeURIComponent(path)}`;
+                                
+                                attachmentHtml += `
+                                    <a href="${secureViewUrl}" target="_blank" class="attachment-pill">
+                                        <i class="fas fa-paperclip" style="margin-right:8px;"></i> ${fileName}
+                                    </a>`;
+                            });
                     } catch (e) { console.error("Attachment error", e); }
                 }
 

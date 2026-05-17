@@ -46,7 +46,7 @@ Route::get('/dashboardfinance', [FormController::class, 'financeDashboard'])->na
         Route::put('/workplan/{workplan}', [WorkPlanController::class, 'update'])->name('workplan.update');
         Route::delete('/workplan/{workplan}', [WorkPlanController::class, 'destroy'])->name('workplan.destroy');
 
-
+Route::get('/workplan/view-attachment', [FormController::class, 'viewAttachmentWFP'])->name('workplan.view-attachment');
         
         Route::get('/export-center', [FormController::class, 'exportView'])->name('plans.export.view');
         Route::get('/export-center/generate', [FormController::class, 'generatePdf'])->name('plans.export.generate');

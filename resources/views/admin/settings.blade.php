@@ -33,9 +33,28 @@
         }
         .form-input:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
 
-        /* Traditional native calendar inputs cleanup */
+        /* ENHANCED: Clickable anywhere inside the date input box */
         input[type="date"].form-input {
             position: relative;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5' /%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-size: 18px;
+            padding-right: 40px;
+        }
+
+        /* Ini-stretch natin ang native picker indicator para sakop ang buong box */
+        input[type="date"].form-input::-webkit-calendar-picker-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: auto;
+            height: auto;
+            color: transparent;
+            background: transparent;
             cursor: pointer;
         }
 
@@ -236,6 +255,7 @@
 
 <script>
     function toggleOverride(userId) {
+        // Handle Ajax toggle logic here
     }
 </script>
 
