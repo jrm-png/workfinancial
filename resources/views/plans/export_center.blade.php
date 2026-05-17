@@ -26,7 +26,7 @@
             </div>
             <div>
                 <label class="section-title">Responsibility Center</label>
-@if(auth()->user()->isAdmin())
+@if(auth()->user()->isAdmin() || auth()->user()->role === 'MONITOR' || auth()->user()->role === 'FINANCE')
     <select name="r_center" class="form-input">
         <option value="ALL">-- ALL CENTERS --</option>
         @foreach($centers as $center) 
@@ -44,7 +44,11 @@
                 <label class="section-title">Budget Year</label>
                 <select name="year" class="form-input">
                     <option value="2026" selected>2026</option>
-                    <option value="2025">2025</option>
+                    <option value="2027">2027</option>
+                    <option value="2028">2028</option>
+                    <option value="2029">2029</option>
+                    <option value="2030">2030</option>
+                    <option value="2031">2031</option>
                 </select>
             </div>
         </div>
