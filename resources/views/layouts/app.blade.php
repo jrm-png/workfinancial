@@ -176,13 +176,12 @@
                     </a>
                 @endif
         
-@if(auth()->user()->isAdmin())
             <div class="sidebar-section">Planning</div>
             <a href="{{ route('plans.create') }}" class="nav-link {{ request()->routeIs('plans.create') ? 'active' : '' }}">
                 <i class="fas fa-edit"></i>
                 <span class="nav-text">Prepare Work Plan</span>
             </a>
-@endif
+
 
             <div class="sidebar-section">Reports</div>
             <a href="{{ route('workplan.list') }}" class="nav-link {{ request()->routeIs('workplan.list') ? 'active' : '' }}">

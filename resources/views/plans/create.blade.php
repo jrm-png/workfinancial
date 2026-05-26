@@ -219,9 +219,11 @@
                                             <label class="form-label">Account Title</label>
                                             <select name="workplans[{{$index}}][financials][{{$fIndex}}][account_title]" class="form-input select2-tags fin-account-input" onchange="updateSummary()">
                                                 <option value="">Select account...</option>
-                                                @foreach(['Traveling Expenses', 'Office Supplies', 'Training Expenses'] as $acc)
-                                                    <option value="{{ $acc }}" {{ $fp->account_title == $acc ? 'selected' : '' }}>{{ $acc }}</option>
-                                                @endforeach
+                                                @if(isset($dropdownOptions['account_title']))
+                                                    @foreach($dropdownOptions['account_title'] as $option)
+                                                        <option value="{{ $option->value }}" {{ $fp->account_title == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
+                                                    @endforeach
+                                                @endif
                                             </select>
                                         </div>
                                     </div>
@@ -314,7 +316,8 @@
     let fileQueue = {}; 
 
     const fundOptions = @json(isset($dropdownOptions['funds']) ? $dropdownOptions['funds'] : []);
-    const expenseOptions = @json(isset($dropdownOptions['expense_class']) ? $dropdownOptions['expense_class'] : []);
+    const expenseOptions = @json(isset($dropdownOptions['expense_class']) ? $dropdownOptions['expense_class'] : []);    
+    const accountOptions = @json(isset($dropdownOptions['account_title']) ? $dropdownOptions['account_title'] : []);
 
     function initSelect2(context = document) {
         $(context).find('.select2-tags').each(function() {
@@ -462,6 +465,9 @@
         let expenseOptionsHtml = '<option value="">Select expense...</option>';
         expenseOptions.forEach(opt => { expenseOptionsHtml += `<option value="${opt.value}">${opt.value}</option>`; });
 
+        let accountOptionsHtml = '<option value="">Select account...</option>';
+        accountOptions.forEach(opt => { accountOptionsHtml += `<option value="${opt.value}">${opt.value}</option>`; });
+
         const html = `
             <div class="fin-row" style="background:white; padding:15px; border-radius:8px; margin-bottom:10px; border:1px solid #d1fae5;">
                 <div class="grid-3">
@@ -486,10 +492,7 @@
                     <div>
                         <label class="form-label">Account Title</label>
                         <select name="workplans[${wpIndex}][financials][${fIndex}][account_title]" class="form-input select2-tags fin-account-input" onchange="updateSummary()">
-                            <option value="">Select account...</option>
-                            <option value="Traveling Expenses">Traveling Expenses</option>
-                            <option value="Office Supplies">Office Supplies</option>
-                            <option value="Training Expenses">Training Expenses</option>
+                            ${accountOptionsHtml}
                         </select>
                     </div>
                 </div>

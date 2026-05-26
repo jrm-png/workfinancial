@@ -21,7 +21,8 @@ class DropdownSettingsController extends Controller
             'strategic_objective' => 'Strategic Objective',
             'strategic_measure' => 'Strategic Measure',
             'funds' => 'Funds',
-            'expense_class' => 'Expense Class'
+            'expense_class' => 'Expense Class',
+            'account_title' => 'Account Title',
         ];
 
         return view('admin.dropdown', compact('options', 'dropdownTypes'));
