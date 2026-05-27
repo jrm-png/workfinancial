@@ -24,7 +24,7 @@
                         {{-- SYSTEM ADMIN & MONITOR OVERRIDE --}}
                         @if(in_array($userRole, ['admin', 'MONITOR']))
                             <option value="PENDING" {{ $currentStatus == 'PENDING' ? 'selected' : '' }}>PENDING</option>
-                            <option value="FOR REVIEWAL" {{ $currentStatus == 'FOR REVIEWAL' ? 'selected' : '' }}>FOR REVIEWAL</option>
+                            <option value="FOR REVIEW" {{ $currentStatus == 'FOR REVIEW' ? 'selected' : '' }}>FOR REVIEW</option>
                             <option value="FOR SUBMISSION TO FINANCE" {{ $currentStatus == 'FOR SUBMISSION TO FINANCE' ? 'selected' : '' }}>FOR SUBMISSION TO FINANCE</option>
                             <option value="APPROVED" {{ $currentStatus == 'APPROVED' ? 'selected' : '' }}>APPROVED</option>
                             <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED</option>
@@ -33,13 +33,13 @@
                         {{-- APPROVER DROPDOWN INTERFACE OPTIONS --}}
                         @if($userRole === 'REVIEWER')
                             <option value="PENDING" {{ $currentStatus == 'PENDING' ? 'selected' : '' }}>PENDING</option>
-                            <option value="FOR REVIEWAL" {{ $currentStatus == 'FOR REVIEWAL' ? 'selected' : '' }}>FOR REVIEWAL (Approve)</option>
+                            <option value="FOR REVIEW" {{ $currentStatus == 'FOR REVIEW' ? 'selected' : '' }}>FOR REVIEW (Approve)</option>
                             <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED (Return to Preparer)</option>
                         @endif
 
                         {{-- REVIEWER DROPDOWN INTERFACE OPTIONS --}}
                         @if(in_array($userRole, ['APPROVER', 'DEPARTMENT MANAGER']))
-                            <option value="FOR REVIEWAL" {{ $currentStatus == 'FOR REVIEWAL' ? 'selected' : '' }}>FOR REVIEWAL</option>
+                            <option value="FOR REVIEW" {{ $currentStatus == 'FOR REVIEW' ? 'selected' : '' }}>FOR REVIEW</option>
                             <option value="FOR SUBMISSION TO FINANCE" {{ $currentStatus == 'FOR SUBMISSION TO FINANCE' ? 'selected' : '' }}>FOR SUBMISSION TO FINANCE (Forward)</option>
                             <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED (Return to Preparer)</option>
                         @endif
@@ -127,9 +127,9 @@ function showDetails(id) {
 
             if (['admin', 'MONITOR'].includes(currentAuthRole)) {
                 isActionableState = true; 
-            } else if (currentAuthRole === 'APPROVER' && ['PENDING', 'FOR REVIEWAL', 'REJECTED'].includes(currentStatus)) {
+            } else if (currentAuthRole === 'APPROVER' && ['PENDING', 'FOR REVIEW', 'REJECTED'].includes(currentStatus)) {
                 isActionableState = true; // Still actionable until it hits Finance states
-            } else if (currentAuthRole === 'REVIEWER' && ['FOR REVIEWAL', 'FOR SUBMISSION TO FINANCE'].includes(currentStatus)) {
+            } else if (currentAuthRole === 'REVIEWER' && ['FOR REVIEW', 'FOR SUBMISSION TO FINANCE'].includes(currentStatus)) {
                 isActionableState = true; // Still actionable until Final Authorization
             } else if (currentAuthRole === 'FINANCE' && ['FOR SUBMISSION TO FINANCE', 'APPROVED'].includes(currentStatus)) {
                 isActionableState = true; 
