@@ -300,7 +300,7 @@
         if (['admin', 'monitor', 'finance'].includes(loggedInUserRole.toLowerCase())) {
             canEdit = true;
         } else if (loggedInUserRole.toUpperCase() === 'PREPARER') {
-            if (hasSameRC && ['pending', 'FOR REVISION', 'draft'].includes(status)) {
+            if (hasSameRC && ['pending', 'for revision', 'draft'].includes(status)) {
                 canEdit = true;
             } else if (!hasSameRC) {
                 restrictionReason = "Access Denied: This plan belongs to another Responsibility Center.";
