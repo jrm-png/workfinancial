@@ -31,14 +31,14 @@
                         @endif
 
                         {{-- APPROVER DROPDOWN INTERFACE OPTIONS --}}
-                        @if($userRole === 'APPROVER')
+                        @if($userRole === 'REVIEWER')
                             <option value="PENDING" {{ $currentStatus == 'PENDING' ? 'selected' : '' }}>PENDING</option>
                             <option value="FOR REVIEWAL" {{ $currentStatus == 'FOR REVIEWAL' ? 'selected' : '' }}>FOR REVIEWAL (Approve)</option>
                             <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED (Return to Preparer)</option>
                         @endif
 
                         {{-- REVIEWER DROPDOWN INTERFACE OPTIONS --}}
-                        @if($userRole === 'REVIEWER')
+                        @if(in_array($userRole, ['APPROVER', 'DEPARTMENT MANAGER']))
                             <option value="FOR REVIEWAL" {{ $currentStatus == 'FOR REVIEWAL' ? 'selected' : '' }}>FOR REVIEWAL</option>
                             <option value="FOR SUBMISSION TO FINANCE" {{ $currentStatus == 'FOR SUBMISSION TO FINANCE' ? 'selected' : '' }}>FOR SUBMISSION TO FINANCE (Forward)</option>
                             <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED (Return to Preparer)</option>
