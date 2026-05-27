@@ -373,6 +373,7 @@
                 </thead>
                 <tbody>
                     @foreach($approvedWorkplans->groupBy('r_center') as $groupName => $plans)
+                        <tr class="group-header"><td colspan="100%">{{ strtoupper($groupName ?: 'Other') }}</td></tr>
                         @foreach($plans as $wp)
                             <tr>
                                 <td>{{ $wp->r_center }}</td>
