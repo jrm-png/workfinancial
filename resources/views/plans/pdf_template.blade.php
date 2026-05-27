@@ -154,7 +154,7 @@
 
         /** Filter for Approved Status Only (Case-Insensitive) **/
         $approvedWorkplans = $workplans->filter(function($item) {
-            return strtolower($item->status) === 'approved' || strtolower($item->status) === 'pending' || strtolower($item->status) === 'for review' || strtolower($item->status) === 'for submission to finance';
+            return strtolower($item->status) === 'approved' | strtolower($item->status) === 'draft'|| strtolower($item->status) === 'pending' || strtolower($item->status) === 'for review' || strtolower($item->status) === 'for submission to finance';
         });
 
         $approvedFormIds = $approvedWorkplans->pluck('form_id')->unique()->toArray();
