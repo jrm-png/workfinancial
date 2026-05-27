@@ -372,7 +372,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($approvedWorkplans->groupBy('') as $groupName => $plans)
+                    @foreach($approvedWorkplans->groupBy('r_center') as $groupName => $plans)
                         @foreach($plans as $wp)
                             <tr>
                                 <td>{{ $wp->r_center }}</td>
