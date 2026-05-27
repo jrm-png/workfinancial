@@ -27,28 +27,28 @@
                             <option value="FOR REVIEW" {{ $currentStatus == 'FOR REVIEW' ? 'selected' : '' }}>FOR REVIEW</option>
                             <option value="FOR SUBMISSION TO FINANCE" {{ $currentStatus == 'FOR SUBMISSION TO FINANCE' ? 'selected' : '' }}>FOR SUBMISSION TO FINANCE</option>
                             <option value="APPROVED" {{ $currentStatus == 'APPROVED' ? 'selected' : '' }}>APPROVED</option>
-                            <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED</option>
+                            <option value="FOR REVISION" {{ $currentStatus == 'FOR REVISION' ? 'selected' : '' }}>FOR REVISION</option>
                         @endif
 
                         {{-- APPROVER DROPDOWN INTERFACE OPTIONS --}}
                         @if($userRole === 'REVIEWER')
                             <option value="PENDING" {{ $currentStatus == 'PENDING' ? 'selected' : '' }}>PENDING</option>
                             <option value="FOR REVIEW" {{ $currentStatus == 'FOR REVIEW' ? 'selected' : '' }}>FOR REVIEW</option>
-                            <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED (Return to Preparer)</option>
+                            <option value="FOR REVISION" {{ $currentStatus == 'FOR REVISION' ? 'selected' : '' }}>FOR REVISION (Return to Preparer)</option>
                         @endif
 
                         {{-- REVIEWER DROPDOWN INTERFACE OPTIONS --}}
                         @if(in_array($userRole, ['APPROVER', 'DEPARTMENT MANAGER']))
                             <option value="FOR REVIEW" {{ $currentStatus == 'FOR REVIEW' ? 'selected' : '' }}>FOR REVIEW</option>
                             <option value="FOR SUBMISSION TO FINANCE" {{ $currentStatus == 'FOR SUBMISSION TO FINANCE' ? 'selected' : '' }}>FOR SUBMISSION TO FINANCE (Forward)</option>
-                            <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED (Return to Preparer)</option>
+                            <option value="FOR REVISION" {{ $currentStatus == 'FOR REVISION' ? 'selected' : '' }}>FOR REVISION (Return to Preparer)</option>
                         @endif
 
                         {{-- FINANCE DROPDOWN INTERFACE OPTIONS --}}
                         @if($userRole === 'FINANCE')
                             <option value="FOR SUBMISSION TO FINANCE" {{ $currentStatus == 'FOR SUBMISSION TO FINANCE' ? 'selected' : '' }}>FOR SUBMISSION TO FINANCE</option>
                             <option value="APPROVED" {{ $currentStatus == 'APPROVED' ? 'selected' : '' }}>APPROVED (Final Authorize)</option>
-                            <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED (Return to Preparer)</option>
+                            <option value="FOR REVISION" {{ $currentStatus == 'FOR REVISION' ? 'selected' : '' }}>FOR REVISION (Return to Preparer)</option>
                         @endif
 
                     </select>
@@ -127,7 +127,7 @@ function showDetails(id) {
 
             if (['admin', 'MONITOR'].includes(currentAuthRole)) {
                 isActionableState = true; 
-            } else if (currentAuthRole === 'REVIEWER' && ['PENDING', 'FOR REVIEW', 'REJECTED'].includes(currentStatus)) {
+            } else if (currentAuthRole === 'REVIEWER' && ['PENDING', 'FOR REVIEW', 'FOR REVISION'].includes(currentStatus)) {
                 isActionableState = true; // Still actionable until it hits Finance states
             } else if (currentAuthRole === 'APPROVER' || 'DEPARTMENT MANAGER' ['FOR REVIEW', 'FOR SUBMISSION TO FINANCE'].includes(currentStatus)) {
                 isActionableState = true; // Still actionable until Final Authorization
