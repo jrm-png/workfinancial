@@ -217,6 +217,7 @@
     // --- Naka-inject na Auth Data galing sa Controller ---
     const loggedInUserRole = @json(auth()->user()->role);
     const loggedInUserRC = @json(auth()->user()->responsibility_center ?? '');
+    const loggedInUserDept = @json(auth()->user()->operating_department ?? '');
 
     const rowData = @json($workPlans);
     const columnDefs = [
@@ -267,77 +268,80 @@
             width: 110,
             valueFormatter: p => p.value ? new Date(p.value).toLocaleDateString() : '-' 
         },
-{ 
-    headerName: 'Actions', 
-    width: 100,
-    cellRenderer: params => {
-        const isViewingOpen = @json($viewingOpen);
-        const status = params.data.status ? params.data.status.toLowerCase() : 'pending';
-        const recordRC = params.data.r_center || '';
-        const isAdmin = loggedInUserRole.toLowerCase() === 'admin';
+        { 
+            headerName: 'Actions', 
+            width: 100,
+            cellRenderer: params => {
+                const isViewingOpen = @json($viewingOpen);
+                const status = params.data.status ? params.data.status.toLowerCase() : 'pending';
+                const recordRC = params.data.r_center || '';
+                const isAdmin = loggedInUserRole.toLowerCase() === 'admin';
 
-        // 1. Eye Icon Logic (View)
-        const eyeIcon = isViewingOpen
-            ? `<i class="fas fa-eye" style="color:#3b82f6; cursor:pointer;" onclick="showDetails(${params.data.id})"></i>`
-            : `<i class="fas fa-eye-slash" style="color:#94a3b8; cursor:not-allowed;" title="Viewing is disabled by Admin"></i>`;
+                // 1. Eye Icon Logic (View)
+                const eyeIcon = isViewingOpen
+                    ? `<i class="fas fa-eye" style="color:#3b82f6; cursor:pointer;" onclick="showDetails(${params.data.id})"></i>`
+                    : `<i class="fas fa-eye-slash" style="color:#94a3b8; cursor:not-allowed;" title="Viewing is disabled by Admin"></i>`;
 
-        // 2. Delete Icon Logic (OVERRIDDEN FOR ADMIN)
-        let deleteIcon = '';
-        if (status === 'approved' && !isAdmin) {
-            // Non-admins are completely locked out of deleting approved records
-            deleteIcon = `<i class="fas fa-trash" style="color:#cbd5e1; cursor:not-allowed;" title="Approved plans cannot be deleted"></i>`;
-        } else {
-            // Admins bypass status lockouts; non-admins can delete anything not yet approved
-            deleteIcon = `<i class="fas fa-trash" style="color:#ef4444; cursor:pointer;" title="${status === 'approved' ? 'Admin Override: Delete Approved Plan' : 'Click to Delete'}" onclick="deleteRecord(${params.data.form_id}, ${params.data.id})"></i>`;
-        }
+                // 2. Delete Icon Logic
+                let deleteIcon = '';
+                if (status === 'approved' && !isAdmin) {
+                    deleteIcon = `<i class="fas fa-trash" style="color:#cbd5e1; cursor:not-allowed;" title="Approved plans cannot be deleted"></i>`;
+                } else {
+                    deleteIcon = `<i class="fas fa-trash" style="color:#ef4444; cursor:pointer;" title="${status === 'approved' ? 'Admin Override: Delete Approved Plan' : 'Click to Delete'}" onclick="deleteRecord(${params.data.form_id}, ${params.data.id})"></i>`;
+                }
 
-        // 3. DYNAMIC ROLE & DIVISION RESTRICTION LOGIC PARA SA EDIT ICON
-        let canEdit = false;
-        let restrictionReason = "You do not have access to edit this plan.";
+                // 3. DYNAMIC ROLE & DIVISION RESTRICTION LOGIC PARA SA EDIT ICON
+                let canEdit = false;
+                let restrictionReason = "You do not have access to edit this plan.";
 
-        const hasSameRC = (recordRC === loggedInUserRC);
+                const hasSameRC = (recordRC === loggedInUserRC);
+                
+                // ⭐ OGM DEPT OVERRIDE MANAGEMENT RULES
+                const ogmGroupRCs = ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD'];
+                const isOgmManagerOverride = (loggedInUserRole.toUpperCase() === 'DEPARTMENT MANAGER' && loggedInUserDept.toUpperCase() === 'OGM' && ogmGroupRCs.includes(recordRC));
 
-        if (['admin', 'monitor', 'finance'].includes(loggedInUserRole.toLowerCase())) {
-            canEdit = true;
-        } else if (loggedInUserRole.toUpperCase() === 'PREPARER') {
-            if (hasSameRC && ['pending', 'for revision', 'draft'].includes(status)) {
-                canEdit = true;
-            } else if (!hasSameRC) {
-                restrictionReason = "Access Denied: This plan belongs to another Responsibility Center.";
-            } else {
-                restrictionReason = `Preparers cannot edit plans with ${status.toUpperCase()} status.`;
+                if (['admin', 'monitor', 'finance'].includes(loggedInUserRole.toLowerCase())) {
+                    canEdit = true;
+                } else if (loggedInUserRole.toUpperCase() === 'PREPARER') {
+                    if (hasSameRC && ['pending', 'for revision', 'draft'].includes(status)) {
+                        canEdit = true;
+                    } else if (!hasSameRC) {
+                        restrictionReason = "Access Denied: This plan belongs to another Responsibility Center.";
+                    } else {
+                        restrictionReason = `Preparers cannot edit plans with ${status.toUpperCase()} status.`;
+                    }
+                } else if (loggedInUserRole.toUpperCase() === 'DEPARTMENT MANAGER') {
+                    // ⭐ Pinalitan ang APPROVER ng DEPARTMENT MANAGER, at isinama ang OGM group routing validation pass:
+                    if ((hasSameRC || isOgmManagerOverride) && ['pending', 'for reviewal', 'FOR REVISION'].includes(status)) {
+                        canEdit = true;
+                    } else if (!hasSameRC && !isOgmManagerOverride) {
+                        restrictionReason = "Access Denied: This plan belongs to another Responsibility Center / Department Group.";
+                    } else {
+                        restrictionReason = `Department Managers cannot edit plans with ${status.toUpperCase()} status.`;
+                    }
+                } else if (loggedInUserRole.toUpperCase() === 'REVIEWER') {
+                    if (hasSameRC && ['pending', 'for reviewal', 'FOR REVISION'].includes(status)) {
+                        canEdit = true;
+                    } else if (!hasSameRC) {
+                        restrictionReason = "Access Denied: This plan belongs to another Responsibility Center.";
+                    } else {
+                        restrictionReason = `Reviewers cannot edit plans with ${status.toUpperCase()} status.`;
+                    }
+                }
+
+                const editIcon = canEdit
+                    ? `<i class="fas fa-edit" style="color:#10b981; cursor:pointer;" title="Click to Edit Plan" onclick="openEditModal(${params.data.form_id})"></i>`
+                    : `<i class="fas fa-edit" style="color:#cbd5e1; cursor:not-allowed;" title="${restrictionReason}"></i>`;
+
+                return `
+                    <div style="display:flex; gap:15px; align-items:center; height:100%; justify-content:center;">
+                        ${eyeIcon}
+                        ${editIcon}
+                        ${deleteIcon}
+                    </div>
+                `;
             }
-        } else if (loggedInUserRole.toUpperCase() === 'APPROVER') {
-            if (hasSameRC && ['pending', 'for reviewal', 'FOR REVISION'].includes(status)) {
-                canEdit = true;
-            } else if (!hasSameRC) {
-                restrictionReason = "Access Denied: This plan belongs to another Responsibility Center.";
-            } else {
-                restrictionReason = `Approvers cannot edit plans with ${status.toUpperCase()} status.`;
-            }
-        } else if (loggedInUserRole.toUpperCase() === 'REVIEWER') {
-            if (hasSameRC && ['pending', 'for reviewal', 'FOR REVISION'].includes(status)) {
-                canEdit = true;
-            } else if (!hasSameRC) {
-                restrictionReason = "Access Denied: This plan belongs to another Responsibility Center.";
-            } else {
-                restrictionReason = `Reviewers cannot edit plans with ${status.toUpperCase()} status.`;
-            }
-        }
-
-        const editIcon = canEdit
-            ? `<i class="fas fa-edit" style="color:#10b981; cursor:pointer;" title="Click to Edit Plan" onclick="openEditModal(${params.data.form_id})"></i>`
-            : `<i class="fas fa-edit" style="color:#cbd5e1; cursor:not-allowed;" title="${restrictionReason}"></i>`;
-
-        return `
-            <div style="display:flex; gap:15px; align-items:center; height:100%; justify-content:center;">
-                ${eyeIcon}
-                ${editIcon}
-                ${deleteIcon}
-            </div>
-        `;
-    }
-},
+        },
         { headerName: 'Strategic Objective', field: 'strategic_objective', width: 180 },
         { headerName: 'Strategic Initiatives', field: 'strategic_initiatives', width: 200 },
         { headerName: 'Measure', field: 'strategic_measure', width: 150 },
@@ -350,19 +354,11 @@
         {
             headerName: 'Total',
             width: 120,
-
             valueGetter: p => {
-
                 const parseValue = (val) => {
                     if (!val) return 0;
-
-                    return parseFloat(
-                        String(val)
-                            .replace(/,/g, '')
-                            .replace(/%/g, '')
-                    ) || 0;
+                    return parseFloat(String(val).replace(/,/g, '').replace(/%/g, '')) || 0;
                 };
-
                 return (
                     parseValue(p.data.q1) +
                     parseValue(p.data.q2) +
@@ -370,29 +366,14 @@
                     parseValue(p.data.q4)
                 );
             },
-
             valueFormatter: p => {
-
-                const values = [
-                    p.data.q1,
-                    p.data.q2,
-                    p.data.q3,
-                    p.data.q4
-                ];
-
-                // check if ANY value contains %
-                const hasPercent = values.some(v =>
-                    String(v).includes('%')
-                );
-
+                const values = [p.data.q1, p.data.q2, p.data.q3, p.data.q4];
+                const hasPercent = values.some(v => String(v).includes('%'));
                 const formatted = Number(p.value).toLocaleString(undefined, {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 2
                 });
-
-                return hasPercent
-                    ? `${formatted}%`
-                    : formatted;
+                return hasPercent ? `${formatted}%` : formatted;
             }
         },
         { 
@@ -463,46 +444,44 @@
         gridApi.setFilterModel(currentModel);
     }
 
-function deleteRecord(formId, workplanId) {
-    const rowNode = gridApi.getRowNode(workplanId.toString());
-    const isAdmin = loggedInUserRole.toLowerCase() === 'admin';
-    
-    // Check if it's approved AND the user is NOT an admin
-    if (rowNode && rowNode.data.status.toLowerCase() === 'approved' && !isAdmin) {
-        alert('Action Denied: Approved plans cannot be deleted.');
-        return;
-    }
-
-    // Custom text warning if an admin is deleting an approved file
-    let confirmationMessage = 'This will delete the entire Work and Financial Plan associated with this record. Continue?';
-    if (rowNode && rowNode.data.status.toLowerCase() === 'approved' && isAdmin) {
-        confirmationMessage = 'WARNING: This plan is already APPROVED. As an Administrator, continuing will forcefully delete the entire plan. Proceed?';
-    }
-
-    if (!confirm(confirmationMessage)) {
-        return;
-    }
-
-    fetch(`/workplan/${formId}`, { 
-        method: 'DELETE',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Accept': 'application/json'
+    function deleteRecord(formId, workplanId) {
+        const rowNode = gridApi.getRowNode(workplanId.toString());
+        const isAdmin = loggedInUserRole.toLowerCase() === 'admin';
+        
+        if (rowNode && rowNode.data.status.toLowerCase() === 'approved' && !isAdmin) {
+            alert('Action Denied: Approved plans cannot be deleted.');
+            return;
         }
-    })
-    .then(res => {
-        if (!res.ok) throw new Error('Delete failed');
-        return res.json();
-    })
-    .then(() => {
-        gridApi.applyTransaction({ remove: [{ id: workplanId }] }); 
-        alert('Whole plan deleted successfully');
-    })
-    .catch(err => {
-        console.error(err);
-        alert('Error: Could not delete the record.');
-    });
-}
+
+        let confirmationMessage = 'This will delete the entire Work and Financial Plan associated with this record. Continue?';
+        if (rowNode && rowNode.data.status.toLowerCase() === 'approved' && isAdmin) {
+            confirmationMessage = 'WARNING: This plan is already APPROVED. As an Administrator, continuing will forcefully delete the entire plan. Proceed?';
+        }
+
+        if (!confirm(confirmationMessage)) {
+            return;
+        }
+
+        fetch(`/workplan/${formId}`, { 
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Delete failed');
+            return res.json();
+        })
+        .then(() => {
+            gridApi.applyTransaction({ remove: [{ id: workplanId }] }); 
+            alert('Whole plan deleted successfully');
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error: Could not delete the record.');
+        });
+    }
 
     function openEditModal(formId) {
         window.location.href = `/plans/${formId}/edit`;

@@ -117,7 +117,7 @@ function showDetails(id) {
             const currentStatus = (firstWP.status || 'PENDING').toUpperCase();
 
             // --- 1. GLOBAL ACCESS ALL PRIVILEGED ROLES ---
-            const authorizedManagementRoles = ['PREPARER', 'APPROVER', 'REVIEWER', 'FINANCE', 'admin', 'MONITOR'];
+            const authorizedManagementRoles = ['PREPARER', 'DEPARTMENT MANAGER', 'REVIEWER', 'FINANCE', 'admin', 'MONITOR'];
             if (!authorizedManagementRoles.includes(currentAuthRole)) {
                 return alert("Access Denied: Your account role tier is not authorized to interact with this module.");
             }
@@ -129,7 +129,7 @@ function showDetails(id) {
                 isActionableState = true; 
             } else if (currentAuthRole === 'REVIEWER' && ['PENDING', 'FOR REVIEW', 'FOR REVISION'].includes(currentStatus)) {
                 isActionableState = true; // Still actionable until it hits Finance states
-            } else if (currentAuthRole === 'APPROVER' || 'DEPARTMENT MANAGER' ['FOR REVIEW', 'FOR SUBMISSION TO FINANCE'].includes(currentStatus)) {
+            } else if (currentAuthRole === 'DEPARTMENT MANAGER' && ['FOR REVIEW', 'FOR SUBMISSION TO FINANCE'].includes(currentStatus)) {
                 isActionableState = true; // Still actionable until Final Authorization
             } else if (currentAuthRole === 'FINANCE' && ['FOR SUBMISSION TO FINANCE', 'APPROVED'].includes(currentStatus)) {
                 isActionableState = true; 
