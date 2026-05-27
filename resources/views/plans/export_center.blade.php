@@ -33,6 +33,38 @@
             <option value="{{ $center }}">{{ $center }}</option> 
         @endforeach
     </select>
+
+@elseif(auth()->user()->role === 'DEPARTMENT MANAGER')
+    @php
+        $deptGroup = strtoupper(auth()->user()->operating_department);
+        $managedCenters = [];
+
+        if ($deptGroup === 'OGM') {
+            $managedCenters = ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD'];
+        } elseif ($deptGroup === 'ERD') {
+            $managedCenters = ['CPD', 'ED', 'SMD', 'ECO'];
+        } elseif ($deptGroup === 'RMDD') {
+            $managedCenters = ['PDMED', 'CDD', 'ELRD'];
+        } elseif ($deptGroup === 'MSD') {
+            $managedCenters = ['ADMIN', 'FINANCE'];
+        }
+        
+        // Pinagsasama ang mga centers gamit ang comma para sa value ng filter
+        $allDeptValue = implode(',', $managedCenters);
+    @endphp
+
+    <select name="r_center" class="form-input">
+        {{-- Option para makita ang lahat ng centers sa ilalim ng kanilang departamento --}}
+        <option value="{{ $allDeptValue }}">-- ALL UNDER {{ $deptGroup }} --</option>
+        
+        {{-- Mga indibidwal na centers sa ilalim ng kanilang departamento --}}
+        @foreach($managedCenters as $center)
+            <option value="{{ $center }}" {{ auth()->user()->responsibility_center === $center ? 'selected' : '' }}>
+                {{ $center }}
+            </option>
+        @endforeach
+    </select>
+
 @else
     <select class="form-input" disabled>
         <option>{{ auth()->user()->responsibility_center }}</option>

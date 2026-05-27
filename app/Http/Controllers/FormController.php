@@ -241,9 +241,18 @@ public function generatePdf(Request $request)
     $wpQuery = WorkPlan::where('year', $year);
     $fpQuery = FinancialPlan::where('year', $year);
 
+    // ⭐ OPERATING DEPARTMENT & ALL CENTERS FILTER HANDLING
     if ($center !== 'ALL') {
-        $wpQuery->where('r_center', $center);
-        $fpQuery->where('r_center', $center);
+        if (str_contains($center, ',')) {
+            // Kapag pinili ang "-- ALL UNDER [DEPT] --", gagawin nating array ang string list
+            $centersArray = explode(',', $center);
+            $wpQuery->whereIn('r_center', $centersArray);
+            $fpQuery->whereIn('r_center', $centersArray);
+        } else {
+            // Kapag isang indibidwal na Responsibility Center lang ang pinili
+            $wpQuery->where('r_center', $center);
+            $fpQuery->where('r_center', $center);
+        }
     }
 
     if ($mode === 'summary') {
@@ -255,6 +264,11 @@ public function generatePdf(Request $request)
             if(!in_array($col, ['amount', 'quarterly'])) {
                 $summaryGroupBy[] = $col;
             }
+        }
+
+        // Tiyakin nating kasama ang r_center kapag marami silang centers na nilo-load para sa tracking ng summary cards
+        if (str_contains($center, ',') && !in_array('r_center', $summaryGroupBy)) {
+            $summaryGroupBy[] = 'r_center';
         }
 
         $summaryData = $fpQuery->select($summaryGroupBy)
@@ -289,8 +303,15 @@ public function generatePdf(Request $request)
         ];
     }
 
+    // --- Dynamic Title for Header ---
+    // Kung marami ang centers, palitan ang label ng pangalan ng mismong Operating Department ng manager
+    if (str_contains($center, ',')) {
+        $data['r_center'] = auth()->user()->operating_department . ' DEPT (COMBINED)';
+    } else {
+        $data['r_center'] = $center;
+    }
+
     // Common Data
-    $data['r_center'] = $center;
     $data['year'] = $year;
     $data['report_type'] = $request->report_type;
     $data['layout'] = $request->layout_mode;
@@ -302,6 +323,11 @@ public function generatePdf(Request $request)
         'app_show' => $request->has('sig_app_show'),
         'app_name' => $request->sig_app_name, 'app_pos' => $request->sig_app_pos,
     ];
+
+    // Para sa dynamic tracker calculation ng Summary Table na nasa pinakababa ng pdf_template blade mo:
+    if (!isset($data['rcTotalsTracker'])) {
+        $data['rcTotalsTracker'] = $financials ?? collect();
+    }
 
     return PDF::loadView('plans.pdf_template', $data)->setPaper('a4', 'landscape')->stream('Report.pdf');
 }
