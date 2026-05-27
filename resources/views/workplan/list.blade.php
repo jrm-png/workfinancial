@@ -64,7 +64,7 @@
         /* Row Background Colors */
         .row-approved { background-color: #ffffff !important; } 
         .row-pending { background-color: #fffbeb !important; }  
-        .row-rejected { background-color: #fef2f2 !important; } 
+        .row-FOR REVISION { background-color: #fef2f2 !important; } 
         .row-revised { background-color: #f0f9ff !important; } 
 
         .ag-theme-alpine .ag-row:hover { filter: brightness(0.95); }
@@ -130,7 +130,7 @@
                             <option value="">All Statuses</option>
                             <option value="Approved">Approved</option>
                             <option value="Pending">Pending</option>
-                            <option value="Rejected">Rejected</option>
+                            <option value="FOR REVISION">FOR REVISION</option>
                             <option value="Revised">Revised</option>
                         </select>
                     </div>
@@ -152,7 +152,7 @@
                             <option value="">All Objective</option>
                             <option value="Approved">Approved</option>
                             <option value="Pending">Pending</option>
-                            <option value="Rejected">Rejected</option>
+                            <option value="FOR REVISION">FOR REVISION</option>
                             <option value="Revised">Revised</option>
                         </select>
                     </div>
@@ -242,7 +242,7 @@
                 
                 if (status === 'approved') {
                     config = { color: '#059669', bg: '#ecfdf5', icon: 'fa-check-circle' };
-                } else if (status === 'returned' || status === 'rejected') {
+                } else if (status === 'returned' || status === 'FOR REVISION') {
                     config = { color: '#dc2626', bg: '#fef2f2', icon: 'fa-exclamation-circle' };
                 } else if (status === 'revised') {
                     config = { color: '#0284c7', bg: '#e0f2fe', icon: 'fa-pen-to-square' };
@@ -300,7 +300,7 @@
         if (['admin', 'monitor', 'finance'].includes(loggedInUserRole.toLowerCase())) {
             canEdit = true;
         } else if (loggedInUserRole.toUpperCase() === 'PREPARER') {
-            if (hasSameRC && ['pending', 'rejected', 'draft'].includes(status)) {
+            if (hasSameRC && ['pending', 'FOR REVISION', 'draft'].includes(status)) {
                 canEdit = true;
             } else if (!hasSameRC) {
                 restrictionReason = "Access Denied: This plan belongs to another Responsibility Center.";
@@ -308,7 +308,7 @@
                 restrictionReason = `Preparers cannot edit plans with ${status.toUpperCase()} status.`;
             }
         } else if (loggedInUserRole.toUpperCase() === 'APPROVER') {
-            if (hasSameRC && ['pending', 'for reviewal', 'rejected'].includes(status)) {
+            if (hasSameRC && ['pending', 'for reviewal', 'FOR REVISION'].includes(status)) {
                 canEdit = true;
             } else if (!hasSameRC) {
                 restrictionReason = "Access Denied: This plan belongs to another Responsibility Center.";
@@ -316,7 +316,7 @@
                 restrictionReason = `Approvers cannot edit plans with ${status.toUpperCase()} status.`;
             }
         } else if (loggedInUserRole.toUpperCase() === 'REVIEWER') {
-            if (hasSameRC && ['pending', 'for reviewal', 'rejected'].includes(status)) {
+            if (hasSameRC && ['pending', 'for reviewal', 'FOR REVISION'].includes(status)) {
                 canEdit = true;
             } else if (!hasSameRC) {
                 restrictionReason = "Access Denied: This plan belongs to another Responsibility Center.";
@@ -411,7 +411,7 @@
         getRowClass: params => {
             const status = params.data.status ? params.data.status.toLowerCase() : '';
             if (status === 'pending' || status === 'draft') return 'row-pending';
-            if (status === 'returned' || status === 'rejected') return 'row-rejected';
+            if (status === 'returned' || status === 'FOR REVISION') return 'row-FOR REVISION';
             if (status === 'revised') return 'row-revised';
             if (status === 'approved') return 'row-approved';
             return null;
