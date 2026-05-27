@@ -33,7 +33,7 @@
                         {{-- APPROVER DROPDOWN INTERFACE OPTIONS --}}
                         @if($userRole === 'REVIEWER')
                             <option value="PENDING" {{ $currentStatus == 'PENDING' ? 'selected' : '' }}>PENDING</option>
-                            <option value="FOR REVIEW" {{ $currentStatus == 'FOR REVIEW' ? 'selected' : '' }}>FOR REVIEW (Approve)</option>
+                            <option value="FOR REVIEW" {{ $currentStatus == 'FOR REVIEW' ? 'selected' : '' }}>FOR REVIEW</option>
                             <option value="REJECTED" {{ $currentStatus == 'REJECTED' ? 'selected' : '' }}>REJECTED (Return to Preparer)</option>
                         @endif
 
@@ -127,9 +127,9 @@ function showDetails(id) {
 
             if (['admin', 'MONITOR'].includes(currentAuthRole)) {
                 isActionableState = true; 
-            } else if (currentAuthRole === 'APPROVER' && ['PENDING', 'FOR REVIEW', 'REJECTED'].includes(currentStatus)) {
+            } else if (currentAuthRole === 'REVIEWER' && ['PENDING', 'FOR REVIEW', 'REJECTED'].includes(currentStatus)) {
                 isActionableState = true; // Still actionable until it hits Finance states
-            } else if (currentAuthRole === 'REVIEWER' && ['FOR REVIEW', 'FOR SUBMISSION TO FINANCE'].includes(currentStatus)) {
+            } else if (currentAuthRole === 'APPROVER' || 'DEPARTMENT MANAGER' ['FOR REVIEW', 'FOR SUBMISSION TO FINANCE'].includes(currentStatus)) {
                 isActionableState = true; // Still actionable until Final Authorization
             } else if (currentAuthRole === 'FINANCE' && ['FOR SUBMISSION TO FINANCE', 'APPROVED'].includes(currentStatus)) {
                 isActionableState = true; 

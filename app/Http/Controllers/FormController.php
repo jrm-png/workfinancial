@@ -329,18 +329,21 @@ public function index()
     // 1. Logic for Data Visibility based on Roles & Responsibility Center
     if (in_array($user->role, ['admin', 'MONITOR', 'FINANCE'])) {
         $workPlans = \App\Models\WorkPlan::all();
-        $financialPlans = \App\Models\FinancialPlan::all();
+        $financialPlans = \App\Models\FinancialPlan::all;
     } else {
         $workPlans = \App\Models\WorkPlan::where('r_center', $user->responsibility_center)->get(); 
         $financialPlans = \App\Models\FinancialPlan::where('r_center', $user->responsibility_center)->get(); 
     }
     
+    $availableStatuses = $financialPlans->pluck('status')->unique()->filter()->toArray();
+    $availableYears = $financialPlans->pluck('year')->unique()->filter()->sort()->toArray();
+
     $availableStatuses = $workPlans->pluck('status')->unique()->filter()->toArray();
     $availableYears = $workPlans->pluck('year')->unique()->filter()->sort()->toArray();
 
     $settings = \DB::table('settings')->where('id', 1)->first(); 
 
-    return view('workplan.list', compact('workPlans', 'settings', 'availableStatuses', 'availableYears'));
+    return view('workplan.list', 'financial.list', compact('workPlans', 'settings', 'availableStatuses', 'availableYears'));
 }
 
 public function dashboard()
