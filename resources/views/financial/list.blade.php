@@ -180,77 +180,18 @@
                     </div>`;
             }
         },
-{ 
-    headerName: 'Actions', 
-    width: 100,
-    cellRenderer: params => {
-        const isViewingOpen = @json($viewingOpen);
-        const status = params.data.status ? params.data.status.toLowerCase() : 'pending';
-        const recordRC = params.data.r_center || '';
-        const isAdmin = loggedInUserRole.toLowerCase() === 'admin';
-
-        // 1. Eye Icon Logic (View)
-        const eyeIcon = isViewingOpen
-            ? `<i class="fas fa-eye" style="color:#3b82f6; cursor:pointer;" onclick="showDetails(${params.data.id})"></i>`
-            : `<i class="fas fa-eye-slash" style="color:#94a3b8; cursor:not-allowed;" title="Viewing is disabled by Admin"></i>`;
-
-        // 2. Delete Icon Logic (OVERRIDDEN FOR ADMIN)
-        let deleteIcon = '';
-        if (status === 'approved' && !isAdmin) {
-            // Non-admins are completely locked out of deleting approved records
-            deleteIcon = `<i class="fas fa-trash" style="color:#cbd5e1; cursor:not-allowed;" title="Approved plans cannot be deleted"></i>`;
-        } else {
-            // Admins bypass status lockouts; non-admins can delete anything not yet approved
-            deleteIcon = `<i class="fas fa-trash" style="color:#ef4444; cursor:pointer;" title="${status === 'approved' ? 'Admin Override: Delete Approved Plan' : 'Click to Delete'}" onclick="deleteRecord(${params.data.form_id}, ${params.data.id})"></i>`;
-        }
-
-        // 3. DYNAMIC ROLE & DIVISION RESTRICTION LOGIC PARA SA EDIT ICON
-        let canEdit = false;
-        let restrictionReason = "You do not have access to edit this plan.";
-
-        const hasSameRC = (recordRC === loggedInUserRC);
-
-        if (['admin', 'monitor', 'finance'].includes(loggedInUserRole.toLowerCase())) {
-            canEdit = true;
-        } else if (loggedInUserRole.toUpperCase() === 'PREPARER') {
-            if (hasSameRC && ['pending', 'rejected', 'draft'].includes(status)) {
-                canEdit = true;
-            } else if (!hasSameRC) {
-                restrictionReason = "Access Denied: This plan belongs to another Responsibility Center.";
-            } else {
-                restrictionReason = `Preparers cannot edit plans with ${status.toUpperCase()} status.`;
+        { 
+            headerName: 'Actions', 
+            width: 120,
+            cellRenderer: params => {
+                return `
+                    <div style="display:flex; gap:15px; align-items:center; height:100%; justify-content:center;">
+                        <i class="fas fa-eye" style="color:#3b82f6; cursor:pointer;" title="View Details"></i>
+                        <i class="fas fa-edit" style="color:#10b981; cursor:pointer;" onclick="openEditModal(${params.data.id})"></i>
+                        <i class="fas fa-trash" style="color:#ef4444; cursor:pointer;" onclick="deleteRecord(${params.data.id})"></i>
+                    </div>`;
             }
-        } else if (loggedInUserRole.toUpperCase() === 'APPROVER') {
-            if (hasSameRC && ['pending', 'for reviewal', 'rejected'].includes(status)) {
-                canEdit = true;
-            } else if (!hasSameRC) {
-                restrictionReason = "Access Denied: This plan belongs to another Responsibility Center.";
-            } else {
-                restrictionReason = `Approvers cannot edit plans with ${status.toUpperCase()} status.`;
-            }
-        } else if (loggedInUserRole.toUpperCase() === 'REVIEWER') {
-            if (hasSameRC && ['pending', 'for reviewal', 'rejected'].includes(status)) {
-                canEdit = true;
-            } else if (!hasSameRC) {
-                restrictionReason = "Access Denied: This plan belongs to another Responsibility Center.";
-            } else {
-                restrictionReason = `Reviewers cannot edit plans with ${status.toUpperCase()} status.`;
-            }
-        }
-
-        const editIcon = canEdit
-            ? `<i class="fas fa-edit" style="color:#10b981; cursor:pointer;" title="Click to Edit Plan" onclick="openEditModal(${params.data.form_id})"></i>`
-            : `<i class="fas fa-edit" style="color:#cbd5e1; cursor:not-allowed;" title="${restrictionReason}"></i>`;
-
-        return `
-            <div style="display:flex; gap:15px; align-items:center; height:100%; justify-content:center;">
-                ${eyeIcon}
-                ${editIcon}
-                ${deleteIcon}
-            </div>
-        `;
-    }
-},
+        },
         { headerName: 'Funds', field: 'funds', width: 130 },
         { headerName: 'Programs', field: 'programs', width: 180 },
         { headerName: 'Projects', field: 'projects', width: 180 },
