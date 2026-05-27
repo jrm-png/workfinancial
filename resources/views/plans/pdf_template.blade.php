@@ -174,7 +174,7 @@
         @php
             $sumG1 = 0; $sumG2 = 0; $sumG3 = 0; $sumG4 = 0; $sumGrandTotal = 0;
         @endphp
-        <div class="section-header">BUDGET SUMMARY TOTALS (APPROVED ONLY)</div>
+        <div class="section-header">BUDGET SUMMARY TOTALS </div>
         <table>
             <thead>
                 <tr>
@@ -356,7 +356,7 @@
          ========================================================================== --}}
     @else
         @if($report_type == 'combined' || $report_type == 'wp_only')
-            <div class="section-header">I. WORK PLAN (APPROVED)</div>
+            <div class="section-header">I. WORK PLAN </div>
             <table>
                 <thead>
                     <tr>
@@ -399,7 +399,7 @@
             @php
                 $vtQ1 = 0; $vtQ2 = 0; $vtQ3 = 0; $vtQ4 = 0; $vtGrandTotal = 0;
             @endphp
-            <div class="section-header" style="background:#059669;">II. FINANCIAL PLAN (APPROVED)</div>
+            <div class="section-header" style="background:#059669;">II. FINANCIAL PLAN </div>
             <table>
                 <thead>
                     <tr>

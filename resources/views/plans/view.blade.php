@@ -11,7 +11,7 @@
                 @php
                     $currentStatus = strtoupper($form->status ?? 'PENDING');
                     $userRole = auth()->user()->role;
-                    $hasModifierAccess = in_array($userRole, ['admin', 'MONITOR', 'APPROVER', 'REVIEWER', 'FINANCE']);
+                    $hasModifierAccess = in_array($userRole, ['admin', 'MONITOR', 'APPROVER', 'REVIEWER', 'FINANCE', 'DEPARTMENT MANAGER']);
                 @endphp
 
                 @if($hasModifierAccess)

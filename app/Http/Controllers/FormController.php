@@ -327,13 +327,30 @@ public function index()
     $user = auth()->user();
 
     // 1. Logic for Data Visibility based on Roles & Responsibility Center
-    if (in_array($user->role, ['admin', 'MONITOR', 'FINANCE'])) {
+    if (in_array(strtolower($user->role), ['admin', 'monitor', 'finance'])) {
+        // High-level roles see everything
         $workPlans = \App\Models\WorkPlan::all();
-    } else {
+    } elseif (strtoupper($user->role) === 'APPROVER' && strtoupper($user->operating_department) === 'OGM') {
+        $targetRCs = ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD'];
+        $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
+    
+    } elseif (strtoupper($user->role) === 'APPROVER' && strtoupper($user->operating_department) === 'ERD') {
+        $targetRCs = ['CPD', 'ED', 'SMD', 'ECO'];
+        $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
+    } 
+     elseif (strtoupper($user->role) === 'APPROVER' && strtoupper($user->operating_department) === 'RMDD') {
+        $targetRCs = ['PDMED', 'CDD', 'ELRD'];
+        $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
+    } 
+     elseif (strtoupper($user->role) === 'APPROVER' && strtoupper($user->operating_department) === 'MSD') {
+        $targetRCs = ['ADMIN', 'FINANCE'];
+        $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
+    } 
+    else {
+        // Standard user data isolation rule
         $workPlans = \App\Models\WorkPlan::where('r_center', $user->responsibility_center)->get(); 
     }
     
-
     $availableStatuses = $workPlans->pluck('status')->unique()->filter()->toArray();
     $availableYears = $workPlans->pluck('year')->unique()->filter()->sort()->toArray();
 
