@@ -22,7 +22,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [FormController::class, 'dashboard'])->name('dashboard');
     
 
-Route::get('/dashboardfinance', [FormController::class, 'financeDashboard'])->name('dashfinance');
+    Route::get('/dashboardfinance', [FormController::class, 'financeDashboard'])->name('dashfinance');
 
     // Profile Management
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -46,8 +46,8 @@ Route::get('/dashboardfinance', [FormController::class, 'financeDashboard'])->na
         Route::put('/workplan/{workplan}', [WorkPlanController::class, 'update'])->name('workplan.update');
         Route::delete('/workplan/{workplan}', [WorkPlanController::class, 'destroy'])->name('workplan.destroy');
 
-Route::get('/workplan/view-attachment', [FormController::class, 'viewAttachmentWFP'])->name('workplan.view-attachment');
-        
+    Route::get('/workplan/view-attachment', [FormController::class, 'viewAttachmentWFP'])->name('workplan.view-attachment');
+            
         Route::get('/export-center', [FormController::class, 'exportView'])->name('plans.export.view');
         Route::get('/export-center/generate', [FormController::class, 'generatePdf'])->name('plans.export.generate');
 
@@ -74,11 +74,16 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('/users', [UserController::class, 'store'])->name('admin.users.store');
     Route::post('/users/{user}/reset-password', [UserController::class, 'reset'])->name('admin.users.reset');
 
+    // edit delete bai
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('admin.users.destroy');
+
+    
     // SETTINGS & CONTROL PANEL
     Route::get('/settings', [FormController::class, 'settings'])->name('admin.settings');
     Route::post('/settings', [FormController::class, 'updateSettings'])->name('settings.update');
 
-Route::prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('admin')->name('admin.')->group(function () {
     // Main View page for dropdown management
     Route::get('/dropdowns', [App\Http\Controllers\Admin\DropdownSettingsController::class, 'index'])->name('dropdowns.index');
     

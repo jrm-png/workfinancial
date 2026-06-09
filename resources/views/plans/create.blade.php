@@ -573,7 +573,6 @@
                     const progInput = row.querySelector('.fin-program-input').value || '';
                     const projInput = row.querySelector('[class*="fin-project-input"]').value || '';
                     
-                    // ⭐ GINAWANG LIGTAS ANG PAGKUHA NG VALUE SA SELECT2 PARA HINDI MAG-CRASH ANG GRAND TOTAL
                     const expElement = row.querySelector('.fin-expense-input');
                     const accElement = row.querySelector('.fin-account-input');
                     
@@ -592,7 +591,7 @@
         });
         document.getElementById('grand-total-val').innerText = `PHP ${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
     }
-
+      
     // --- FINAL SYNC & SUBMIT ---
     document.getElementById('planForm').onsubmit = function() {
         Object.keys(fileQueue).forEach(idx => {

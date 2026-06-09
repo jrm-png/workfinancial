@@ -277,6 +277,7 @@
                         $zebraClass = ($loop->index % 2 == 0) ? 'form-group-even' : 'form-group-odd';
                     @endphp
                     @for($i = 0; $i < $totalRowsForForm; $i++)
+                    
                         @php 
                             $wp = $formWps->get($i); 
                             $fp = $formFps->get($i); 
