@@ -116,11 +116,11 @@ function showDetails(id) {
             const firstWP = workPlans[0];
             const currentStatus = (firstWP.status || 'PENDING').toUpperCase();
 
-            // --- 1. GLOBAL ACCESS ALL PRIVILEGED ROLES ---
-            const authorizedManagementRoles = ['PREPARER', 'DEPARTMENT MANAGER', 'REVIEWER', 'FINANCE', 'admin', 'MONITOR'];
-            if (!authorizedManagementRoles.includes(currentAuthRole)) {
-                return alert("Access Denied: Your account role tier is not authorized to interact with this module.");
-            }
+            // // --- 1. GLOBAL ACCESS ALL PRIVILEGED ROLES ---
+            // const authorizedManagementRoles = ['PREPARER', 'DEPARTMENT MANAGER', 'REVIEWER', 'FINANCE', 'admin', 'MONITOR'];
+            // if (!authorizedManagementRoles.includes(currentAuthRole)) {
+            //     return alert("Access Denied: Your account role tier is not authorized to interact with this module.");
+            // }
 
             // --- 2. ADJUSTED WORKFLOW POSITION WINDOW RULES ---
             let isActionableState = false;
