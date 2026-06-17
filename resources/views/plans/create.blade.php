@@ -163,6 +163,11 @@
                         <div><label class="form-label">Success Indicator</label><textarea name="workplans[{{$index}}][success_indicator]" class="form-input" rows="2">{{ $wp->success_indicator }}</textarea></div>
                     </div>
 
+                    <div style="margin-bottom: 15px;">
+                        <label class="form-label">Remarks</label>
+                        <input type="text" name="workplans[0][remarks]" class="form-input">
+                    </div>
+
                     <div class="target-box">
                         <label class="form-label">Quarterly Targets</label>
                         <div class="grid-4">

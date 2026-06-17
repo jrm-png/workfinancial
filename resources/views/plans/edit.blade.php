@@ -179,6 +179,11 @@
                         </div>
                     </div>
 
+                    <div style="margin-bottom: 15px;">
+            <label class="form-label">Remarks / Notes per Initiative</label>
+            <input type="text" name="workplans[{{$index}}][remarks]" value="{{ old('workplans.'.$index.'.remarks', $wp->remarks) }}" class="form-input" placeholder="Optional remarks or justifications for this initiative...">
+        </div>
+
                     <div class="target-box">
                         <label class="form-label">Quarterly Targets</label>
                         <div class="grid-4">

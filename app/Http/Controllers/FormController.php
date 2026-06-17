@@ -99,6 +99,7 @@ public function store(Request $request)
                         'r_center'   => auth()->user()->responsibility_center,
                         'department' => auth()->user()->operating_department,
                         'attachments' => !empty($currentFilePaths) ? json_encode($currentFilePaths) : null,
+                        'remarks'               => $wpData['remarks'] ?? null,
                     ]);
 
                     if (isset($wpData['financials'])) {
@@ -479,52 +480,23 @@ public function updateStatus(Request $request, $formId)
 
 public function edit($id)
 {
-    $form = Form::with(['workPlans.attachments', 'financialPlans'])->findOrFail($id);
     $user = auth()->user();
-    $userRole = $user->role;
 
-    // Isolate data viewing boundaries per Responsibility Center for standard users
-    if (in_array($userRole, ['PREPARER', 'APPROVER', 'REVIEWER', 'DEPARTMENT MANAGER'])) {
-        if ($form->r_center !== $user->responsibility_center) {
-            // Kung manager, payagan kung kapareho ng operating department
-            if ($userRole === 'DEPARTMENT MANAGER') {
-                $managerDept = strtoupper($user->operating_department);
-                $formRcDept = $this->getDepartmentOfRc($form->r_center);
-                if ($managerDept !== $formRcDept) {
-                    abort(403, 'Unauthorized access to department data boundaries.');
-                }
-            } else {
-                abort(403, 'Unauthorized scope block.');
-            }
-        }
+    // Explicit Role Security Boundary Verification
+    $allowedRoles = ['PREPARER', 'APPROVER', 'MONITOR', 'admin'];
+    if (!in_array($user->role, $allowedRoles)) {
+        abort(403, 'Unauthorized Access: Your profile tier cannot edit performance plans.');
     }
 
-    $dropdownOptions = DB::table('dropdown_settings')->get()->groupBy('type');
-    
-    // ⭐ Binago: Pinalitan ang automatic block ng isang flag ($isLocked)
-    // Kung ang status ay wala sa 'pending' o 'declined', gagawin nating disabled/read-only ang form sa UI ng encoder
-    $isLocked = false;
-    if (in_array($userRole, ['PREPARER', 'DEPARTMENT MANAGER'])) {
-        if (!in_array($form->status, ['pending', 'declined'])) {
-            $isLocked = true; // Naka-lock para sa edit pero pwedeng i-view
-        }
-    }
+    // Retrieve master entry form with corresponding relations loaded
+    $form = \App\Models\Form::findOrFail($id);
+    $workPlans = $form->workPlans; 
+    $financials = \App\Models\FinancialPlan::whereIn('workplan_id', $workPlans->pluck('id'))->get();
 
-    return view('plans.create', compact('form', 'dropdownOptions', 'isLocked'));
-}
+    // 🌟 FIXED LOGIC: Naka-group sa 'type' column mula sa iyong dropdown_settings table
+    $dropdownOptions = \App\Models\Dropdown::all()->groupBy('type'); 
 
-// Isang helper method para sa department matching logic (siguraduhing nandoon ito sa controller mo)
-private function getDepartmentOfRc($rc) {
-    $rcData = [
-        'OGM' => ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD'],
-        'ERD' => ['CPD', 'ED', 'SMD', 'ECO'],
-        'RMDD' => ['PDMED', 'CDD', 'ELRD'],
-        'MSD' => ['ADMIN', 'FINANCE']
-    ];
-    foreach($rcData as $dept => $centers) {
-        if(in_array($rc, $centers)) return $dept;
-    }
-    return '';
+    return view('plans.edit', compact('form', 'workPlans', 'financials', 'dropdownOptions'));
 }
 
 public function getDrafts()
@@ -596,6 +568,7 @@ public function update(Request $request, $id)
                     'status'     => $status,
                     'year'       => $request->year,
                     'r_center'   => auth()->user()->responsibility_center,
+                    'remarks'               => $wpData['remarks'] ?? null,
                     'department' => auth()->user()->operating_department,
                     'attachments' => !empty($currentFilePaths) ? json_encode(array_values($currentFilePaths)) : null,
                 ]);
