@@ -20,4 +20,9 @@ class Form extends Model // The class name MUST match the filename Form.php
 public function financialPlans() {
     return $this->hasMany(FinancialPlan::class);
 }
+
+public function form()
+    {
+        return $this->belongsTo(Form::class, 'form_id'); 
+    }
 }

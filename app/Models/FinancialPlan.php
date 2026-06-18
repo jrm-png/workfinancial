@@ -34,4 +34,8 @@ public function workPlan()
 {
     return $this->belongsTo(WorkPlan::class, 'workplan_id');
 }
+public function form()
+    {
+        return $this->belongsTo(Form::class, 'form_id'); 
+    }
 }

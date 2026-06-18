@@ -1,9 +1,11 @@
 <?php
 
+namespace App\Models;
 namespace App\Http\Controllers;
 
 use App\Models\FinancialPlan;
 use App\Models\Setting; 
+use App\Models\Form;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -11,17 +13,26 @@ class FinancialPlanController extends Controller
 {
     public function index()
     {
-        // Eager load the workPlan relationship to get the status
-        $financialPlans = FinancialPlan::with('workPlan')
-            ->where('user_id', auth()->id())
-            ->get()
-            ->map(function ($fp) {
-                // Flatten the status into the object for AG Grid to read easily
-                $fp->status = $fp->workPlan->status ?? 'pending';
-                return $fp;
-            });
+        $user = auth()->user();
+        $userRole = $user->role ?? '';
+        $userRc = $user->responsibility_center ?? '';
 
-        $settings = \App\Models\Setting::first(); 
+        // Build the eager loaded query safely
+        $query = FinancialPlan::with(['form', 'workPlan']);
+
+        if (!in_array($userRole, ['admin', 'MONITOR', 'FINANCE'])) {
+            // Standard personnel can only view rows matching their responsibility center
+            $query->where('r_center', $userRc);
+        }
+
+        $financialPlans = $query->get()->map(function ($fp) {
+            // Flatten values smoothly for AG Grid rendering
+            $fp->status = $fp->form->status ?? 'pending';
+            $fp->form_ref = $fp->form->form_ref ?? 'N/A';
+            return $fp;
+        });
+
+        $settings = Setting::first(); 
 
         return view('financial.list', compact('financialPlans', 'settings'));
     }
@@ -30,9 +41,10 @@ class FinancialPlanController extends Controller
     {
         $plan = FinancialPlan::findOrFail($id);
         
-        // no delete if approved na
-        if ($plan->status === 'approved') {
-            return response()->json(['message' => 'Cannot delete approved plans'], 403);
+        // Load parent form state to verify structural status restrictions
+        $parentForm = Form::find($plan->form_id);
+        if ($parentForm && in_array($parentForm->status, ['approved', 'reviewed'])) {
+            return response()->json(['message' => 'Cannot delete structural components of an approved or reviewed plan.'], 403);
         }
 
         $plan->delete();
