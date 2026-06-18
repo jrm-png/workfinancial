@@ -180,7 +180,7 @@
                     </div>
 
                     <div style="margin-bottom: 15px;">
-            <label class="form-label">Remarks / Notes per Initiative</label>
+            <label class="form-label">Remarks</label>
             <input type="text" name="workplans[{{$index}}][remarks]" value="{{ old('workplans.'.$index.'.remarks', $wp->remarks) }}" class="form-input" placeholder="Optional remarks or justifications for this initiative...">
         </div>
 
@@ -674,7 +674,14 @@
         document.getElementById('planForm').submit();
     }
 
+    // --- FINAL SYNC & SUBMIT ---
     document.getElementById('planForm').onsubmit = function() {
+        
+        // ⭐ FORCE ENABLE ALL DISABLED SELECT BOXES SO LARAVEL CAN CAPTURE THE DATA
+        document.querySelectorAll('.fin-program-select').forEach(select => {
+            select.disabled = false;
+        });
+
         Object.keys(fileQueue).forEach(idx => {
             const dt = new DataTransfer();
             fileQueue[idx].forEach(file => dt.items.add(file));
@@ -684,7 +691,6 @@
         });
         return true;
     };
-
     function closeEditModal() {
         if(window.parent && typeof window.parent.closeEditModal === 'function') {
             window.parent.closeEditModal();

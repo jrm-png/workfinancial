@@ -110,18 +110,6 @@
                     </div>
 
                     <div>
-                        <label class="form-label">Major Program</label>
-                        <select id="master_program" name="common_wp[major_program]" class="form-input select2-tags" required onchange="syncProgram(this.value)">
-                            <option value="">Select program...</option>
-                            @if(isset($dropdownOptions['major_program']))
-                                @foreach($dropdownOptions['major_program'] as $option)
-                                    <option value="{{ $option->value }}" {{ ($workplans[0]->major_program ?? '') == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
-                                @endforeach
-                            @endif
-                        </select>
-                    </div>
-
-                    <div>
                         <label class="form-label">Strategic Objective</label>
                         <select name="common_wp[strategic_objective]" class="form-input select2-tags">
                             <option value="">Select objective...</option>
@@ -132,6 +120,19 @@
                             @else
                                 <option value="Environment" {{ ($workplans[0]->strategic_objective ?? '') == 'Environment' ? 'selected' : '' }}>Environment</option>
                                 <option value="Stakeholders" {{ ($workplans[0]->strategic_objective ?? '') == 'Stakeholders' ? 'selected' : '' }}>Stakeholders</option>
+                            @endif
+                        </select>
+                    </div>
+
+                    
+                    <div>
+                        <label class="form-label">Major Program</label>
+                        <select id="master_program" name="common_wp[major_program]" class="form-input select2-tags" required onchange="syncProgram(this.value)">
+                            <option value="">Select program...</option>
+                            @if(isset($dropdownOptions['major_program']))
+                                @foreach($dropdownOptions['major_program'] as $option)
+                                    <option value="{{ $option->value }}" {{ ($workplans[0]->major_program ?? '') == $option->value ? 'selected' : '' }}>{{ $option->value }}</option>
+                                @endforeach
                             @endif
                         </select>
                     </div>
@@ -603,6 +604,12 @@
       
     // --- FINAL SYNC & SUBMIT ---
     document.getElementById('planForm').onsubmit = function() {
+        
+        // ⭐ FORCE ENABLE ALL DISABLED SELECT BOXES SO LARAVEL CAN CAPTURE THE DATA
+        document.querySelectorAll('.fin-program-select').forEach(select => {
+            select.disabled = false;
+        });
+
         Object.keys(fileQueue).forEach(idx => {
             const dt = new DataTransfer();
             fileQueue[idx].forEach(file => dt.items.add(file));
