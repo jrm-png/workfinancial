@@ -111,7 +111,7 @@ public function store(Request $request)
                                 'workplan_id'   => $workplan->id,
                                 'user_id'       => auth()->id(),
                                 'funds'         => $fp['funds'] ?? null,
-                                'programs'      => $fp['programs'] ?? null,
+                                'programs'      => $common['major_program'] ?? null,
                                 'expense_class' => $fp['expense_class'] ?? null,
                                 'projects'      => $fp['projects'] ?? null,
                                 'account_title' => $fp['account_title'] ?? null,
@@ -521,10 +521,11 @@ public function update(Request $request, $id)
             'status' => $status,
         ]);
 
-       $form->financialPlans()->delete();
-        $form->workPlans()->delete();
-
         $common = $request->input('common_wp');
+        
+        // Ipunin ang mga IDs na darating mula sa request para malaman kung ano ang hindi dapat burahin
+        $keptWorkplanIds = [];
+        $keptFinancialIds = [];
 
         if ($request->has('workplans')) {
             foreach ($request->workplans as $index => $wpData) {
@@ -532,8 +533,8 @@ public function update(Request $request, $id)
                 if ($status !== 'draft' && empty($wpData['strategic_initiatives'])) {
                     continue;
                 }
+                
                 $currentFilePaths = [];
-
                 if (isset($wpData['existing_attachments'])) {
                     $currentFilePaths = $wpData['existing_attachments']; 
                 }
@@ -550,59 +551,77 @@ public function update(Request $request, $id)
                     }
                 }
 
-                // 4. I-save ang WorkPlan Row
-                $workplan = WorkPlan::create([
-                    'form_id'               => $form->id,
-                    'user_id'       => auth()->id(),
-                    'strategic_perspective' => $common['strategic_perspective'] ?? null,
-                    'major_program'         => $common['major_program'] ?? null,
-                    'strategic_objective'   => $common['strategic_objective'] ?? null,
-                    'strategic_measure'     => $common['strategic_measure'] ?? null,
-                    'strategic_initiatives' => $wpData['strategic_initiatives'] ?? null,
-                    'success_indicator'     => $wpData['success_indicator'] ?? null,
-                    'unit_type'             => $wpData['unit_type'] ?? 'number',
-                    'q1' => $wpData['q1'] ?? 0,
-                    'q2' => $wpData['q2'] ?? 0,
-                    'q3' => $wpData['q3'] ?? 0,
-                    'q4' => $wpData['q4'] ?? 0,
-                    'status'     => $status,
-                    'year'       => $request->year,
-                    'remarks'               => $wpData['remarks'] ?? null,
-                    'r_center'   => auth()->user()->responsibility_center,
-                                'department' => auth()->user()->operating_department,
-                    'attachments' => !empty($currentFilePaths) ? json_encode(array_values($currentFilePaths)) : null,
-                ]);
+                // GUMAMIT NG updateOrCreate SA HALIP NA delete() + create()
+                $workplan = WorkPlan::updateOrCreate(
+                    [
+                        'id' => $wpData['id'] ?? null, // Kung may ID galing sa form, i-uupdate. Kung wala, gagawa ng bago.
+                    ],
+                    [
+                        'form_id'               => $form->id,
+                        'user_id'               => auth()->id(),
+                        'strategic_perspective' => $common['strategic_perspective'] ?? null,
+                        'major_program'         => $common['major_program'] ?? null,
+                        'strategic_objective'   => $common['strategic_objective'] ?? null,
+                        'strategic_measure'     => $common['strategic_measure'] ?? null,
+                        'strategic_initiatives' => $wpData['strategic_initiatives'] ?? null,
+                        'success_indicator'     => $wpData['success_indicator'] ?? null,
+                        'unit_type'             => $wpData['unit_type'] ?? 'number',
+                        'q1' => $wpData['q1'] ?? 0,
+                        'q2' => $wpData['q2'] ?? 0,
+                        'q3' => $wpData['q3'] ?? 0,
+                        'q4' => $wpData['q4'] ?? 0,
+                        'status'     => $status,
+                        'year'       => $request->year,
+                        'remarks'               => $wpData['remarks'] ?? null,
+                        'r_center'   => auth()->user()->responsibility_center,
+                        'department' => auth()->user()->operating_department,
+                        'attachments' => !empty($currentFilePaths) ? json_encode(array_values($currentFilePaths)) : null,
+                    ]
+                );
 
-               if (isset($wpData['financials'])) {
+                $keptWorkplanIds[] = $workplan->id;
+
+                if (isset($wpData['financials'])) {
                     foreach ($wpData['financials'] as $fp) {
-                        // Laktawan ang walang kwentang row
                         if (empty($fp['account_title']) && empty($fp['funds'])) {
                             continue;
                         }
 
-                        FinancialPlan::create([
-                            'form_id'       => $form->id,
-                            'user_id'       => auth()->id(),
-                            'workplan_id'   => $workplan->id, 
-                            'funds'         => $fp['funds'] ?? null,
-                            'programs'      => $fp['programs'] ?? null,
-                            'expense_class' => $fp['expense_class'] ?? null,
-                            'projects'      => $fp['projects'] ?? null,
-                            'account_title' => $fp['account_title'] ?? null,
-                            'activity' => $fp['activity'] ?? null,
-                            'description' => $fp['description'] ?? null,
-                            'q1' => $fp['q1'] ?? 0,
-                            'q2' => $fp['q2'] ?? 0,
-                            'q3' => $fp['q3'] ?? 0,
-                            'q4' => $fp['q4'] ?? 0,
-                            'year'       => $request->year,
-                            'r_center'   => auth()->user()->responsibility_center,
+                        // Katulad sa itaas, updateOrCreate din para sa FinancialPlan
+                        $financial = FinancialPlan::updateOrCreate(
+                            [
+                                'id' => $fp['id'] ?? null,
+                            ],
+                            [
+                                'form_id'       => $form->id,
+                                'user_id'       => auth()->id(),
+                                'workplan_id'   => $workplan->id, 
+                                'funds'         => $fp['funds'] ?? null,
+                                'programs'      => $fp['programs'] ?? null,
+                                'expense_class' => $fp['expense_class'] ?? null,
+                                'projects'      => $fp['projects'] ?? null,
+                                'account_title' => $fp['account_title'] ?? null,
+                                'activity'      => $fp['activity'] ?? null,
+                                'description'   => $fp['description'] ?? null,
+                                'q1' => $fp['q1'] ?? 0,
+                                'q2' => $fp['q2'] ?? 0,
+                                'q3' => $fp['q3'] ?? 0,
+                                'q4' => $fp['q4'] ?? 0,
+                                'year'       => $request->year,
+                                'r_center'   => auth()->user()->responsibility_center,
                                 'department' => auth()->user()->operating_department,
-                        ]);
+                            ]
+                        );
+
+                        $keptFinancialIds[] = $financial->id;
                     }
                 }
             }
         }
+
+        // BURAHIN LAMANG ANG MGA RECODS NA TINANGGAL NG USER SA FRONTEND
+        $form->workPlans()->whereNotIn('id', $keptWorkplanIds)->delete();
+        $form->financialPlans()->whereNotIn('id', $keptFinancialIds)->delete();
     });
 
     return redirect()->route('workplan.list')->with('success', 'Plan updated successfully!');
