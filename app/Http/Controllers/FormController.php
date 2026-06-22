@@ -553,7 +553,6 @@ public function update(Request $request, $id)
                 // 4. I-save ang WorkPlan Row
                 $workplan = WorkPlan::create([
                     'form_id'               => $form->id,
-                    'user_id'               => auth()->id(),
                     'strategic_perspective' => $common['strategic_perspective'] ?? null,
                     'major_program'         => $common['major_program'] ?? null,
                     'strategic_objective'   => $common['strategic_objective'] ?? null,
@@ -567,9 +566,7 @@ public function update(Request $request, $id)
                     'q4' => $wpData['q4'] ?? 0,
                     'status'     => $status,
                     'year'       => $request->year,
-                    'r_center'   => auth()->user()->responsibility_center,
                     'remarks'               => $wpData['remarks'] ?? null,
-                    'department' => auth()->user()->operating_department,
                     'attachments' => !empty($currentFilePaths) ? json_encode(array_values($currentFilePaths)) : null,
                 ]);
 
@@ -582,8 +579,7 @@ public function update(Request $request, $id)
 
                         FinancialPlan::create([
                             'form_id'       => $form->id,
-                            'workplan_id'   => $workplan->id, // Eto yung nawawala kanina!
-                            'user_id'       => auth()->id(),
+                            'workplan_id'   => $workplan->id, 
                             'funds'         => $fp['funds'] ?? null,
                             'programs'      => $fp['programs'] ?? null,
                             'expense_class' => $fp['expense_class'] ?? null,
@@ -596,8 +592,6 @@ public function update(Request $request, $id)
                             'q3' => $fp['q3'] ?? 0,
                             'q4' => $fp['q4'] ?? 0,
                             'year'       => $request->year,
-                            'r_center'   => auth()->user()->responsibility_center,
-                            'department' => auth()->user()->operating_department,
                         ]);
                     }
                 }
