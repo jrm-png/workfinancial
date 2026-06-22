@@ -310,7 +310,6 @@
         </div>
 
         <div class="sticky-bar">
-            <button type="button" onclick="submitDraft()" style="background: #94a3b8; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-right: 10px;">SAVE AS DRAFT</button>
             <button type="submit" style="background: #2563eb; color: white; border: none; padding: 15px 50px; border-radius: 8px; font-weight: 700; cursor: pointer;">SUBMIT PLAN</button>
         </div>
     </form>
