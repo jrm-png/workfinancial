@@ -553,6 +553,7 @@ public function update(Request $request, $id)
                 // 4. I-save ang WorkPlan Row
                 $workplan = WorkPlan::create([
                     'form_id'               => $form->id,
+                    'user_id'       => auth()->id(),
                     'strategic_perspective' => $common['strategic_perspective'] ?? null,
                     'major_program'         => $common['major_program'] ?? null,
                     'strategic_objective'   => $common['strategic_objective'] ?? null,
@@ -579,6 +580,7 @@ public function update(Request $request, $id)
 
                         FinancialPlan::create([
                             'form_id'       => $form->id,
+                            'user_id'       => auth()->id(),
                             'workplan_id'   => $workplan->id, 
                             'funds'         => $fp['funds'] ?? null,
                             'programs'      => $fp['programs'] ?? null,
