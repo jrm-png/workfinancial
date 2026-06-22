@@ -204,7 +204,9 @@
                                                 @endif
                                             </select>
                                         </div>
-                                        <div><label class="form-label">Program</label><input name="workplans[{{$index}}][financials][{{$fIndex}}][programs]" class="form-input fin-program-input" value="{{$fp->major_program}}" readonly></div>
+                                        <div>
+                                            <label class="form-label">Program</label><input name="workplans[{{$index}}][financials][{{$fIndex}}][programs]" class="form-input fin-program-input" value="{{$fp->programs}}" readonly>
+                                        </div>
                                         <div>
                                             <label class="form-label">Expense Class</label>
                                             <select name="workplans[{{$index}}][financials][{{$fIndex}}][expense_class]" class="form-input select2-tags fin-expense-input" onchange="updateSummary()">
