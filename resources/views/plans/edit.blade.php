@@ -355,7 +355,6 @@
 
         <div class="sticky-bar">
             <button type="button" onclick="closeEditModal()" style="background:#e2e8f0; color:#475569; border:none; padding:12px 25px; border-radius:8px; font-weight:600; cursor:pointer; margin-right:10px;">Cancel</button>
-            <button type="button" onclick="saveAsDraft()" style="background:#64748b; color:white; border:none; padding:12px 25px; border-radius:8px; font-weight:600; cursor:pointer; margin-right:10px;">Save Draft</button>
             <button type="submit" style="background:#2563eb; color:white; border:none; padding:12px 35px; border-radius:8px; font-weight:700; cursor:pointer; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.2);">Update & Submit</button>
         </div>
     </form>
