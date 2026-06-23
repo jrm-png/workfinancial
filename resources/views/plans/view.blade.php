@@ -196,10 +196,16 @@ function showDetails(id) {
                         <div class="view-value" style="font-size: 18px; color: #2563eb;">${wp.strategic_measure || '-'}</div>
                     </div>
 
+                    
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
                         <div><label class="view-label">Strategic Initiative</label><div class="view-value" style="background: white; padding:15px; border-radius:10px; border:1px solid #e2e8f0; min-height: 45px;">${wp.strategic_initiatives || '-'}</div></div>
                         <div><label class="view-label">Success Indicator</label><div class="view-value" style="background: white; padding:15px; border-radius:10px; border:1px solid #e2e8f0; min-height: 45px;">${wp.success_indicator || '-'}</div></div>
                     </div>
+
+                    <div style="margin-bottom: 15px;">
+            <label class="form-label">Remarks</label>
+            <div class="view-value" style="background: white; padding:15px; border-radius:10px; border:1px solid #e2e8f0; min-height: 45px;">${wp.remarks || '-'}</div></div>
 
                     <div style="margin-bottom: 35px;">
                         <label class="view-label">Quarterly Targets</label>

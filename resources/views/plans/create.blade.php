@@ -356,7 +356,7 @@
                     <textarea name="workplans[${newIndex}][strategic_initiatives]" class="form-input initiative-text" rows="2" oninput="syncProject(this)"></textarea></div>
                     <div><label class="form-label">Success Indicator</label><textarea name="workplans[${newIndex}][success_indicator]" class="form-input" rows="2"></textarea></div>
                 </div>
-<div style="margin-bottom: 15px;">
+                <div style="margin-bottom: 15px;">
                         <label class="form-label">Remarks</label>
                         <input type="text" name="workplans[${newIndex}][remarks]" class="form-input">
                     </div>

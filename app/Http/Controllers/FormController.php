@@ -551,10 +551,9 @@ public function update(Request $request, $id)
                     }
                 }
 
-                // GUMAMIT NG updateOrCreate SA HALIP NA delete() + create()
                 $workplan = WorkPlan::updateOrCreate(
                     [
-                        'id' => $wpData['id'] ?? null, // Kung may ID galing sa form, i-uupdate. Kung wala, gagawa ng bago.
+                        'id' => $wpData['id'] ?? null, 
                     ],
                     [
                         'form_id'               => $form->id,
@@ -566,10 +565,10 @@ public function update(Request $request, $id)
                         'strategic_initiatives' => $wpData['strategic_initiatives'] ?? null,
                         'success_indicator'     => $wpData['success_indicator'] ?? null,
                         'unit_type'             => $wpData['unit_type'] ?? 'number',
-                        'q1' => $wpData['q1'] ?? 0,
-                        'q2' => $wpData['q2'] ?? 0,
-                        'q3' => $wpData['q3'] ?? 0,
-                        'q4' => $wpData['q4'] ?? 0,
+                        'q1' => str_replace(',', '', $wpData['q1'] ?? 0),
+                        'q2' => str_replace(',', '', $wpData['q2'] ?? 0),
+                        'q3' => str_replace(',', '', $wpData['q3'] ?? 0),
+                        'q4' => str_replace(',', '', $wpData['q4'] ?? 0),
                         'status'     => $status,
                         'year'       => $request->year,
                         'remarks'               => $wpData['remarks'] ?? null,
@@ -603,10 +602,10 @@ public function update(Request $request, $id)
                                 'account_title' => $fp['account_title'] ?? null,
                                 'activity'      => $fp['activity'] ?? null,
                                 'description'   => $fp['description'] ?? null,
-                                'q1' => $fp['q1'] ?? 0,
-                                'q2' => $fp['q2'] ?? 0,
-                                'q3' => $fp['q3'] ?? 0,
-                                'q4' => $fp['q4'] ?? 0,
+                                'q1' => str_replace(',', '', $fp['q1'] ?? 0),
+                                'q2' => str_replace(',', '', $fp['q2'] ?? 0),
+                                'q3' => str_replace(',', '', $fp['q3'] ?? 0),
+                                'q4' => str_replace(',', '', $fp['q4'] ?? 0),
                                 'year'       => $request->year,
                                 'r_center'   => auth()->user()->responsibility_center,
                                 'department' => auth()->user()->operating_department,
