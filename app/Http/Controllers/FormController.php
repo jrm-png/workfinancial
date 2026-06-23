@@ -596,7 +596,7 @@ public function update(Request $request, $id)
                                 'user_id'       => auth()->id(),
                                 'workplan_id'   => $workplan->id, 
                                 'funds'         => $fp['funds'] ?? null,
-                                'programs'      => $fp['programs'] ?? null,
+                                'programs'      => $common['major_program'] ?? null,
                                 'expense_class' => $fp['expense_class'] ?? null,
                                 'projects'      => $fp['projects'] ?? null,
                                 'account_title' => $fp['account_title'] ?? null,
