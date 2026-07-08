@@ -514,7 +514,9 @@ public function update(Request $request, $id)
     $form = Form::findOrFail($id);
     $status = $request->input('status', 'revised');
 
-    DB::transaction(function () use ($request, $form, $status) {
+    $apiEndpoint = 'http://54.255.221.225/ReceiverWFP.php';
+
+    DB::transaction(function () use ($request, $form, $status,$apiEndpoint) {
         
         $form->update([
             'year'   => $request->year,
@@ -539,15 +541,35 @@ public function update(Request $request, $id)
                     $currentFilePaths = $wpData['existing_attachments']; 
                 }
 
+                $apiEndpoint = 'http://54.255.221.225/ReceiverWFP.php';
+
                 if ($request->hasFile("workplans.{$index}.attachments")) {
-                    $yearFolder = $request->year ?? date('Y');
-                    $deptFolder = Str::slug(auth()->user()->responsibility_center);
-                    $destinationPath = "submissions/{$yearFolder}/{$deptFolder}";
 
                     foreach ($request->file("workplans.{$index}.attachments") as $file) {
+
                         $fileName = time() . '_' . $file->getClientOriginalName();
-                        $path = $file->storeAs($destinationPath, $fileName, 'public');
-                        $currentFilePaths[] = $path;
+
+                        try {
+                            $response = Http::attach(
+                                'attachment_file',
+                                file_get_contents($file->getRealPath()),
+                                $fileName
+                            )->post($apiEndpoint);
+
+                            if ($response->successful()) {
+                                // Same path format used by store()
+                                $currentFilePaths[] = 'uploads/' . $fileName;
+                            } else {
+                                throw new \Exception(
+                                    "Failed to upload file: {$file->getClientOriginalName()}"
+                                );
+                            }
+
+                        } catch (\Exception $e) {
+                            throw new \Exception(
+                                "ReceiverWFP Error: " . $e->getMessage()
+                            );
+                        }
                     }
                 }
 
@@ -586,7 +608,6 @@ public function update(Request $request, $id)
                             continue;
                         }
 
-                        // Katulad sa itaas, updateOrCreate din para sa FinancialPlan
                         $financial = FinancialPlan::updateOrCreate(
                             [
                                 'id' => $fp['id'] ?? null,
