@@ -253,6 +253,8 @@
                                 <p class="no-fin-msg" style="font-size: 12px; color: #6b7280; font-style: italic;">No financial plan added.</p>
                             @endforelse
                         </div>
+                        <button type="button" class="btn-add" style="background:#10b981; font-size:11px;" onclick="addFinancialRow({{$index}})">+ Add Budget Row</button>
+                        
                     </div>
 
                     <div class="file-section">
@@ -378,6 +380,8 @@
                         <button type="button" class="btn-add" style="background:#10b981; font-size:11px;" onclick="addFinancialRow(${newIndex})">+ Add Budget Row</button>
                     </div>
                     <div class="fin-rows-container" id="fin-container-${newIndex}"><p class="no-fin-msg" style="font-size: 12px; color: #6b7280; font-style: italic;">No financial plan added.</p></div>
+                    <button type="button" class="btn-add" style="background:#10b981; font-size:11px;" onclick="addFinancialRow(${newIndex})">+ Add Budget Row</button>
+                    
                 </div>
                 <div class="file-section">
                     <label class="form-label" style="color:#831843">Attachments</label>

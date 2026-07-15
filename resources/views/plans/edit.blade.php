@@ -284,11 +284,14 @@
                                         <input type="number" name="workplans[{{$index}}][financials][{{$fIndex}}][q4]" value="{{ $fp->q4 }}" class="form-input cost-input" placeholder="Q4 Amount" oninput="updateSummary()">
                                     </div>
                                     <button type="button" class="btn-remove" style="margin-top:15px; padding:4px 10px;" onclick="this.closest('.fin-row').remove(); updateSummary();">Remove Budget</button>
+                                
                                 </div>
                             @empty
                                 <p class="no-fin-msg" style="font-size: 12px; color: #6b7280; font-style: italic;">No financial plan added.</p>
                             @endforelse
                         </div>
+                        <button type="button" class="btn-add" style="background:#10b981; font-size:11px;" onclick="addFinancialRow({{$index}})">+ Add Budget Row</button>
+                        
                     </div>
 
                     <div class="file-section">
@@ -457,6 +460,8 @@
                 <div class="fin-rows-container" id="fin-container-${nextIdx}">
                     <p class="no-fin-msg" style="font-size: 12px; color: #6b7280; font-style: italic;">No financial plan added.</p>
                 </div>
+                <button type="button" class="btn-add" style="background:#10b981; font-size:11px;" onclick="addFinancialRow(${nextIdx})">+ Add Budget Row</button>
+                
             </div>
 
             <div class="file-section">
