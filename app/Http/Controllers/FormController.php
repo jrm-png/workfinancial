@@ -8,7 +8,7 @@ use App\Models\WorkPlan;
 use App\Models\FinancialPlan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Spatie\Browsershot\Browsershot;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 
 class FormController extends Controller
@@ -330,18 +330,9 @@ public function generatePdf(Request $request)
         $data['rcTotalsTracker'] = $financials ?? collect();
     }
 
-    $html = view('plans.pdf_template', $data)->render();
-
-    $pdf = Browsershot::html($html)
-        ->format('A4')
-        ->landscape()
-        ->showBackground()
-        ->margins(10, 10, 10, 10)
-        ->pdf();
-
-    return response($pdf)
-        ->header('Content-Type', 'application/pdf')
-        ->header('Content-Disposition', 'inline; filename="Report.pdf"');
+return PDF::loadView('plans.pdf_template', $data)
+    ->setPaper('a4', 'landscape')
+    ->stream('Report.pdf');
 }
 public function destroy($id) // $id dito ay ang Form ID
 {
@@ -773,15 +764,23 @@ public function viewAttachmentWFP(Request $request)
 
 public function copySearch()
 {
-    $forms = Form::with(['workPlans'])->where('status', '!=', 'draft')->latest()->get();
+    // Load relations workPlans and financialPlans so the modal can read them
+    $forms = Form::with(['workPlans.financialPlans'])
+        ->where('status', '!=', 'draft')
+        ->latest()
+        ->get();
+
     return view('plans.copyplan', compact('forms'));
 }
 
 public function copyLoad($id)
 {
+    // Load form with nested relationships
     $form = Form::with(['workPlans.financialPlans'])->findOrFail($id);
     
-    $dropdownOptions = \App\Models\Dropdown::all()->groupBy('type');
+    $dropdownOptions = \DB::table('dropdown_settings')
+        ->get()
+        ->groupBy('type');
 
     $isCopy = true;
 

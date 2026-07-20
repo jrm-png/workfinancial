@@ -202,7 +202,7 @@
                             <button type="button" class="btn-add" style="background:#10b981; font-size:11px;" onclick="addFinancialRow({{$index}})">+ Add Budget Row</button>
                         </div>
                         <div class="fin-rows-container" id="fin-container-{{$index}}">
-                            @php $financials = $isEdit ? $wp->financialPlans : []; @endphp
+                            @php $financials = ($isEdit || isset($isCopy)) ? $wp->financialPlans : []; @endphp
                             @forelse($financials as $fIndex => $fp)
                                 <div class="fin-row" style="background:white; padding:15px; border-radius:8px; margin-bottom:10px; border:1px solid #d1fae5;">
                                     <div class="grid-3">
