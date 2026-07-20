@@ -289,6 +289,11 @@
                 } else {
                     deleteIcon = `<i class="fas fa-trash" style="color:#ef4444; cursor:pointer;" title="${status === 'approved' ? 'Admin Override: Delete Approved Plan' : 'Click to Delete'}" onclick="deleteRecord(${params.data.form_id}, ${params.data.id})"></i>`;
                 }
+                
+                const allowedRoles = ['PREPARER', 'APPROVER', 'MONITOR', 'admin'];
+                const hasEditRole = allowedRoles.some(role =>
+                    role.toLowerCase() === loggedInUserRole.toLowerCase()
+                );
 
                 // 3. DYNAMIC ROLE & DIVISION RESTRICTION LOGIC PARA SA EDIT ICON
                 let canEdit = false;
@@ -329,10 +334,13 @@
                     }
                 }
 
-                const editIcon = canEdit
-                    ? `<i class="fas fa-edit" style="color:#10b981; cursor:pointer;" title="Click to Edit Plan" onclick="openEditModal(${params.data.form_id})"></i>`
-                    : `<i class="fas fa-edit" style="color:#cbd5e1; cursor:not-allowed;" title="${restrictionReason}"></i>`;
+                let editIcon = '';
 
+                if (hasEditRole) {
+                    editIcon = canEdit
+                        ? `<i class="fas fa-edit" style="color:#10b981; cursor:pointer;" title="Click to Edit Plan" onclick="openEditModal(${params.data.form_id})"></i>`
+                        : `<i class="fas fa-edit" style="color:#cbd5e1; cursor:not-allowed;" title="${restrictionReason}"></i>`;
+                }
                 return `
                     <div style="display:flex; gap:15px; align-items:center; height:100%; justify-content:center;">
                         ${eyeIcon}

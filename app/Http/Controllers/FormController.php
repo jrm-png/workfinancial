@@ -8,7 +8,7 @@ use App\Models\WorkPlan;
 use App\Models\FinancialPlan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Spatie\Browsershot\Browsershot;
 use Illuminate\Support\Facades\Http;
 
 class FormController extends Controller
@@ -330,7 +330,18 @@ public function generatePdf(Request $request)
         $data['rcTotalsTracker'] = $financials ?? collect();
     }
 
-    return PDF::loadView('plans.pdf_template', $data)->setPaper('a4', 'landscape')->stream('Report.pdf');
+    $html = view('plans.pdf_template', $data)->render();
+
+    $pdf = Browsershot::html($html)
+        ->format('A4')
+        ->landscape()
+        ->showBackground()
+        ->margins(10, 10, 10, 10)
+        ->pdf();
+
+    return response($pdf)
+        ->header('Content-Type', 'application/pdf')
+        ->header('Content-Disposition', 'inline; filename="Report.pdf"');
 }
 public function destroy($id) // $id dito ay ang Form ID
 {
@@ -353,31 +364,26 @@ public function index()
 {
     $user = auth()->user();
 
-    // 1. Logic for Data Visibility based on Roles & Responsibility Center
     if (in_array(strtolower($user->role), ['admin', 'monitor', 'finance'])) {
-        // High-level roles see everything
         $workPlans = \App\Models\WorkPlan::all();
     } elseif (strtoupper($user->role) === 'DEPARTMENT MANAGER' && strtoupper($user->operating_department) === 'OGM') {
         $targetRCs = ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD'];
         $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
-    
     } elseif (strtoupper($user->role) === 'DEPARTMENT MANAGER' && strtoupper($user->operating_department) === 'ERD') {
         $targetRCs = ['CPD', 'ED', 'SMD', 'ECO'];
         $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
-    } 
-     elseif (strtoupper($user->role) === 'DEPARTMENT MANAGER' && strtoupper($user->operating_department) === 'RMDD') {
+    } elseif (strtoupper($user->role) === 'DEPARTMENT MANAGER' && strtoupper($user->operating_department) === 'RMDD') {
         $targetRCs = ['PDMED', 'CDD', 'ELRD'];
         $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
-    } 
-     elseif (strtoupper($user->role) === 'DEPARTMENT MANAGER' && strtoupper($user->operating_department) === 'MSD') {
+    } elseif (strtoupper($user->role) === 'DEPARTMENT MANAGER' && strtoupper($user->operating_department) === 'MSD') {
         $targetRCs = ['ADMIN', 'FINANCE'];
         $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
-    } 
-    else {
-        // Standard user data isolation rule
+    } else {
         $workPlans = \App\Models\WorkPlan::where('r_center', $user->responsibility_center)->get(); 
     }
     
+    $workPlans = $workPlans->unique('form_id')->values();
+
     $availableStatuses = $workPlans->pluck('status')->unique()->filter()->toArray();
     $availableYears = $workPlans->pluck('year')->unique()->filter()->sort()->toArray();
 
@@ -763,5 +769,22 @@ public function viewAttachmentWFP(Request $request)
     $fullUrl = $baseUrl . '?' . http_build_query($queryParams);
     
     return redirect()->away($fullUrl);
+}
+
+public function copySearch()
+{
+    $forms = Form::with(['workPlans'])->where('status', '!=', 'draft')->latest()->get();
+    return view('plans.copyplan', compact('forms'));
+}
+
+public function copyLoad($id)
+{
+    $form = Form::with(['workPlans.financialPlans'])->findOrFail($id);
+    
+    $dropdownOptions = \App\Models\Dropdown::all()->groupBy('type');
+
+    $isCopy = true;
+
+    return view('plans.create', compact('form', 'dropdownOptions', 'isCopy'));
 }
 }

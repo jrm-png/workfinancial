@@ -4,6 +4,15 @@
     $workplans = $isEdit ? $form->workPlans : [new \App\Models\WorkPlan];
 @endphp
 
+@php
+    $isEdit = isset($form) && !isset($isCopy);
+    $isCopyMode = isset($isCopy) && $isCopy;
+    
+    $action = $isEdit ? route('plans.update', $form->id) : route('plans.store');
+    
+    $workplans = isset($form) ? $form->workPlans : [new \App\Models\WorkPlan];
+@endphp
+
 <head>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -77,6 +86,9 @@
 
         <div style="margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
             <h1 style="border-left: 5px solid #2563eb; padding-left: 20px; font-size: 28px; font-weight: 800; margin: 0;">{{ $isEdit ? 'Update Plan' : 'Prepare Plan' }}</h1>
+            <a href="{{ route('plans.copy.search') }}" class="btn-add" style="background: #0284c7; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+    <i class="fas fa-copy"></i> Copy Existing Plan
+</a>
             <div style="width: 200px;">
                 <label class="form-label">Planning Year</label>
                 <select name="year" class="form-input select2-tags" required>
@@ -93,6 +105,7 @@
                 </select>
             </div>
         </div>
+        
 
         <div class="section-card">
             <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">

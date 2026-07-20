@@ -8,7 +8,8 @@ use App\Http\Controllers\FinancialPlanController;
 use App\Http\Controllers\FormController;
 use App\Http\Controllers\Auth\PasswordChangeController;
 use App\Http\Controllers\Admin\DropdownSettingController;
-
+use Spatie\Browsershot\Browsershot;
+use App\Http\Controllers\MassReviewController;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -61,6 +62,9 @@ Route::middleware(['auth'])->group(function () {
 
 
     Route::get('/division/{r_center}', [FormController::class, 'divisionProfile'])->name('division.profile');
+    
+    Route::get('/plans/copy', [FormController::class, 'copySearch'])->name('plans.copy.search');
+    Route::get('/plans/copy/{id}', [FormController::class, 'copyLoad'])->name('plans.copy.load');
 });
 
 Route::get('/change-password', [PasswordChangeController::class, 'showForm'])->name('password.change.form');
@@ -106,5 +110,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/plans/create', [FormController::class, 'create'])->name('plans.create');
 });
 
+Route::middleware(['auth'])->group(function () {
+    Route::get('/mass-review', [MassReviewController::class, 'index'])->name('mass-review.index');
+    Route::post('/mass-review/update-status', [MassReviewController::class, 'updateStatus']);
+    Route::post('/mass-review/update-comment', [MassReviewController::class, 'updateComment']);
+    Route::get('/mass-review/sync-updates', [MassReviewController::class, 'syncUpdates']);
+    Route::post('/mass-review/mass-approve', [MassReviewController::class, 'massApproveAll']);
+});
 
 require __DIR__.'/auth.php';
