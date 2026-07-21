@@ -58,6 +58,34 @@
         .close-modal { position: absolute; top: 20px; right: 20px; font-size: 20px; color: #94a3b8; cursor: pointer; background: none; border: none; }
         .close-modal:hover { color: #475569; }
 
+
+        .user-search-box {
+            position: relative;
+            width: 300px;
+        }
+
+        .user-search-box i {
+            position: absolute;
+            left: 14px;
+            top: 13px;
+            color: #94a3b8;
+        }
+
+        .user-search-box input {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .user-search-box input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
         @keyframes slideDown {
             from { transform: translateY(-20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
@@ -148,9 +176,21 @@
 
         {{-- REGISTERED USERS TABLE --}}
         <div class="admin-card">
-            <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-users" style="color: #64748b;"></i> Registered Users
-            </h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 20px; flex-wrap: wrap;">
+                <h2 style="font-size: 18px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-users" style="color: #64748b;"></i> Registered Users
+                </h2>
+
+                <div class="user-search-box">
+                    <i class="fas fa-search"></i>
+                    <input 
+                        type="text" 
+                        id="userSearch"
+                        placeholder="Search users..."
+                        onkeyup="searchUsers()"
+                    >
+                </div>
+            </div>
 
             <table class="user-table">
                 <thead>
@@ -317,6 +357,26 @@
             if (event.target == modal) {
                 modal.style.display = 'none';
             }
+        }
+
+        function searchUsers() {
+            const searchValue = document
+                .getElementById('userSearch')
+                .value
+                .toLowerCase()
+                .trim();
+
+            const rows = document.querySelectorAll('.user-table tbody tr');
+
+            rows.forEach(row => {
+                const rowText = row.textContent.toLowerCase();
+
+                if (rowText.includes(searchValue)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
         }
     </script>
 </body>

@@ -764,8 +764,10 @@ public function viewAttachmentWFP(Request $request)
 
 public function copySearch()
 {
-    // Load relations workPlans and financialPlans so the modal can read them
+    $currentUserRCenter = auth()->user()->responsibility_center; 
+
     $forms = Form::with(['workPlans.financialPlans'])
+        ->where('created_by', $currentUserRCenter) // Restricted lang sa kapareho niyang r_center
         ->where('status', '!=', 'draft')
         ->latest()
         ->get();
@@ -773,17 +775,25 @@ public function copySearch()
     return view('plans.copyplan', compact('forms'));
 }
 
-public function copyLoad($id)
+public function copyLoad(Request $request, $id)
 {
-    // Load form with nested relationships
     $form = Form::with(['workPlans.financialPlans'])->findOrFail($id);
     
+    // Kunin lang yung mga napiling workplan IDs kung nag batch select/check lang sila
+    $selectedWorkPlanIds = $request->input('selected_work_plans', []);
+    if (!empty($selectedWorkPlanIds)) {
+        $form->setRelation('workPlans', $form->workPlans->whereIn('id', $selectedWorkPlanIds));
+    }
+
     $dropdownOptions = \DB::table('dropdown_settings')
         ->get()
         ->groupBy('type');
 
+    $targetYear = $request->input('new_year', $form->year); // Target dynamic new year
+
     $isCopy = true;
 
-    return view('plans.create', compact('form', 'dropdownOptions', 'isCopy'));
+    return view('plans.create', compact('form', 'dropdownOptions', 'isCopy', 'targetYear'));
 }
 }
+

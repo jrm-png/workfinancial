@@ -147,21 +147,76 @@ class WorkPlanController extends Controller
 public function getUnifiedDetails($id)
 {
     try {
-        // 1. Hanapin ang specific row na kinlik sa table
-        $clickedWp = \App\Models\WorkPlan::findOrFail($id);
-        
-        // 2. Kunin lahat ng Work Plans na kapareho ng form_id (Multiple Initiatives)
-        $workPlans = \App\Models\WorkPlan::where('form_id', $clickedWp->form_id)->get();
-        
-        // 3. Kunin lahat ng Financial Plans na kapareho ng form_id
-        $financials = \App\Models\FinancialPlan::where('form_id', $clickedWp->form_id)->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | 1. TRY TO FIND THE CLICKED ID AS A WORK PLAN
+        |--------------------------------------------------------------------------
+        */
+
+        $clickedWp = \App\Models\WorkPlan::find($id);
+
+        if ($clickedWp) {
+
+            $formId = $clickedWp->form_id;
+
+        } else {
+
+            /*
+            |--------------------------------------------------------------------------
+            | 2. IF NOT A WORK PLAN, TRY TO FIND IT AS A FINANCIAL PLAN
+            |--------------------------------------------------------------------------
+            */
+
+            $clickedFinancial =
+                \App\Models\FinancialPlan::findOrFail($id);
+
+            $formId = $clickedFinancial->form_id;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 3. GET ALL WORK PLANS UNDER THE SAME FORM
+        |--------------------------------------------------------------------------
+        */
+
+        $workPlans =
+            \App\Models\WorkPlan::where('form_id', $formId)->get();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 4. GET ALL FINANCIAL PLANS UNDER THE SAME FORM
+        |--------------------------------------------------------------------------
+        */
+
+        $financials =
+            \App\Models\FinancialPlan::where('form_id', $formId)->get();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 5. RETURN EVERYTHING
+        |--------------------------------------------------------------------------
+        */
 
         return response()->json([
+
             'workPlans' => $workPlans,
-            'financials' => $financials
+
+            'financials' => $financials,
+
         ]);
+
     } catch (\Exception $e) {
-        return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
+
+        return response()->json([
+
+            'message' => 'Error: ' . $e->getMessage()
+
+        ], 500);
+
     }
 }
 

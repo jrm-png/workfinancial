@@ -65,6 +65,7 @@ Route::middleware(['auth'])->group(function () {
     
     Route::get('/plans/copy', [FormController::class, 'copySearch'])->name('plans.copy.search');
     Route::get('/plans/copy/{id}', [FormController::class, 'copyLoad'])->name('plans.copy.load');
+    Route::post('/plans/copy/batch', [FormController::class, 'batchCopy'])->name('plans.copy.batch');
 });
 
 Route::get('/change-password', [PasswordChangeController::class, 'showForm'])->name('password.change.form');

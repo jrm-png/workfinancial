@@ -64,7 +64,7 @@
         .btn-remove { background: #fee2e2; color: #ef4444; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-top: 10px; }
     </style>
 </head>
-
+@include('plans.view')
 @include('layouts.app')
 <body>
     <div class="content">
@@ -181,12 +181,18 @@
             }
         },
         { 
+            headerName: 'Created', 
+            field: 'created_at', 
+            width: 110,
+            valueFormatter: p => p.value ? new Date(p.value).toLocaleDateString() : '-' 
+        },
+        { 
             headerName: 'Actions', 
             width: 120,
             cellRenderer: params => {
                 return `
                     <div style="display:flex; gap:15px; align-items:center; height:100%; justify-content:center;">
-                        <i class="fas fa-eye" style="color:#3b82f6; cursor:pointer;" title="View Details"></i>
+                        <i class="fas fa-eye" style="color:#3b82f6; cursor:pointer;" onclick="showDetails(${params.data.id}, 'financial')" title="View Details"></i>
                         <i class="fas fa-edit" style="color:#10b981; cursor:pointer;" onclick="openEditModal(${params.data.id})"></i>
                         <i class="fas fa-trash" style="color:#ef4444; cursor:pointer;" onclick="deleteRecord(${params.data.id})"></i>
                     </div>`;

@@ -279,7 +279,7 @@
 
                 // 1. Eye Icon Logic (View)
                 const eyeIcon = isViewingOpen
-                    ? `<i class="fas fa-eye" style="color:#3b82f6; cursor:pointer;" onclick="showDetails(${params.data.id})"></i>`
+                    ? `<i class="fas fa-eye" style="color:#3b82f6; cursor:pointer;" onclick="showDetails(${params.data.id}, 'workplan')"></i>`
                     : `<i class="fas fa-eye-slash" style="color:#94a3b8; cursor:not-allowed;" title="Viewing is disabled by Admin"></i>`;
 
                 // 2. Delete Icon Logic
