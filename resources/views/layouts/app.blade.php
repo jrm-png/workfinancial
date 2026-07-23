@@ -182,6 +182,11 @@
                 <span class="nav-text">Prepare Work Plan</span>
             </a>
 
+            <a href="{{ route('mass-review.index') }}" class="nav-link {{ request()->routeIs('mass-review.index') ? 'active' : '' }}">
+                <i class="fas fa-search"></i>
+                <span class="nav-text">Mass Review</span>
+            </a>
+
 
             <div class="sidebar-section">Reports</div>
             <a href="{{ route('workplan.list') }}" class="nav-link {{ request()->routeIs('workplan.list') ? 'active' : '' }}">

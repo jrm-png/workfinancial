@@ -104,8 +104,19 @@
                         $viewingOpen = (bool) ($settings->is_viewing_open ?? false);
                     }
                 @endphp
+
+                
                 
                 <div style="display: flex; gap: 12px;">
+
+                <button class="btn-primary" style="text-color: white;" onclick="window.location.href='{{ route('mass-review.index') }}'">
+                        <a href="{{ route('mass-review.index') }}" class="nav-link {{ request()->routeIs('mass-review.index') ? 'active' : '' }}">
+                            <i class="fas fa-search"></i>Mass Review
+                        </a>
+                    </button>
+                
+
+
                     <div class="search-box">
                         <i class="fa fa-search"></i>
                         <input type="text" id="filter-text-box" placeholder="Quick search..." oninput="onFilterTextBoxChanged()">
