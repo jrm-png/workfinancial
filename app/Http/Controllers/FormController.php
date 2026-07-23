@@ -523,11 +523,7 @@ public function generatePdf(Request $request)
             $data
         )->render();
 
-    $chromePath =
-        app()->environment('local')
-            ? 'C:\\Users\\judy\\.cache\\puppeteer\\chrome\\win64-150.0.7871.24\\chrome-win64\\chrome.exe'
-            : '/usr/bin/chromium';
-
+    $chromePath = '/usr/bin/chromium';
     $pdf =
         Browsershot::html($html)
             ->setChromePath($chromePath)
