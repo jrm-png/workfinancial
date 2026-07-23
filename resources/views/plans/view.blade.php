@@ -10,7 +10,7 @@
             <div style="display: flex; gap: 15px; align-items: center;">
                 @php
                     $currentStatus = strtoupper($form->status ?? 'PENDING');
-                    $userRole = auth()->user()->role;
+                    $userRole = strtoupper(trim(auth()->user()->role));
                     $hasModifierAccess = in_array($userRole, ['admin', 'MONITOR', 'APPROVER', 'REVIEWER', 'FINANCE', 'DEPARTMENT MANAGER']);
                 @endphp
 
