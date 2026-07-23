@@ -352,6 +352,13 @@
         },
         { headerName: 'Strategic Objective', field: 'strategic_objective', width: 180 },
         { headerName: 'Strategic Initiatives', field: 'strategic_initiatives', width: 200 },
+                    {
+                headerName: 'Major Program',
+                field: 'major_program',
+                width: 180,
+                wrapText: true,
+                autoHeight: true,
+            },
         { headerName: 'Measure', field: 'strategic_measure', width: 150 },
         { headerName: 'Targets', children: [
             { headerName: 'Q1', field: 'q1', width: 70 },

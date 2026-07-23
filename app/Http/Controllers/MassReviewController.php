@@ -2,121 +2,262 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\WorkPlan;
-use App\Models\FinancialPlan;
 use App\Models\Form;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class MassReviewController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
-        
-        if (in_array(strtolower($user->role), ['admin', 'monitor', 'finance'])) {
-            $forms = Form::with(['workPlans', 'financialPlans'])->get();
-        } else {
-            $forms = Form::with(['workPlans', 'financialPlans'])
-                ->whereHas('workPlans', function($q) use ($user) {
-                    $q->where('r_center', $user->responsibility_center);
-                })->get();
+        $userRole = strtoupper($user->role ?? '');
+
+        $query = Form::with([
+            'workPlans',
+            'financialPlans',
+        ]);
+
+        $query->whereHas('workPlans', function ($q) {
+            $q->whereIn('status', [
+                'For Reviewal',
+                'FOR REVISION',
+                'Pending',
+                'For Submission to Finance',
+            ]);
+        });
+
+        if ($userRole === 'DEPARTMENT MANAGER') {
+            $userRC = $user->responsibility_center ?? '';
+            $userDept = strtoupper($user->operating_department ?? '');
+
+            $ogmGroupRCs = [
+                'OGM',
+                'OAGM',
+                'SMO',
+                'PIU',
+                'IAD',
+                'LAD',
+                'PPIMD',
+            ];
+
+            if ($userDept === 'OGM') {
+                $query->where(function ($q) use ($userRC, $ogmGroupRCs) {
+                    $q->whereHas('workPlans', function ($wp) use ($userRC) {
+                        $wp->where('r_center', $userRC);
+                    })->orWhereHas('workPlans', function ($wp) use ($ogmGroupRCs) {
+                        $wp->whereIn('r_center', $ogmGroupRCs);
+                    });
+                });
+            } else {
+                $query->whereHas('workPlans', function ($wp) use ($userRC) {
+                    $wp->where('r_center', $userRC);
+                });
+            }
         }
 
-        return view('mass_review.index', compact('forms'));
+        if ($userRole === 'FINANCE') {
+            $query->whereHas('workPlans', function ($q) {
+                $q->where('status', 'For Submission to Finance');
+            });
+        }
+
+        if ($request->filled('year')) {
+            $query->where('year', $request->year);
+        }
+
+        if ($request->filled('r_center')) {
+            $query->whereHas('workPlans', function ($q) use ($request) {
+                $q->where('r_center', $request->r_center);
+            });
+        }
+
+        $forms = $query
+            ->orderByDesc('created_at')
+            ->get();
+
+        $rows = [];
+
+        foreach ($forms as $form) {
+            foreach ($form->workPlans as $workPlan) {
+                $financialPlans = $form->financialPlans
+                    ->where('workplan_id', $workPlan->id)
+                    ->values();
+
+                if ($financialPlans->isEmpty()) {
+                    $rows[] = $this->buildRow($form, $workPlan);
+                    continue;
+                }
+
+                foreach ($financialPlans as $financialPlan) {
+                    $rows[] = $this->buildRow(
+                        $form,
+                        $workPlan,
+                        $financialPlan
+                    );
+                }
+            }
+        }
+
+        $rows = collect($rows)
+            ->sortBy([
+                ['form_id', 'asc'],
+                ['workplan_id', 'asc'],
+                ['financialplan_id', 'asc'],
+            ])
+            ->values()
+            ->all();
+
+        $years = collect($rows)
+            ->pluck('year')
+            ->filter()
+            ->unique()
+            ->sortDesc()
+            ->values();
+
+        $responsibilityCenters = collect($rows)
+            ->pluck('r_center')
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        return view('mass-review.index', compact(
+            'rows',
+            'years',
+            'responsibilityCenters',
+            'userRole'
+        ));
     }
 
-// Sa loob ng FormController or MassReviewController:
+    private function buildRow($form, $workPlan, $financialPlan = null)
+    {
+        return [
+            'form_id' => $form->id,
+            'form_ref' => $form->form_ref,
+            'year' => $form->year,
+            'created_at' => $form->created_at,
 
-public function updateStatus(Request $request, $formId)
-{
-    $request->validate([
-        'status' => 'required|string',
-        'comment' => 'nullable|string'
-    ]);
+            'workplan_id' => $workPlan->id,
+            'status' => $workPlan->status,
+            'r_center' => $workPlan->r_center,
+            'department' => $workPlan->department,
 
-    try {
-        // I-update ang parent Form table para gumalaw ang updated_at at ma-trigger ang sync engine
-        $form = \App\Models\Form::find($formId);
-        if (!$form) {
-            return response()->json(['message' => 'Form ID not found: ' . $formId], 404);
-        }
+            'strategic_perspective' => $workPlan->strategic_perspective,
+            'strategic_objective' => $workPlan->strategic_objective,
+            'major_program' => $workPlan->major_program,
+            'strategic_measure' => $workPlan->strategic_measure,
+            'strategic_initiatives' => $workPlan->strategic_initiatives,
+            'success_indicator' => $workPlan->success_indicator,
 
-        $form->status = strtoupper($request->status);
-        if ($request->has('comment')) {
-            $form->comment = $request->comment;
-        }
-        $form->save(); // Gumagalaw ang updated_at dito gamit ang Eloquent!
+            'wp_q1' => $workPlan->q1,
+            'wp_q2' => $workPlan->q2,
+            'wp_q3' => $workPlan->q3,
+            'wp_q4' => $workPlan->q4,
+            'wp_total' => $workPlan->total,
+            'remarks' => $workPlan->remarks,
 
-        // I-update din ang mga linya sa ilalim ng workplan table
-        \DB::table('workplan')
-            ->where('form_id', $formId)
+            'financialplan_id' => $financialPlan?->id,
+
+            'funds' => $financialPlan?->funds,
+            'programs' => $financialPlan?->programs,
+            'projects' => $financialPlan?->projects,
+            'activity' => $financialPlan?->activity,
+            'description' => $financialPlan?->description,
+            'expense_class' => $financialPlan?->expense_class,
+            'account_title' => $financialPlan?->account_title,
+
+            'fp_q1' => $financialPlan?->q1,
+            'fp_q2' => $financialPlan?->q2,
+            'fp_q3' => $financialPlan?->q3,
+            'fp_q4' => $financialPlan?->q4,
+            'fp_total' => $financialPlan?->total,
+        ];
+    }
+
+    public function forReviewal(Request $request)
+    {
+        $request->validate([
+            'form_ids' => ['required', 'array'],
+            'form_ids.*' => ['integer'],
+        ]);
+
+        DB::table('workplan')
+            ->whereIn('form_id', $request->form_ids)
             ->update([
-                'status' => strtoupper($request->status),
-                'comment' => $request->comment ?? $form->comment,
-                'updated_at' => now()
+                'status' => 'For Reviewal',
+                'updated_at' => now(),
             ]);
 
         return response()->json([
-            'success' => true, 
-            'message' => 'Database Updated Successfully',
-            'updated_at' => now()->toIso8601String()
-        ]);
-        
-    } catch (\Exception $e) {
-        return response()->json(['message' => $e->getMessage()], 500);
-    }
-}
-
-    // Siguraduhin na ang syncUpdates endpoint mo ay nagbabalik ng ganitong structure:
-    public function syncUpdates(Request $request)
-    {
-        $since = $request->input('since');
-        
-        // Kunin ang mga binagong forms mula nung huling timestamp check
-        $updatedForms = \App\Models\Form::where('updated_at', '>', $since)->get(['id', 'status', 'comment']);
-
-        return response()->json([
-            'timestamp' => now()->toIso8601String(),
-            'forms'     => $updatedForms
+            'success' => true,
+            'message' => 'Selected plans sent for reviewal.',
         ]);
     }
 
-    public function updateComment(Request $request)
+    public function approve(Request $request)
     {
         $request->validate([
-            'form_id' => 'required|integer',
-            'comment' => 'nullable|string'
+            'form_ids' => ['required', 'array'],
+            'form_ids.*' => ['integer'],
         ]);
 
-        $form = Form::findOrFail($request->form_id);
-        $form->comment = $request->comment;
-        $form->save();
+        DB::table('workplan')
+            ->whereIn('form_id', $request->form_ids)
+            ->update([
+                'status' => 'Approved',
+                'updated_at' => now(),
+            ]);
 
-        WorkPlan::where('form_id', $form->id)->update(['comment' => $request->comment]);
+        Form::whereIn('id', $request->form_ids)
+            ->update([
+                'approved_at' => now(),
+                'approved_by' => auth()->id(),
+            ]);
 
         return response()->json([
             'success' => true,
-            'updated_at' => now()->toIso8601String()
+            'message' => 'Selected plans approved successfully.',
         ]);
     }
 
-    public function massApprove(Request $request)
+    public function revise(Request $request)
     {
         $request->validate([
-            'form_ids' => 'required|array',
-            'status'   => 'required|string'
+            'form_ids' => ['required', 'array'],
+            'form_ids.*' => ['integer'],
         ]);
 
-        $status = strtoupper($request->status);
-        $formIds = $request->form_ids;
+        DB::table('workplan')
+            ->whereIn('form_id', $request->form_ids)
+            ->update([
+                'status' => 'FOR REVISION',
+                'updated_at' => now(),
+            ]);
 
-        DB::transaction(function () use ($formIds, $status) {
-            Form::whereIn('id', $formIds)->update(['status' => $status]);
-            WorkPlan::whereIn('form_id', $formIds)->update(['status' => $status]);
-        });
-
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Selected plans sent for revision.',
+        ]);
     }
 
+    public function submitToFinance(Request $request)
+    {
+        $request->validate([
+            'form_ids' => ['required', 'array'],
+            'form_ids.*' => ['integer'],
+        ]);
+
+        DB::table('workplan')
+            ->whereIn('form_id', $request->form_ids)
+            ->update([
+                'status' => 'For Submission to Finance',
+                'updated_at' => now(),
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Selected plans submitted to Finance.',
+        ]);
+    }
 }
