@@ -8,7 +8,7 @@ use App\Models\WorkPlan;
 use App\Models\FinancialPlan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Spatie\Browsershot\Browsershot;
 use Illuminate\Support\Facades\Http;
 
 class FormController extends Controller
@@ -236,104 +236,323 @@ public function generatePdf(Request $request)
 {
     $center = $request->r_center;
     $year = $request->year;
-    $mode = $request->report_mode; // 'detailed' or 'summary'
-    
-    // Base Queries
-    $wpQuery = WorkPlan::where('year', $year);
-    $fpQuery = FinancialPlan::where('year', $year);
+    $mode = $request->report_mode;
 
-    // ⭐ OPERATING DEPARTMENT & ALL CENTERS FILTER HANDLING
+    $allowedStatuses = [
+        'approved',
+        'draft',
+        'pending',
+        'for review',
+        'for submission to finance',
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get valid form IDs based on status
+    |--------------------------------------------------------------------------
+    */
+
+    $validFormIds = Form::whereIn('status', $allowedStatuses)
+        ->pluck('id');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Base Queries
+    |--------------------------------------------------------------------------
+    */
+
+    $wpQuery = WorkPlan::where('year', $year)
+        ->whereIn('form_id', $validFormIds);
+
+    $fpQuery = FinancialPlan::where('year', $year)
+        ->whereIn('form_id', $validFormIds);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Responsibility Center Filter
+    |--------------------------------------------------------------------------
+    */
+
     if ($center !== 'ALL') {
+
         if (str_contains($center, ',')) {
-            // Kapag pinili ang "-- ALL UNDER [DEPT] --", gagawin nating array ang string list
-            $centersArray = explode(',', $center);
+
+            $centersArray = array_filter(
+                explode(',', $center)
+            );
+
             $wpQuery->whereIn('r_center', $centersArray);
             $fpQuery->whereIn('r_center', $centersArray);
+
         } else {
-            // Kapag isang indibidwal na Responsibility Center lang ang pinili
-            $wpQuery->where('r_center', $center);
-            $fpQuery->where('r_center', $center);
+
+            $wpQuery->where(
+                'r_center',
+                $center
+            );
+
+            $fpQuery->where(
+                'r_center',
+                $center
+            );
         }
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | SUMMARY REPORT
+    |--------------------------------------------------------------------------
+    */
+
     if ($mode === 'summary') {
-        $selectedSumCols = $request->sum_cols ?? [];
-        $summaryGroupBy = $request->summary_group_by === 'r_center' ? ['r_center'] : [];
-        
-        // Dagdag natin sa group by lahat ng columns na tsenek para hindi mag-error ang SQL
-        foreach($selectedSumCols as $col) {
-            if(!in_array($col, ['amount', 'quarterly'])) {
-                $summaryGroupBy[] = $col;
+
+        $selectedSumCols =
+            $request->sum_cols ?? [];
+
+        $summaryGroupBy = [];
+
+        foreach ($selectedSumCols as $column) {
+
+            if (
+                !in_array(
+                    $column,
+                    [
+                        'amount',
+                        'quarterly'
+                    ]
+                )
+            ) {
+                $summaryGroupBy[] = $column;
             }
         }
 
-        // Tiyakin nating kasama ang r_center kapag marami silang centers na nilo-load para sa tracking ng summary cards
-        if (str_contains($center, ',') && !in_array('r_center', $summaryGroupBy)) {
+        if (
+            str_contains($center, ',') &&
+            !in_array(
+                'r_center',
+                $summaryGroupBy
+            )
+        ) {
             $summaryGroupBy[] = 'r_center';
         }
 
-        $summaryData = $fpQuery->select($summaryGroupBy)
-            ->selectRaw('SUM(q1) as total_q1, SUM(q2) as total_q2, SUM(q3) as total_q3, SUM(q4) as total_q4')
-            ->selectRaw('SUM(q1+q2+q3+q4) as grand_total')
+        if (empty($summaryGroupBy)) {
+            $summaryGroupBy[] = 'r_center';
+        }
+
+        $summaryData = $fpQuery
+            ->select($summaryGroupBy)
+            ->selectRaw(
+                'SUM(q1) as total_q1,
+                 SUM(q2) as total_q2,
+                 SUM(q3) as total_q3,
+                 SUM(q4) as total_q4,
+                 SUM(q1 + q2 + q3 + q4) as grand_total'
+            )
             ->groupBy($summaryGroupBy)
             ->get();
 
         $data = [
-            'report_mode' => 'summary',
-            'summaryData' => $summaryData,
-            'selectedSumCols' => $selectedSumCols,
+
+            'report_mode' =>
+                'summary',
+
+            'summaryData' =>
+                $summaryData,
+
+            'selectedSumCols' =>
+                $selectedSumCols,
+
         ];
+
     } else {
-        // DETAILED MODE
-        $wp_group = $request->wp_group_by ?? 'none';
-        $fp_group = $request->fp_group_by ?? 'none';
-        
-        $workplans = $wpQuery->get();
-        $financials = $fpQuery->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | DETAILED REPORT
+        |--------------------------------------------------------------------------
+        */
+
+        $workplans =
+            $wpQuery
+                ->orderBy('form_id')
+                ->orderBy('id')
+                ->get();
+
+        $financials =
+            $fpQuery
+                ->orderBy('form_id')
+                ->orderBy('workplan_id')
+                ->orderBy('id')
+                ->get();
+
+        $wpGroup =
+            $request->wp_group_by ?? 'none';
+
+        $fpGroup =
+            $request->fp_group_by ?? 'none';
+
+        /*
+        |--------------------------------------------------------------------------
+        | IMPORTANT:
+        | Financial Plans are grouped:
+        |
+        | form_id
+        |     ↓
+        | workplan_id
+        |     ↓
+        | financial records
+        |--------------------------------------------------------------------------
+        */
+
+        $financialsByFormAndWorkplan =
+            $financials
+                ->groupBy('form_id')
+                ->map(function ($formFinancials) {
+
+                    return $formFinancials
+                        ->groupBy('workplan_id');
+
+                });
 
         $data = [
-            'report_mode' => 'detailed',
-            'wpData' => ($wp_group !== 'none') ? $workplans->groupBy($wp_group) : ['All Records' => $workplans],
-            'fpData' => ($fp_group !== 'none') ? $financials->groupBy($fp_group) : ['All Records' => $financials],
-            'wp_group_label' => $wp_group,
-            'fp_group_label' => $fp_group,
-            'selectedWpCols' => $request->cols_wp ?? [],
-            'selectedFpCols' => $request->cols_fp ?? [],
-            'workplans' => $workplans,
-            'financialsByForm' => $financials->groupBy('form_id'),
+
+            'report_mode' =>
+                'detailed',
+
+            'wpData' =>
+                $wpGroup !== 'none'
+                    ? $workplans->groupBy($wpGroup)
+                    : collect([
+                        'All Records' =>
+                            $workplans
+                    ]),
+
+            'fpData' =>
+                $fpGroup !== 'none'
+                    ? $financials->groupBy($fpGroup)
+                    : collect([
+                        'All Records' =>
+                            $financials
+                    ]),
+
+            'wp_group_label' =>
+                $wpGroup,
+
+            'fp_group_label' =>
+                $fpGroup,
+
+            'selectedWpCols' =>
+                $request->cols_wp ?? [],
+
+            'selectedFpCols' =>
+                $request->cols_fp ?? [],
+
+            'workplans' =>
+                $workplans,
+
+            'financials' =>
+                $financials,
+
+            'financialsByFormAndWorkplan' =>
+                $financialsByFormAndWorkplan,
         ];
     }
 
-    // --- Dynamic Title for Header ---
-    // Kung marami ang centers, palitan ang label ng pangalan ng mismong Operating Department ng manager
+    /*
+    |--------------------------------------------------------------------------
+    | Report Metadata
+    |--------------------------------------------------------------------------
+    */
+
     if (str_contains($center, ',')) {
-        $data['r_center'] = auth()->user()->operating_department . ' DEPT (COMBINED)';
+
+        $data['r_center'] =
+            auth()->user()->operating_department
+            . ' DEPT (COMBINED)';
+
     } else {
-        $data['r_center'] = $center;
+
+        $data['r_center'] =
+            $center;
     }
 
-    // Common Data
-    $data['year'] = $year;
-    $data['report_type'] = $request->report_type;
-    $data['layout'] = $request->layout_mode;
+    $data['year'] =
+        $year;
+
+    $data['report_type'] =
+        $request->report_type;
+
+    $data['layout'] =
+        $request->layout_mode;
+
     $data['sigs'] = [
-        'prep_show' => $request->has('sig_prep_show'),
-        'prep_name' => $request->sig_prep_name, 'prep_pos' => $request->sig_prep_pos,
-        'rev_show' => $request->has('sig_rev_show'),
-        'rev_name' => $request->sig_rev_name, 'rev_pos' => $request->sig_rev_pos,
-        'app_show' => $request->has('sig_app_show'),
-        'app_name' => $request->sig_app_name, 'app_pos' => $request->sig_app_pos,
+
+        'prep_show' =>
+            $request->has('sig_prep_show'),
+
+        'prep_name' =>
+            $request->sig_prep_name,
+
+        'prep_pos' =>
+            $request->sig_prep_pos,
+
+        'rev_show' =>
+            $request->has('sig_rev_show'),
+
+        'rev_name' =>
+            $request->sig_rev_name,
+
+        'rev_pos' =>
+            $request->sig_rev_pos,
+
+        'app_show' =>
+            $request->has('sig_app_show'),
+
+        'app_name' =>
+            $request->sig_app_name,
+
+        'app_pos' =>
+            $request->sig_app_pos,
+
     ];
 
-    // Para sa dynamic tracker calculation ng Summary Table na nasa pinakababa ng pdf_template blade mo:
-    if (!isset($data['rcTotalsTracker'])) {
-        $data['rcTotalsTracker'] = $financials ?? collect();
-    }
+    $html =
+        view(
+            'plans.pdf_template',
+            $data
+        )->render();
 
-return PDF::loadView('plans.pdf_template', $data)
-    ->setPaper('a4', 'landscape')
-    ->stream('Report.pdf');
+    $chromePath =
+        app()->environment('local')
+            ? 'C:\\Users\\judy\\.cache\\puppeteer\\chrome\\win64-150.0.7871.24\\chrome-win64\\chrome.exe'
+            : '/usr/bin/chromium';
+
+    $pdf =
+        Browsershot::html($html)
+            ->setChromePath($chromePath)
+            ->format('A4')
+            ->landscape()
+            ->showBackground()
+            ->margins(
+                10,
+                10,
+                10,
+                10
+            )
+            ->pdf();
+
+    return response($pdf)
+        ->header(
+            'Content-Type',
+            'application/pdf'
+        )
+        ->header(
+            'Content-Disposition',
+            'inline; filename="Report.pdf"'
+        );
 }
+
 public function destroy($id) // $id dito ay ang Form ID
 {
     return DB::transaction(function () use ($id) {
