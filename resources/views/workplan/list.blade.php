@@ -250,7 +250,7 @@
                 } else if (status === 'for reviewal') {
                     config = { color: '#7c3aed', bg: '#f5f3ff', icon: 'fa-magnifying-glass' };
                 } else if (status === 'for submission to finance') {
-                    config = { color: '#ea580c', bg: '#fff7ed', icon: 'fa-paper-plane' };
+                    config = { color: '#ea580c', bg: '#fff7ed' };
                 }
 
                 return `
