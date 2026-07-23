@@ -66,18 +66,13 @@
         font-weight: 700;
     }
 
-    button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+    .btn-approve {
+        background: #10b981;
+        color: white;
     }
 
     .btn-reviewal {
         background: #6366f1;
-        color: white;
-    }
-
-    .btn-approve {
-        background: #10b981;
         color: white;
     }
 
@@ -89,6 +84,11 @@
     .btn-finance {
         background: #f97316;
         color: white;
+    }
+
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
     .grid-wrapper {
@@ -196,6 +196,9 @@
 
 <body>
 <div class="content">
+    @php
+        $userRole = strtoupper(auth()->user()->role);
+    @endphp
 
 ```
 <div class="header-section">
@@ -205,26 +208,20 @@
 
     <div class="toolbar">
         <div class="search-box">
-            <input
-                type="text"
-                id="quickSearch"
-                placeholder="Search plans..."
-                oninput="applyQuickSearch()"
-            >
+            <input type="text" id="quickSearch" placeholder="Search plans..." oninput="applyQuickSearch()">
         </div>
 
         <select id="statusFilter" onchange="applyFilters()">
             <option value="">All Statuses</option>
             <option value="For Reviewal">For Reviewal</option>
+            <option value="FOR REVIEW">FOR REVIEW</option>
             <option value="Pending">Pending</option>
             <option value="FOR REVISION">FOR REVISION</option>
             <option value="For Submission to Finance">For Submission to Finance</option>
-            <option value="Approved">Approved</option>
         </select>
 
         <select id="yearFilter" onchange="applyFilters()">
             <option value="">All Years</option>
-
             @foreach($years as $year)
                 <option value="{{ $year }}">{{ $year }}</option>
             @endforeach
@@ -232,7 +229,6 @@
 
         <select id="rcFilter" onchange="applyFilters()">
             <option value="">All Responsibility Centers</option>
-
             @foreach($responsibilityCenters as $rc)
                 <option value="{{ $rc }}">{{ $rc }}</option>
             @endforeach
@@ -240,68 +236,35 @@
     </div>
 </div>
 
-<div style="
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:15px;
-    gap:15px;
-    flex-wrap:wrap;
-">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;gap:15px;flex-wrap:wrap;">
     <div class="selected-count">
         <span id="selectedCount">0</span> plan(s) selected
     </div>
 
-    <div style="display:flex; gap:10px;">
-
-        @if(in_array($userRole, ['ADMIN', 'MONITOR', 'REVIEWER']))
-            <button
-                class="btn-reviewal"
-                id="reviewalBtn"
-                onclick="forReviewalSelected()"
-                disabled
-            >
-                <i class="fas fa-eye"></i>
-                For Reviewal
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        @if(in_array($userRole, ['ADMIN', 'MONITOR', 'FINANCE']))
+            <button class="btn-approve" id="approveBtn" onclick="approveSelected()" disabled>
+                <i class="fas fa-check"></i> Approve Selected
             </button>
         @endif
 
-        @if(in_array($userRole, ['ADMIN', 'MONITOR', 'APPROVER', 'DEPARTMENT MANAGER', 'FINANCE']))
-            <button
-                class="btn-approve"
-                id="approveBtn"
-                onclick="approveSelected()"
-                disabled
-            >
-                <i class="fas fa-check"></i>
-                Approve Selected
+        @if(in_array($userRole, ['REVIEWER', 'ADMIN', 'MONITOR']))
+            <button class="btn-reviewal" id="reviewalBtn" onclick="forReviewalSelected()" disabled>
+                <i class="fas fa-eye"></i> For Reviewal
             </button>
         @endif
 
-        @if(in_array($userRole, ['ADMIN', 'MONITOR', 'REVIEWER', 'APPROVER', 'DEPARTMENT MANAGER', 'FINANCE']))
-            <button
-                class="btn-revision"
-                id="revisionBtn"
-                onclick="reviseSelected()"
-                disabled
-            >
-                <i class="fas fa-rotate-left"></i>
-                Send for Revision
+        @if(in_array($userRole, ['ADMIN', 'MONITOR', 'FINANCE', 'REVIEWER', 'APPROVER', 'DEPARTMENT MANAGER']))
+            <button class="btn-revision" id="revisionBtn" onclick="reviseSelected()" disabled>
+                <i class="fas fa-rotate-left"></i> Send for Revision
             </button>
         @endif
 
-        @if(in_array($userRole, ['ADMIN', 'MONITOR', 'APPROVER', 'DEPARTMENT MANAGER', 'FINANCE']))
-            <button
-                class="btn-finance"
-                id="financeBtn"
-                onclick="submitToFinance()"
-                disabled
-            >
-                <i class="fas fa-coins"></i>
-                Submit to Finance
+        @if(in_array($userRole, ['ADMIN', 'MONITOR', 'APPROVER', 'DEPARTMENT MANAGER']))
+            <button class="btn-finance" id="financeBtn" onclick="submitToFinance()" disabled>
+                <i class="fas fa-coins"></i> Submit to Finance
             </button>
         @endif
-
     </div>
 </div>
 
@@ -327,36 +290,32 @@ const columnDefs = [
         headerCheckboxSelectionFilteredOnly: true,
         suppressMenu: true,
         sortable: false,
-        filter: false,
+        filter: false
     },
-
     {
         headerName: 'Responsible Center',
         field: 'r_center',
-        width: 120,
-        pinned: 'left',
+        width: 100,
+        pinned: 'left'
     },
-
     {
         headerName: 'Year',
         field: 'year',
         width: 90,
-        pinned: 'left',
+        pinned: 'left'
     },
-
     {
         headerName: 'Status',
         field: 'status',
-        width: 170,
+        width: 150,
         pinned: 'left',
-
         cellRenderer: params => {
             const status = params.value || '';
             const normalized = status.toLowerCase();
 
             let className = 'status-pending';
 
-            if (normalized === 'for reviewal') {
+            if (normalized === 'for reviewal' || normalized === 'for review') {
                 className = 'status-review';
             } else if (normalized === 'for revision') {
                 className = 'status-revision';
@@ -366,229 +325,66 @@ const columnDefs = [
                 className = 'status-approved';
             }
 
-            return `
-                <span class="status-badge ${className}">
-                    ${status.toUpperCase()}
-                </span>
-            `;
+            return `<span class="status-badge ${className}">${status.toUpperCase()}</span>`;
         }
     },
-
     {
         headerName: 'WORK PLAN',
         headerClass: 'wp-header',
-
         children: [
-            {
-                headerName: 'Strategic Perspective',
-                field: 'strategic_perspective',
-                width: 180,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'Strategic Objective',
-                field: 'strategic_objective',
-                width: 220,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'Major Program',
-                field: 'major_program',
-                width: 180,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'Strategic Measure',
-                field: 'strategic_measure',
-                width: 180,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'Strategic Initiative',
-                field: 'strategic_initiatives',
-                width: 240,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'Success Indicator',
-                field: 'success_indicator',
-                width: 240,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'WP Q1',
-                field: 'wp_q1',
-                width: 90,
-            },
-
-            {
-                headerName: 'WP Q2',
-                field: 'wp_q2',
-                width: 90,
-            },
-
-            {
-                headerName: 'WP Q3',
-                field: 'wp_q3',
-                width: 90,
-            },
-
-            {
-                headerName: 'WP Q4',
-                field: 'wp_q4',
-                width: 90,
-            },
-
-            {
-                headerName: 'WP Total',
-                field: 'wp_total',
-                width: 120,
-            },
-
-            {
-                headerName: 'Remarks',
-                field: 'remarks',
-                width: 200,
-                wrapText: true,
-                autoHeight: true,
-            },
+            { headerName: 'Strategic Perspective', field: 'strategic_perspective', width: 180, wrapText: true, autoHeight: true },
+            { headerName: 'Strategic Objective', field: 'strategic_objective', width: 220, wrapText: true, autoHeight: true },
+            { headerName: 'Major Program', field: 'major_program', width: 180, wrapText: true, autoHeight: true },
+            { headerName: 'Strategic Measure', field: 'strategic_measure', width: 180, wrapText: true, autoHeight: true },
+            { headerName: 'Strategic Initiative', field: 'strategic_initiatives', width: 240, wrapText: true, autoHeight: true },
+            { headerName: 'Success Indicator', field: 'success_indicator', width: 240, wrapText: true, autoHeight: true },
+            { headerName: 'WP Q1', field: 'wp_q1', width: 90 },
+            { headerName: 'WP Q2', field: 'wp_q2', width: 90 },
+            { headerName: 'WP Q3', field: 'wp_q3', width: 90 },
+            { headerName: 'WP Q4', field: 'wp_q4', width: 90 },
+            { headerName: 'WP Total', field: 'wp_total', width: 120 },
+            { headerName: 'Remarks', field: 'remarks', width: 200, wrapText: true, autoHeight: true }
         ]
     },
-
     {
         headerName: 'FINANCIAL PLAN',
         headerClass: 'fp-header',
-
         children: [
-            {
-                headerName: 'Funds',
-                field: 'funds',
-                width: 160,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'Programs',
-                field: 'programs',
-                width: 180,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'Projects',
-                field: 'projects',
-                width: 180,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'Activity',
-                field: 'activity',
-                width: 200,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'Description',
-                field: 'description',
-                width: 240,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'Expense Class',
-                field: 'expense_class',
-                width: 150,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'Account Title',
-                field: 'account_title',
-                width: 200,
-                wrapText: true,
-                autoHeight: true,
-            },
-
-            {
-                headerName: 'FP Q1',
-                field: 'fp_q1',
-                width: 120,
-                type: 'numericColumn',
-            },
-
-            {
-                headerName: 'FP Q2',
-                field: 'fp_q2',
-                width: 120,
-                type: 'numericColumn',
-            },
-
-            {
-                headerName: 'FP Q3',
-                field: 'fp_q3',
-                width: 120,
-                type: 'numericColumn',
-            },
-
-            {
-                headerName: 'FP Q4',
-                field: 'fp_q4',
-                width: 120,
-                type: 'numericColumn',
-            },
-
-            {
-                headerName: 'FP Total',
-                field: 'fp_total',
-                width: 140,
-                type: 'numericColumn',
-            },
+            { headerName: 'Funds', field: 'funds', width: 160, wrapText: true, autoHeight: true },
+            { headerName: 'Programs', field: 'programs', width: 180, wrapText: true, autoHeight: true },
+            { headerName: 'Projects', field: 'projects', width: 180, wrapText: true, autoHeight: true },
+            { headerName: 'Activity', field: 'activity', width: 200, wrapText: true, autoHeight: true },
+            { headerName: 'Description', field: 'description', width: 240, wrapText: true, autoHeight: true },
+            { headerName: 'Expense Class', field: 'expense_class', width: 150, wrapText: true, autoHeight: true },
+            { headerName: 'Account Title', field: 'account_title', width: 200, wrapText: true, autoHeight: true },
+            { headerName: 'FP Q1', field: 'fp_q1', width: 120, type: 'numericColumn' },
+            { headerName: 'FP Q2', field: 'fp_q2', width: 120, type: 'numericColumn' },
+            { headerName: 'FP Q3', field: 'fp_q3', width: 120, type: 'numericColumn' },
+            { headerName: 'FP Q4', field: 'fp_q4', width: 120, type: 'numericColumn' },
+            { headerName: 'FP Total', field: 'fp_total', width: 140, type: 'numericColumn' }
         ]
-    },
+    }
 ];
 
 const gridOptions = {
     rowData,
     columnDefs,
-
     rowSelection: {
         mode: 'multiRow',
         checkboxes: true,
         headerCheckbox: true,
-        enableClickSelection: true,
+        enableClickSelection: true
     },
-
     defaultColDef: {
         resizable: true,
         sortable: true,
         filter: 'agTextColumnFilter',
         wrapText: true,
-        autoHeight: true,
+        autoHeight: true
     },
-
     pagination: true,
     paginationPageSize: 20,
-
-    onSelectionChanged: updateSelectedCount,
+    onSelectionChanged: updateSelectedCount
 };
 
 const gridApi = agGrid.createGrid(
@@ -597,31 +393,25 @@ const gridApi = agGrid.createGrid(
 );
 
 function getSelectedFormIds() {
-    return [
-        ...new Set(
-            gridApi
-                .getSelectedRows()
-                .map(row => row.form_id)
-        )
-    ];
+    return [...new Set(
+        gridApi.getSelectedRows().map(row => row.form_id)
+    )];
 }
 
 function updateSelectedCount() {
-    const formIds = getSelectedFormIds();
-    const count = formIds.length;
+    const count = getSelectedFormIds().length;
 
     document.getElementById('selectedCount').innerText = count;
 
     const buttons = [
-        'reviewalBtn',
         'approveBtn',
+        'reviewalBtn',
         'revisionBtn',
-        'financeBtn',
+        'financeBtn'
     ];
 
     buttons.forEach(id => {
         const button = document.getElementById(id);
-
         if (button) {
             button.disabled = count === 0;
         }
@@ -629,11 +419,9 @@ function updateSelectedCount() {
 }
 
 function applyQuickSearch() {
-    const value = document.getElementById('quickSearch').value;
-
     gridApi.setGridOption(
         'quickFilterText',
-        value
+        document.getElementById('quickSearch').value
     );
 }
 
@@ -648,7 +436,7 @@ function applyFilters() {
         filterModel.status = {
             filterType: 'text',
             type: 'equals',
-            filter: status,
+            filter: status
         };
     }
 
@@ -656,7 +444,7 @@ function applyFilters() {
         filterModel.year = {
             filterType: 'text',
             type: 'equals',
-            filter: year,
+            filter: year
         };
     }
 
@@ -664,68 +452,46 @@ function applyFilters() {
         filterModel.r_center = {
             filterType: 'text',
             type: 'equals',
-            filter: rc,
+            filter: rc
         };
     }
 
     gridApi.setFilterModel(filterModel);
 }
 
-function forReviewalSelected() {
-    const formIds = getSelectedFormIds();
-
-    if (!formIds.length) {
-        alert('Please select at least one plan.');
-        return;
-    }
-
-    if (!confirm(`Send ${formIds.length} selected plan(s) for reviewal?`)) {
-        return;
-    }
-
-    sendMassAction(
-        "{{ route('mass-review.for-reviewal') }}",
-        formIds
+function approveSelected() {
+    massAction(
+        "{{ route('mass-review.approve') }}",
+        'Approve',
+        'Approve'
     );
 }
 
-function approveSelected() {
-    const formIds = getSelectedFormIds();
-
-    if (!formIds.length) {
-        alert('Please select at least one plan.');
-        return;
-    }
-
-    if (!confirm(`Approve ${formIds.length} selected plan(s)?`)) {
-        return;
-    }
-
-    sendMassAction(
-        "{{ route('mass-review.approve') }}",
-        formIds
+function forReviewalSelected() {
+    massAction(
+        "{{ route('mass-review.for-reviewal') }}",
+        'mark',
+        'Mark'
     );
 }
 
 function reviseSelected() {
-    const formIds = getSelectedFormIds();
-
-    if (!formIds.length) {
-        alert('Please select at least one plan.');
-        return;
-    }
-
-    if (!confirm(`Send ${formIds.length} selected plan(s) for revision?`)) {
-        return;
-    }
-
-    sendMassAction(
+    massAction(
         "{{ route('mass-review.revise') }}",
-        formIds
+        'send',
+        'Send for revision'
     );
 }
 
 function submitToFinance() {
+    massAction(
+        "{{ route('mass-review.submit-to-finance') }}",
+        'submit',
+        'Submit to Finance'
+    );
+}
+
+function massAction(url, action, label) {
     const formIds = getSelectedFormIds();
 
     if (!formIds.length) {
@@ -733,34 +499,24 @@ function submitToFinance() {
         return;
     }
 
-    if (!confirm(`Submit ${formIds.length} selected plan(s) to Finance?`)) {
+    if (!confirm(`${label} ${formIds.length} selected plan(s)?`)) {
         return;
     }
 
-    sendMassAction(
-        "{{ route('mass-review.submit-to-finance') }}",
-        formIds
-    );
+    sendMassAction(url, formIds);
 }
 
 function sendMassAction(url, formIds) {
     fetch(url, {
         method: 'POST',
-
         headers: {
             'Content-Type': 'application/json',
-
-            'X-CSRF-TOKEN':
-                document
-                    .querySelector('meta[name="csrf-token"]')
-                    .getAttribute('content'),
-
-            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
         },
-
         body: JSON.stringify({
-            form_ids: formIds,
-        }),
+            form_ids: formIds
+        })
     })
     .then(response => {
         if (!response.ok) {

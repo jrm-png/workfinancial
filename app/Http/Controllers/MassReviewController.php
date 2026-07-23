@@ -11,7 +11,7 @@ class MassReviewController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $userRole = strtoupper($user->role ?? '');
+        $role = strtoupper($user->role);
 
         $query = Form::with([
             'workPlans',
@@ -21,42 +21,30 @@ class MassReviewController extends Controller
         $query->whereHas('workPlans', function ($q) {
             $q->whereIn('status', [
                 'For Reviewal',
+                'FOR REVIEW',
                 'FOR REVISION',
                 'Pending',
                 'For Submission to Finance',
             ]);
         });
 
-        if ($userRole === 'DEPARTMENT MANAGER') {
-            $userRC = $user->responsibility_center ?? '';
-            $userDept = strtoupper($user->operating_department ?? '');
+        if ($role === 'DEPARTMENT MANAGER') {
+            $deptGroup = strtoupper($user->operating_department ?? '');
 
-            $ogmGroupRCs = [
-                'OGM',
-                'OAGM',
-                'SMO',
-                'PIU',
-                'IAD',
-                'LAD',
-                'PPIMD',
-            ];
+            $managedCenters = match ($deptGroup) {
+                'OGM' => ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD'],
+                'ERD' => ['CPD', 'ED', 'SMD', 'ECO'],
+                'RMDD' => ['PDMED', 'CDD', 'ELRD'],
+                'MSD' => ['ADMIN', 'FINANCE'],
+                default => [],
+            };
 
-            if ($userDept === 'OGM') {
-                $query->where(function ($q) use ($userRC, $ogmGroupRCs) {
-                    $q->whereHas('workPlans', function ($wp) use ($userRC) {
-                        $wp->where('r_center', $userRC);
-                    })->orWhereHas('workPlans', function ($wp) use ($ogmGroupRCs) {
-                        $wp->whereIn('r_center', $ogmGroupRCs);
-                    });
-                });
-            } else {
-                $query->whereHas('workPlans', function ($wp) use ($userRC) {
-                    $wp->where('r_center', $userRC);
-                });
-            }
+            $query->whereHas('workPlans', function ($q) use ($managedCenters) {
+                $q->whereIn('r_center', $managedCenters);
+            });
         }
 
-        if ($userRole === 'FINANCE') {
+        if ($role === 'FINANCE') {
             $query->whereHas('workPlans', function ($q) {
                 $q->where('status', 'For Submission to Finance');
             });
@@ -80,9 +68,7 @@ class MassReviewController extends Controller
 
         foreach ($forms as $form) {
             foreach ($form->workPlans as $workPlan) {
-                $financialPlans = $form->financialPlans
-                    ->where('workplan_id', $workPlan->id)
-                    ->values();
+                $financialPlans = $form->financialPlans->where('workplan_id', $workPlan->id);
 
                 if ($financialPlans->isEmpty()) {
                     $rows[] = $this->buildRow($form, $workPlan);
@@ -90,23 +76,10 @@ class MassReviewController extends Controller
                 }
 
                 foreach ($financialPlans as $financialPlan) {
-                    $rows[] = $this->buildRow(
-                        $form,
-                        $workPlan,
-                        $financialPlan
-                    );
+                    $rows[] = $this->buildRow($form, $workPlan, $financialPlan);
                 }
             }
         }
-
-        $rows = collect($rows)
-            ->sortBy([
-                ['form_id', 'asc'],
-                ['workplan_id', 'asc'],
-                ['financialplan_id', 'asc'],
-            ])
-            ->values()
-            ->all();
 
         $years = collect($rows)
             ->pluck('year')
@@ -125,8 +98,7 @@ class MassReviewController extends Controller
         return view('mass-review.index', compact(
             'rows',
             'years',
-            'responsibilityCenters',
-            'userRole'
+            'responsibilityCenters'
         ));
     }
 
@@ -175,28 +147,13 @@ class MassReviewController extends Controller
         ];
     }
 
-    public function forReviewal(Request $request)
-    {
-        $request->validate([
-            'form_ids' => ['required', 'array'],
-            'form_ids.*' => ['integer'],
-        ]);
-
-        DB::table('workplan')
-            ->whereIn('form_id', $request->form_ids)
-            ->update([
-                'status' => 'For Reviewal',
-                'updated_at' => now(),
-            ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Selected plans sent for reviewal.',
-        ]);
-    }
-
     public function approve(Request $request)
     {
+        abort_unless(
+            in_array(strtoupper(auth()->user()->role), ['ADMIN', 'MONITOR', 'FINANCE']),
+            403
+        );
+
         $request->validate([
             'form_ids' => ['required', 'array'],
             'form_ids.*' => ['integer'],
@@ -221,8 +178,45 @@ class MassReviewController extends Controller
         ]);
     }
 
+    public function forReviewal(Request $request)
+    {
+        abort_unless(
+            strtoupper(auth()->user()->role) === 'REVIEWER',
+            403
+        );
+
+        $request->validate([
+            'form_ids' => ['required', 'array'],
+            'form_ids.*' => ['integer'],
+        ]);
+
+        DB::table('workplan')
+            ->whereIn('form_id', $request->form_ids)
+            ->update([
+                'status' => 'For Reviewal',
+                'updated_at' => now(),
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Selected plans marked for reviewal.',
+        ]);
+    }
+
     public function revise(Request $request)
     {
+        abort_unless(
+            in_array(strtoupper(auth()->user()->role), [
+                'ADMIN',
+                'MONITOR',
+                'FINANCE',
+                'REVIEWER',
+                'APPROVER',
+                'DEPARTMENT MANAGER',
+            ]),
+            403
+        );
+
         $request->validate([
             'form_ids' => ['required', 'array'],
             'form_ids.*' => ['integer'],
@@ -243,6 +237,16 @@ class MassReviewController extends Controller
 
     public function submitToFinance(Request $request)
     {
+        abort_unless(
+            in_array(strtoupper(auth()->user()->role), [
+                'ADMIN',
+                'MONITOR',
+                'APPROVER',
+                'DEPARTMENT MANAGER',
+            ]),
+            403
+        );
+
         $request->validate([
             'form_ids' => ['required', 'array'],
             'form_ids.*' => ['integer'],

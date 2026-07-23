@@ -112,30 +112,15 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    Route::get(
-        '/mass-review',
-        [MassReviewController::class, 'index']
-    )->name('mass-review.index');
+Route::get('/mass-review', [MassReviewController::class, 'index'])->name('mass-review.index');
 
-    Route::post(
-        '/mass-review/for-reviewal',
-        [MassReviewController::class, 'forReviewal']
-    )->name('mass-review.for-reviewal');
 
-    Route::post(
-        '/mass-review/approve',
-        [MassReviewController::class, 'approve']
-    )->name('mass-review.approve');
+Route::post('/mass-review/approve', [MassReviewController::class, 'approve'])->name('mass-review.approve');
+Route::post('/mass-review/revise', [MassReviewController::class, 'revise'])->name('mass-review.revise');
+Route::post('/mass-review/for-reviewal', [MassReviewController::class, 'forReviewal'])->name('mass-review.for-reviewal');
+Route::post('/mass-review/submit-to-finance', [MassReviewController::class, 'submitToFinance'])->name('mass-review.submit-to-finance');
 
-    Route::post(
-        '/mass-review/revise',
-        [MassReviewController::class, 'revise']
-    )->name('mass-review.revise');
 
-    Route::post(
-        '/mass-review/submit-to-finance',
-        [MassReviewController::class, 'submitToFinance']
-    )->name('mass-review.submit-to-finance');
 });
 
 require __DIR__.'/auth.php';
