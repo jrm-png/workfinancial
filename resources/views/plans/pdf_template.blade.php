@@ -1,8 +1,14 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>WFP Report - {{ $r_center }}</title>
+
+    <meta charset="utf-8">
+
+    <title>
+        WFP Report - {{ $r_center }}
+    </title>
+
     <style>
         @page { 
             margin: 0.5in 0.3in 0.6in 0.3in; 
@@ -105,420 +111,1763 @@
             font-size: 8px;
         }
     </style>
+
 </head>
+
 <body>
-    <script type="text/php">
-        if (isset($pdf)) {
-            $text = "Page {PAGE_NUM} of {PAGE_COUNT}";
-            $font = $fontMetrics->get_font("helvetica", "normal");
-            $size = 7;
-            $color = array(0.39, 0.45, 0.54);
-            $width = $fontMetrics->get_text_width($text, $font, $size);
-            $pdf->page_text($pdf->get_width() - $width - 15, $pdf->get_height() - 35, $text, $font, $size, $color);
-        }
-    </script>
 
     <div class="footer">
-        Generated on: {{ \Carbon\Carbon::now('Asia/Manila')->format('F d, Y h:i A') }}
+
+        Generated on:
+        {{ \Carbon\Carbon::now('Asia/Manila')->format('F d, Y h:i A') }}
+
     </div>
+
 
     <div class="header-container">
+
         <table class="header-table">
+
             <tr>
-                <td style="width: 35%;" class="llda-title">LAGUNA LAKE DEVELOPMENT AUTHORITY</td>
-                <td style="width: 35%;" class="report-title">
-                    {{ $year }} 
-                    @if(($report_mode ?? '') == 'summary') 
-                        SUMMARY TOTALS REPORT 
-                    @else 
-                        {{ $report_type == 'wp_only' ? 'WORK PLAN REPORT' : ($report_type == 'fp_only' ? 'FINANCIAL PLAN REPORT' : 'WORK & FINANCIAL PLAN') }} 
-                    @endif
+
+                <td class="llda-title">
+
+                    LAGUNA LAKE DEVELOPMENT AUTHORITY
+
                 </td>
-                <td style="width: 30%;" class="rc-title">RC: {{ strtoupper($r_center) }}</td>
+
+                <td class="report-title">
+
+                    {{ $year }}
+
+                    @if(($report_mode ?? '') === 'summary')
+
+                        SUMMARY TOTALS REPORT
+
+                    @else
+
+                        @if($report_type === 'wp_only')
+
+                            WORK PLAN REPORT
+
+                        @elseif($report_type === 'fp_only')
+
+                            FINANCIAL PLAN REPORT
+
+                        @else
+
+                            WORK & FINANCIAL PLAN
+
+                        @endif
+
+                    @endif
+
+                </td>
+
+                <td class="rc-title">
+
+                    RC:
+                    {{ strtoupper($r_center) }}
+
+                </td>
+
             </tr>
+
         </table>
+
     </div>
+
 
     @php
-        /** Helper for math calculation **/
-        $calcTotal = function($q1, $q2, $q3, $q4) {
+
+        $calcTotal = function (
+            $q1,
+            $q2,
+            $q3,
+            $q4
+        ) {
+
+            $values = [
+                $q1,
+                $q2,
+                $q3,
+                $q4
+            ];
+
             $hasPercent = false;
-            $sum = 0;
-            foreach([$q1, $q2, $q3, $q4] as $v) {
-                if (str_contains((string)$v, '%')) $hasPercent = true;
-                $clean = str_replace(['%', ','], '', (string)$v);
-                $sum += is_numeric($clean) ? (float)$clean : 0;
+            $total = 0;
+
+            foreach ($values as $value) {
+
+                $value = (string) $value;
+
+                if (str_contains($value, '%')) {
+                    $hasPercent = true;
+                }
+
+                $clean =
+                    str_replace(
+                        [
+                            ',',
+                            '%'
+                        ],
+                        '',
+                        $value
+                    );
+
+                if (is_numeric($clean)) {
+                    $total += (float) $clean;
+                }
             }
-            return $hasPercent ? $sum . '%' : $sum;
+
+            return $hasPercent
+                ? $total . '%'
+                : $total;
+
         };
 
-        /** Filter for Approved Status Only (Case-Insensitive) **/
-        $approvedWorkplans = $workplans->filter(function($item) {
-            return strtolower($item->status) === 'approved' | strtolower($item->status) === 'draft'|| strtolower($item->status) === 'pending' || strtolower($item->status) === 'for review' || strtolower($item->status) === 'for submission to finance';
-        });
-
-        $approvedFormIds = $approvedWorkplans->pluck('form_id')->unique()->toArray();
-
-        $approvedFinancials = $financialsByForm->filter(function($items, $formId) use ($approvedFormIds) {
-            return in_array($formId, $approvedFormIds);
-        });
-
-        // Track totals per R_Center
-        $rcTotalsTracker = [];
     @endphp
 
-    {{-- ==========================================================================
-         LAYOUT 1: SUMMARY REPORT MODE
-         ========================================================================== --}}
-    @if(($report_mode ?? '') == 'summary')
+
+    @if(($report_mode ?? '') === 'summary')
+
+
         @php
-            $sumG1 = 0; $sumG2 = 0; $sumG3 = 0; $sumG4 = 0; $sumGrandTotal = 0;
+
+            $summaryQ1 = 0;
+            $summaryQ2 = 0;
+            $summaryQ3 = 0;
+            $summaryQ4 = 0;
+            $summaryTotal = 0;
+
         @endphp
-        <div class="section-header">BUDGET SUMMARY TOTALS </div>
+
+
+        <div
+            class="section-header"
+            style="background:#0f172a;"
+        >
+
+            BUDGET SUMMARY TOTALS
+
+        </div>
+
+
         <table>
+
             <thead>
+
                 <tr>
-                    @foreach(['r_center' => 'RC', 'funds' => 'Funds', 'programs' => 'Programs', 'projects' => 'Projects', 'activity' => 'Activity', 'expense_class' => 'Exp. Class', 'account_title' => 'Account'] as $key => $label)
-                        @if(in_array($key, $selectedSumCols)) <th>{{ $label }}</th> @endif
-                    @endforeach
-                    @if(in_array('quarterly', $selectedSumCols)) <th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th> @endif
-                    @if(in_array('amount', $selectedSumCols)) <th class="text-right">Total Amount</th> @endif
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($summaryData as $item)
-                @if(strtolower($item->status ?? 'approved') === 'approved')
-                    @php
-                        $sumG1 += (float)($item->total_q1 ?? 0);
-                        $sumG2 += (float)($item->total_q2 ?? 0);
-                        $sumG3 += (float)($item->total_q3 ?? 0);
-                        $sumG4 += (float)($item->total_q4 ?? 0);
-                        $sumGrandTotal += (float)($item->grand_total ?? 0);
 
-                        $currentRc = strtoupper($item->r_center ?? $r_center);
-                        $rcTotalsTracker[$currentRc] = ($rcTotalsTracker[$currentRc] ?? 0) + (float)($item->grand_total ?? 0);
-                    @endphp
-                <tr>
-                    @if(in_array('r_center', $selectedSumCols)) <td class="font-bold">{{ $item->r_center }}</td> @endif
-                    @if(in_array('funds', $selectedSumCols)) <td>{{ $item->funds }}</td> @endif
-                    @if(in_array('programs', $selectedSumCols)) <td>{{ $item->programs }}</td> @endif
-                    @if(in_array('projects', $selectedSumCols)) <td>{{ $item->projects }}</td> @endif
-                    @if(in_array('activity', $selectedSumCols)) <td>{{ $item->activity }}</td> @endif
-                    @if(in_array('expense_class', $selectedSumCols)) <td>{{ $item->expense_class }}</td> @endif
-                    @if(in_array('account_title', $selectedSumCols)) <td>{{ $item->account_title }}</td> @endif
-                    @if(in_array('quarterly', $selectedSumCols)) 
-                        <td class="text-right">{{ number_format($item->total_q1, 2) }}</td><td class="text-right">{{ number_format($item->total_q2, 2) }}</td>
-                        <td class="text-right">{{ number_format($item->total_q3, 2) }}</td><td class="text-right">{{ number_format($item->total_q4, 2) }}</td>
-                    @endif
-                    @if(in_array('amount', $selectedSumCols)) <td class="text-right font-bold">{{ number_format($item->grand_total, 2) }}</td> @endif
-                </tr>
-                @endif
-                @endforeach
+                    @foreach([
+                        'r_center' => 'RC',
+                        'funds' => 'Funds',
+                        'programs' => 'Programs',
+                        'projects' => 'Projects',
+                        'activity' => 'Activity',
+                        'expense_class' => 'Expense Class',
+                        'account_title' => 'Account Title'
+                    ] as $column => $label)
 
-                <tr class="grand-total-row">
-                    <td colspan="{{ count(array_filter($selectedSumCols, function($v) { return $v !== 'quarterly' && $v !== 'amount'; })) }}" class="text-right">GRAND TOTAL:</td>
-                    @if(in_array('quarterly', $selectedSumCols))
-                        <td class="text-right">{{ number_format($sumG1, 2) }}</td>
-                        <td class="text-right">{{ number_format($sumG2, 2) }}</td>
-                        <td class="text-right">{{ number_format($sumG3, 2) }}</td>
-                        <td class="text-right">{{ number_format($sumG4, 2) }}</td>
-                    @endif
-                    @if(in_array('amount', $selectedSumCols))
-                        <td class="text-right">{{ number_format($sumGrandTotal, 2) }}</td>
-                    @endif
-                </tr>
-            </tbody>
-        </table>
+                        @if(in_array(
+                            $column,
+                            $selectedSumCols
+                        ))
 
-    {{-- ==========================================================================
-         LAYOUT 2: HORIZONTAL MERGED (COMBINED) MODE
-         ========================================================================== --}}
-    @elseif($layout === 'horizontal_merged' && $report_type == 'combined')
-        @php
-            $hzQ1 = 0; $hzQ2 = 0; $hzQ3 = 0; $hzQ4 = 0; $hzGrandTotal = 0;
-            
-            // Calculate EXACT colspans dynamically to prevent empty dangling blocks
-            $wpColCount = 1 + count($selectedWpCols) + (in_array('q_targets', $selectedWpCols) ? 4 : 0) + 1; 
-            $fpColCount = count($selectedFpCols) + (in_array('q_budget', $selectedFpCols) ? 4 : 0) + 1;
-        @endphp
-        <table>
-            <thead>
-                <tr>
-                    <th colspan="{{ $wpColCount }}" class="wp-header">WORK PLAN</th>
-                    <th colspan="{{ $fpColCount }}" class="fp-header">FINANCIAL PLAN</th>
-                </tr>
-                <tr>
-                    {{-- Workplan Headers --}}
-                    <th>RC</th>
-                    @if(in_array('strategic_perspective', $selectedWpCols)) <th>Perspective</th> @endif
-                    @if(in_array('strategic_objective', $selectedWpCols)) <th>Objective</th> @endif
-                    @if(in_array('major_program', $selectedWpCols)) <th>Program</th> @endif
-                    @if(in_array('strategic_measure', $selectedWpCols)) <th>Measure</th> @endif
-                    @if(in_array('strategic_initiatives', $selectedWpCols)) <th>Initiative</th> @endif
-                    @if(in_array('success_indicator', $selectedWpCols)) <th>Indicator</th> @endif
-                    @if(in_array('q_targets', $selectedWpCols)) <th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th> @endif
-                    <th>WP Total</th>
+                            <th>
+                                {{ $label }}
+                            </th>
 
-                    {{-- Financial Plan Headers --}}
-                    @foreach(['funds', 'programs', 'projects', 'activity', 'expense_class', 'account_title'] as $fCol)
-                        @if(in_array($fCol, $selectedFpCols)) <th>{{ ucfirst($fCol) }}</th> @endif
-                    @endforeach
-                    @if(in_array('amount', $selectedFpCols)) <th>Amount</th> @endif
-                    @if(in_array('q_budget', $selectedFpCols)) <th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th> @endif
-                    <th>FP Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                @php $workplansByFormFiltered = $approvedWorkplans->groupBy('form_id'); @endphp
-                @foreach($workplansByFormFiltered as $formId => $formWps)
-                    @php 
-                        $formFps = $approvedFinancials->get($formId) ?? collect([]); 
-                        $totalRowsForForm = max($formWps->count(), $formFps->count());
-                        $zebraClass = ($loop->index % 2 == 0) ? 'form-group-even' : 'form-group-odd';
-                    @endphp
-                    @for($i = 0; $i < $totalRowsForForm; $i++)
-                    
-                        @php 
-                            $wp = $formWps->get($i); 
-                            $fp = $formFps->get($i); 
-
-                            if($fp) {
-                                $hzQ1 += (float)($fp->q1 ?? 0);
-                                $hzQ2 += (float)($fp->q2 ?? 0);
-                                $hzQ3 += (float)($fp->q3 ?? 0);
-                                $hzQ4 += (float)($fp->q4 ?? 0);
-                                $rowSum = (float)($fp->q1 ?? 0) + (float)($fp->q2 ?? 0) + (float)($fp->q3 ?? 0) + (float)($fp->q4 ?? 0);
-                                $hzGrandTotal += $rowSum;
-
-                                $currentRc = strtoupper($fp->r_center ?? $r_center);
-                                $rcTotalsTracker[$currentRc] = ($rcTotalsTracker[$currentRc] ?? 0) + $rowSum;
-                            }
-                        @endphp
-                        <tr class="{{ $zebraClass }}">
-                            {{-- WP Data --}}
-                            @if($wp)
-                                <td>{{ $wp->r_center }}</td>
-                                @if(in_array('strategic_perspective', $selectedWpCols)) <td>{{ $wp->strategic_perspective }}</td> @endif
-                                @if(in_array('strategic_objective', $selectedWpCols)) <td>{{ $wp->strategic_objective }}</td> @endif
-                                @if(in_array('major_program', $selectedWpCols)) <td>{{ $wp->major_program }}</td> @endif
-                                @if(in_array('strategic_measure', $selectedWpCols)) <td>{{ $wp->strategic_measure }}</td> @endif
-                                @if(in_array('strategic_initiatives', $selectedWpCols)) <td>{{ $wp->strategic_initiatives }}</td> @endif
-                                @if(in_array('success_indicator', $selectedWpCols)) <td>{{ $wp->success_indicator }}</td> @endif
-                                @if(in_array('q_targets', $selectedWpCols)) 
-                                    <td class="text-center">{{ $wp->q1 }}</td><td class="text-center">{{ $wp->q2 }}</td>
-                                    <td class="text-center">{{ $wp->q3 }}</td><td class="text-center">{{ $wp->q4 }}</td>
-                                @endif
-                                <td class="text-center font-bold">{{ $calcTotal($wp->q1, $wp->q2, $wp->q3, $wp->q4) }}</td>
-                            @else
-                                <td colspan="{{ $wpColCount }}"></td>
-                            @endif
-
-                            {{-- FP Data --}}
-                            @if($fp)
-                                @if(in_array('funds', $selectedFpCols)) <td>{{ $fp->funds }}</td> @endif
-                                @if(in_array('programs', $selectedFpCols)) <td>{{ $fp->programs }}</td> @endif
-                                @if(in_array('projects', $selectedFpCols)) <td>{{ $fp->projects }}</td> @endif
-                                @if(in_array('activity', $selectedFpCols)) <td>{{ $fp->activity }}</td> @endif
-                                @if(in_array('expense_class', $selectedFpCols)) <td>{{ $fp->expense_class }}</td> @endif
-                                @if(in_array('account_title', $selectedFpCols)) <td>{{ $fp->account_title }}</td> @endif
-                                @if(in_array('amount', $selectedFpCols)) <td class="text-right">{{ number_format($fp->amount, 2) }}</td> @endif
-                                @if(in_array('q_budget', $selectedFpCols)) 
-                                    <td class="text-right">{{ number_format($fp->q1, 2) }}</td><td class="text-right">{{ number_format($fp->q2, 2) }}</td>
-                                    <td class="text-right">{{ number_format($fp->q3, 2) }}</td><td class="text-right">{{ number_format($fp->q4, 2) }}</td>
-                                @endif
-                                <td class="text-right font-bold">{{ number_format((float)str_replace(',','',$calcTotal($fp->q1, $fp->q2, $fp->q3, $fp->q4)), 2) }}</td>
-                            @else
-                                <td colspan="{{ $fpColCount }}"></td>
-                            @endif
-                        </tr>
-                    @endfor
-                @endforeach
-
-                @php 
-                    // Calculate remaining columns for labels before numeric quarterly figures
-                    $fpLabelColspan = count(array_filter($selectedFpCols, function($c) { return !in_array($c, ['q_budget']); }));
-                @endphp
-                <tr class="grand-total-row">
-                    <td colspan="{{ $wpColCount }}" style="border-right: 1px solid #cbd5e1; background-color: #f1f5f9;"></td>
-                    <td colspan="{{ $fpLabelColspan }}" class="text-right">GRAND TOTAL:</td>
-                    @if(in_array('q_budget', $selectedFpCols))
-                        <td class="text-right">{{ number_format($hzQ1, 2) }}</td>
-                        <td class="text-right">{{ number_format($hzQ2, 2) }}</td>
-                        <td class="text-right">{{ number_format($hzQ3, 2) }}</td>
-                        <td class="text-right">{{ number_format($hzQ4, 2) }}</td>
-                    @endif
-                    <td class="text-right">{{ number_format($hzGrandTotal, 2) }}</td>
-                </tr>
-            </tbody>
-        </table>
-
-    {{-- ==========================================================================
-         LAYOUT 3: GENERIC LAYOUTS (VERTICAL SEPARATED MODULES)
-         ========================================================================== --}}
-    @else
-        @if($report_type == 'combined' || $report_type == 'wp_only')
-            <div class="section-header">I. WORK PLAN </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>RC</th>
-                        @if(in_array('strategic_perspective', $selectedWpCols)) <th>Perspective</th> @endif
-                        @if(in_array('strategic_objective', $selectedWpCols)) <th>Objective</th> @endif
-                        @if(in_array('major_program', $selectedWpCols)) <th>Program</th> @endif
-                        @if(in_array('strategic_measure', $selectedWpCols)) <th>Measure</th> @endif
-                        @if(in_array('strategic_initiatives', $selectedWpCols)) <th>Initiative</th> @endif
-                        @if(in_array('success_indicator', $selectedWpCols)) <th>Indicator</th> @endif
-                        @if(in_array('q_targets', $selectedWpCols)) <th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th> @endif
-                        <th class="text-center">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($approvedWorkplans->groupBy('r_center') as $groupName => $plans)
-                        <tr class="group-header"><td colspan="100%">{{ strtoupper($groupName ?: 'Other') }}</td></tr>
-                        @foreach($plans as $wp)
-                            <tr>
-                                <td>{{ $wp->r_center }}</td>
-                                @if(in_array('strategic_perspective', $selectedWpCols)) <td>{{ $wp->strategic_perspective }}</td> @endif
-                                @if(in_array('strategic_objective', $selectedWpCols)) <td>{{ $wp->strategic_objective }}</td> @endif
-                                @if(in_array('major_program', $selectedWpCols)) <td>{{ $wp->major_program }}</td> @endif
-                                @if(in_array('strategic_measure', $selectedWpCols)) <td>{{ $wp->strategic_measure }}</td> @endif
-                                @if(in_array('strategic_initiatives', $selectedWpCols)) <td>{{ $wp->strategic_initiatives }}</td> @endif
-                                @if(in_array('success_indicator', $selectedWpCols)) <td>{{ $wp->success_indicator }}</td> @endif
-                                @if(in_array('q_targets', $selectedWpCols)) 
-                                    <td class="text-center">{{ $wp->q1 }}</td><td class="text-center">{{ $wp->q2 }}</td>
-                                    <td class="text-center">{{ $wp->q3 }}</td><td class="text-center">{{ $wp->q4 }}</td>
-                                @endif
-                                <td class="text-center font-bold">{{ $calcTotal($wp->q1, $wp->q2, $wp->q3, $wp->q4) }}</td>
-                            </tr>
-                        @endforeach
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
-
-        @if($report_type == 'combined' || $report_type == 'fp_only')
-            @php
-                $vtQ1 = 0; $vtQ2 = 0; $vtQ3 = 0; $vtQ4 = 0; $vtGrandTotal = 0;
-            @endphp
-            <div class="section-header" style="background:#059669;">II. FINANCIAL PLAN </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>RC</th>
-                        @foreach(['funds', 'programs', 'projects', 'activity', 'expense_class', 'account_title'] as $fCol)
-                            @if(in_array($fCol, $selectedFpCols)) <th>{{ ucfirst($fCol) }}</th> @endif
-                        @endforeach
-                        @if(in_array('amount', $selectedFpCols)) <th>Amount</th> @endif
-                        @if(in_array('q_budget', $selectedFpCols)) <th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th> @endif
-                        <th class="text-right">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($approvedFinancials as $formId => $items)
-                        @foreach($items as $fp)
-                            @php
-                                $vtQ1 += (float)($fp->q1 ?? 0);
-                                $vtQ2 += (float)($fp->q2 ?? 0);
-                                $vtQ3 += (float)($fp->q3 ?? 0);
-                                $vtQ4 += (float)($fp->q4 ?? 0);
-                                $vRowSum = (float)($fp->q1 ?? 0) + (float)($fp->q2 ?? 0) + (float)($fp->q3 ?? 0) + (float)($fp->q4 ?? 0);
-                                $vtGrandTotal += $vRowSum;
-
-                                $currentRc = strtoupper($fp->r_center ?? $r_center);
-                                $rcTotalsTracker[$currentRc] = ($rcTotalsTracker[$currentRc] ?? 0) + $vRowSum;
-                            @endphp
-                            <tr>
-                                <td>{{ $fp->r_center }}</td>
-                                @foreach(['funds', 'programs', 'projects', 'activity', 'expense_class', 'account_title'] as $fCol)
-                                    @if(in_array($fCol, $selectedFpCols)) <td>{{ $fp->$fCol }}</td> @endif
-                                @endforeach
-                                @if(in_array('amount', $selectedFpCols)) <td class="text-right">{{ number_format($fp->amount, 2) }}</td> @endif
-                                @if(in_array('q_budget', $selectedFpCols)) 
-                                    <td class="text-right">{{ number_format($fp->q1, 2) }}</td><td class="text-right">{{ number_format($fp->q2, 2) }}</td>
-                                    <td class="text-right">{{ number_format($fp->q3, 2) }}</td><td class="text-right">{{ number_format($fp->q4, 2) }}</td>
-                                @endif
-                                <td class="text-right font-bold">{{ number_format((float)str_replace(',','',$calcTotal($fp->q1, $fp->q2, $fp->q3, $fp->q4)), 2) }}</td>
-                            </tr>
-                        @endforeach
-                    @endforeach
-
-                    @php 
-                        $vtLabelColspan = 1 + count(array_filter($selectedFpCols, function($col) { return !in_array($col, ['q_budget']); }));
-                    @endphp
-                    <tr class="grand-total-row">
-                        <td colspan="{{ $vtLabelColspan }}" class="text-right">GRAND TOTAL:</td>
-                        @if(in_array('q_budget', $selectedFpCols))
-                            <td class="text-right">{{ number_format($vtQ1, 2) }}</td>
-                            <td class="text-right">{{ number_format($vtQ2, 2) }}</td>
-                            <td class="text-right">{{ number_format($vtQ3, 2) }}</td>
-                            <td class="text-right">{{ number_format($vtQ4, 2) }}</td>
                         @endif
-                        <td class="text-right">{{ number_format($vtGrandTotal, 2) }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        @endif
-    @endif
 
-    {{-- ==========================================================================
-         SIGNATORIES SECTION
-         ========================================================================== --}}
-    <div style="margin-top: 25px; page-break-inside: avoid;">
-        <table style="border: none;">
-            <tr>
-                @foreach(['prep', 'rev', 'app'] as $s)
-                    @if($sigs[$s.'_show'] ?? false)
-                        <td style="border: none; width: 33%; font-size: 8px;">
-                            {{ $s == 'prep' ? 'Prepared' : ($s == 'rev' ? 'Reviewed' : 'Approved') }} by:<br><br><br><br>
-                            <strong>{{ strtoupper($sigs[$s.'_name'] ?? '___________________') }}</strong><br>
-                            <span style="color: #475569; font-size: 7.5px;">{{ $sigs[$s.'_pos'] ?? 'Position' }}</span>
-                        </td>
+                    @endforeach
+
+
+                    @if(in_array(
+                        'quarterly',
+                        $selectedSumCols
+                    ))
+
+                        <th>Q1</th>
+                        <th>Q2</th>
+                        <th>Q3</th>
+                        <th>Q4</th>
+
                     @endif
-                @endforeach
-            </tr>
-        </table>
-    </div>
 
-    {{-- ==========================================================================
-         SEPARATE PAGE: RESPONSIBILITY CENTER (RC) BREAKDOWN
-         ========================================================================== --}}
-    @if(count($rcTotalsTracker) > 0)
-        <div class="page-break-section">
-            <div class="header-container">
-                <table class="header-table">
+
+                    @if(in_array(
+                        'amount',
+                        $selectedSumCols
+                    ))
+
+                        <th>
+                            TOTAL
+                        </th>
+
+                    @endif
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                @foreach($summaryData as $item)
+
+                    @php
+
+                        $q1 =
+                            (float) ($item->total_q1 ?? 0);
+
+                        $q2 =
+                            (float) ($item->total_q2 ?? 0);
+
+                        $q3 =
+                            (float) ($item->total_q3 ?? 0);
+
+                        $q4 =
+                            (float) ($item->total_q4 ?? 0);
+
+                        $total =
+                            (float) ($item->grand_total ?? 0);
+
+                        $summaryQ1 += $q1;
+                        $summaryQ2 += $q2;
+                        $summaryQ3 += $q3;
+                        $summaryQ4 += $q4;
+                        $summaryTotal += $total;
+
+                    @endphp
+
+
                     <tr>
-                        <td style="width: 50%;" class="llda-title">LAGUNA LAKE DEVELOPMENT AUTHORITY</td>
-                        <td style="width: 50%; text-align: right;" class="rc-title">APPENDIX: FINANCIAL SUMMARY BREAKDOWN</td>
+
+                        @foreach([
+                            'r_center',
+                            'funds',
+                            'programs',
+                            'projects',
+                            'activity',
+                            'expense_class',
+                            'account_title'
+                        ] as $column)
+
+                            @if(in_array(
+                                $column,
+                                $selectedSumCols
+                            ))
+
+                                <td>
+
+                                    {{ $item->$column }}
+
+                                </td>
+
+                            @endif
+
+                        @endforeach
+
+
+                        @if(in_array(
+                            'quarterly',
+                            $selectedSumCols
+                        ))
+
+                            <td class="text-right">
+                                {{ number_format($q1, 2) }}
+                            </td>
+
+                            <td class="text-right">
+                                {{ number_format($q2, 2) }}
+                            </td>
+
+                            <td class="text-right">
+                                {{ number_format($q3, 2) }}
+                            </td>
+
+                            <td class="text-right">
+                                {{ number_format($q4, 2) }}
+                            </td>
+
+                        @endif
+
+
+                        @if(in_array(
+                            'amount',
+                            $selectedSumCols
+                        ))
+
+                            <td class="text-right font-bold">
+                                {{ number_format($total, 2) }}
+                            </td>
+
+                        @endif
+
                     </tr>
-                </table>
+
+                @endforeach
+
+
+                @php
+
+                    $labelColumns =
+                        count(
+                            array_filter(
+                                $selectedSumCols,
+                                function ($column) {
+                                    return
+                                        $column !== 'quarterly'
+                                        &&
+                                        $column !== 'amount';
+                                }
+                            )
+                        );
+
+                @endphp
+
+
+                <tr class="grand-total-row">
+
+                    <td
+                        colspan="{{ $labelColumns }}"
+                        class="text-right"
+                    >
+
+                        GRAND TOTAL:
+
+                    </td>
+
+
+                    @if(in_array(
+                        'quarterly',
+                        $selectedSumCols
+                    ))
+
+                        <td class="text-right">
+                            {{ number_format($summaryQ1, 2) }}
+                        </td>
+
+                        <td class="text-right">
+                            {{ number_format($summaryQ2, 2) }}
+                        </td>
+
+                        <td class="text-right">
+                            {{ number_format($summaryQ3, 2) }}
+                        </td>
+
+                        <td class="text-right">
+                            {{ number_format($summaryQ4, 2) }}
+                        </td>
+
+                    @endif
+
+
+                    @if(in_array(
+                        'amount',
+                        $selectedSumCols
+                    ))
+
+                        <td class="text-right">
+                            {{ number_format($summaryTotal, 2) }}
+                        </td>
+
+                    @endif
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+
+    @elseif(
+        $layout === 'horizontal_merged'
+        &&
+        $report_type === 'combined'
+    )
+
+
+        @php
+
+            $horizontalQ1 = 0;
+            $horizontalQ2 = 0;
+            $horizontalQ3 = 0;
+            $horizontalQ4 = 0;
+            $horizontalGrandTotal = 0;
+
+            $wpColumnCount =
+                1;
+
+            foreach([
+                'strategic_perspective',
+                'strategic_objective',
+                'major_program',
+                'strategic_measure',
+                'strategic_initiatives',
+                'success_indicator'
+            ] as $column) {
+
+                if(in_array(
+                    $column,
+                    $selectedWpCols
+                )) {
+                    $wpColumnCount++;
+                }
+
+            }
+
+            if(in_array(
+                'q_targets',
+                $selectedWpCols
+            )) {
+                $wpColumnCount += 4;
+            }
+
+            $wpColumnCount++;
+
+            $fpColumnCount =
+                0;
+
+            foreach([
+                'funds',
+                'programs',
+                'projects',
+                'activity',
+                'expense_class',
+                'account_title',
+                'amount'
+            ] as $column) {
+
+                if(in_array(
+                    $column,
+                    $selectedFpCols
+                )) {
+                    $fpColumnCount++;
+                }
+
+            }
+
+            if(in_array(
+                'q_budget',
+                $selectedFpCols
+            )) {
+                $fpColumnCount += 4;
+            }
+
+            $fpColumnCount++;
+
+        @endphp
+
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th
+                        colspan="{{ $wpColumnCount }}"
+                        class="wp-header"
+                    >
+
+                        WORK PLAN
+
+                    </th>
+
+                    <th
+                        colspan="{{ $fpColumnCount }}"
+                        class="fp-header"
+                    >
+
+                        FINANCIAL PLAN
+
+                    </th>
+
+                </tr>
+
+
+                <tr>
+
+                    <th>RC</th>
+
+
+                    @foreach([
+                        'strategic_perspective' => 'Perspective',
+                        'strategic_objective' => 'Objective',
+                        'major_program' => 'Program',
+                        'strategic_measure' => 'Measure',
+                        'strategic_initiatives' => 'Initiative',
+                        'success_indicator' => 'Indicator'
+                    ] as $column => $label)
+
+                        @if(in_array(
+                            $column,
+                            $selectedWpCols
+                        ))
+
+                            <th>
+                                {{ $label }}
+                            </th>
+
+                        @endif
+
+                    @endforeach
+
+
+                    @if(in_array(
+                        'q_targets',
+                        $selectedWpCols
+                    ))
+
+                        <th>Q1</th>
+                        <th>Q2</th>
+                        <th>Q3</th>
+                        <th>Q4</th>
+
+                    @endif
+
+
+                    <th>
+                        WP TOTAL
+                    </th>
+
+
+                    @foreach([
+                        'funds',
+                        'programs',
+                        'projects',
+                        'activity',
+                        'expense_class',
+                        'account_title'
+                    ] as $column)
+
+                        @if(in_array(
+                            $column,
+                            $selectedFpCols
+                        ))
+
+                            <th>
+                                {{ ucfirst(
+                                    str_replace(
+                                        '_',
+                                        ' ',
+                                        $column
+                                    )
+                                ) }}
+                            </th>
+
+                        @endif
+
+                    @endforeach
+
+
+                    @if(in_array(
+                        'amount',
+                        $selectedFpCols
+                    ))
+
+                        <th>
+                            AMOUNT
+                        </th>
+
+                    @endif
+
+
+                    @if(in_array(
+                        'q_budget',
+                        $selectedFpCols
+                    ))
+
+                        <th>Q1</th>
+                        <th>Q2</th>
+                        <th>Q3</th>
+                        <th>Q4</th>
+
+                    @endif
+
+
+                    <th>
+                        FP TOTAL
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+
+                {{-- ONE ROW PER WORKPLAN --}}
+
+                @foreach($workplans as $wp)
+
+
+                    @php
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Critical matching logic:
+                        |
+                        | First:
+                        |     form_id
+                        |
+                        | Then:
+                        |     workplan_id
+                        |
+                        | This allows multiple initiatives and multiple
+                        | financial plans under the same form.
+                        |--------------------------------------------------------------------------
+                        */
+
+                        $financialPlans =
+                            $financialsByFormAndWorkplan
+                                ->get(
+                                    $wp->form_id,
+                                    collect()
+                                )
+                                ->get(
+                                    $wp->id,
+                                    collect()
+                                );
+
+
+                        $fp =
+                            $financialPlans->first();
+
+
+                        $wpTotal =
+                            $calcTotal(
+                                $wp->q1,
+                                $wp->q2,
+                                $wp->q3,
+                                $wp->q4
+                            );
+
+
+                        $fpQ1 =
+                            $financialPlans->sum(
+                                function ($item) {
+                                    return (float)
+                                        ($item->q1 ?? 0);
+                                }
+                            );
+
+
+                        $fpQ2 =
+                            $financialPlans->sum(
+                                function ($item) {
+                                    return (float)
+                                        ($item->q2 ?? 0);
+                                }
+                            );
+
+
+                        $fpQ3 =
+                            $financialPlans->sum(
+                                function ($item) {
+                                    return (float)
+                                        ($item->q3 ?? 0);
+                                }
+                            );
+
+
+                        $fpQ4 =
+                            $financialPlans->sum(
+                                function ($item) {
+                                    return (float)
+                                        ($item->q4 ?? 0);
+                                }
+                            );
+
+
+                        $fpTotal =
+                            $fpQ1
+                            + $fpQ2
+                            + $fpQ3
+                            + $fpQ4;
+
+
+                        $horizontalQ1 +=
+                            $fpQ1;
+
+                        $horizontalQ2 +=
+                            $fpQ2;
+
+                        $horizontalQ3 +=
+                            $fpQ3;
+
+                        $horizontalQ4 +=
+                            $fpQ4;
+
+                        $horizontalGrandTotal +=
+                            $fpTotal;
+
+                    @endphp
+
+
+                    <tr>
+
+
+                        {{-- WORK PLAN --}}
+
+                        <td>
+                            {{ $wp->r_center }}
+                        </td>
+
+
+                        @foreach([
+                            'strategic_perspective',
+                            'strategic_objective',
+                            'major_program',
+                            'strategic_measure',
+                            'strategic_initiatives',
+                            'success_indicator'
+                        ] as $column)
+
+                            @if(in_array(
+                                $column,
+                                $selectedWpCols
+                            ))
+
+                                <td>
+                                    {{ $wp->$column }}
+                                </td>
+
+                            @endif
+
+                        @endforeach
+
+
+                        @if(in_array(
+                            'q_targets',
+                            $selectedWpCols
+                        ))
+
+                            <td class="text-center">
+                                {{ $wp->q1 }}
+                            </td>
+
+                            <td class="text-center">
+                                {{ $wp->q2 }}
+                            </td>
+
+                            <td class="text-center">
+                                {{ $wp->q3 }}
+                            </td>
+
+                            <td class="text-center">
+                                {{ $wp->q4 }}
+                            </td>
+
+                        @endif
+
+
+                        <td class="text-center font-bold">
+
+                            {{ $wpTotal }}
+
+                        </td>
+
+
+                        {{-- FINANCIAL PLAN --}}
+
+                        @if($fp)
+
+
+                            @foreach([
+                                'funds',
+                                'programs',
+                                'projects',
+                                'activity',
+                                'expense_class',
+                                'account_title'
+                            ] as $column)
+
+                                @if(in_array(
+                                    $column,
+                                    $selectedFpCols
+                                ))
+
+                                    <td>
+
+                                        {{ $fp->$column }}
+
+                                    </td>
+
+                                @endif
+
+                            @endforeach
+
+
+                            @if(in_array(
+                                'amount',
+                                $selectedFpCols
+                            ))
+
+                                <td class="text-right">
+
+                                    {{ number_format(
+                                        $fpTotal,
+                                        2
+                                    ) }}
+
+                                </td>
+
+                            @endif
+
+
+                            @if(in_array(
+                                'q_budget',
+                                $selectedFpCols
+                            ))
+
+                                <td class="text-right">
+                                    {{ number_format(
+                                        $fpQ1,
+                                        2
+                                    ) }}
+                                </td>
+
+                                <td class="text-right">
+                                    {{ number_format(
+                                        $fpQ2,
+                                        2
+                                    ) }}
+                                </td>
+
+                                <td class="text-right">
+                                    {{ number_format(
+                                        $fpQ3,
+                                        2
+                                    ) }}
+                                </td>
+
+                                <td class="text-right">
+                                    {{ number_format(
+                                        $fpQ4,
+                                        2
+                                    ) }}
+                                </td>
+
+                            @endif
+
+
+                            <td class="text-right font-bold">
+
+                                {{ number_format(
+                                    $fpTotal,
+                                    2
+                                ) }}
+
+                            </td>
+
+
+                        @else
+
+
+                            <td
+                                colspan="{{ $fpColumnCount }}"
+                            >
+                            </td>
+
+
+                        @endif
+
+
+                    </tr>
+
+
+                    {{-- ADDITIONAL FINANCIAL PLANS UNDER THE SAME WORKPLAN --}}
+
+                    @foreach(
+                        $financialPlans->skip(1)
+                        as $additionalFp
+                    )
+
+
+                        @php
+
+                            $additionalQ1 =
+                                (float)
+                                ($additionalFp->q1 ?? 0);
+
+                            $additionalQ2 =
+                                (float)
+                                ($additionalFp->q2 ?? 0);
+
+                            $additionalQ3 =
+                                (float)
+                                ($additionalFp->q3 ?? 0);
+
+                            $additionalQ4 =
+                                (float)
+                                ($additionalFp->q4 ?? 0);
+
+                            $additionalTotal =
+                                $additionalQ1
+                                + $additionalQ2
+                                + $additionalQ3
+                                + $additionalQ4;
+
+                            $horizontalQ1 +=
+                                $additionalQ1;
+
+                            $horizontalQ2 +=
+                                $additionalQ2;
+
+                            $horizontalQ3 +=
+                                $additionalQ3;
+
+                            $horizontalQ4 +=
+                                $additionalQ4;
+
+                            $horizontalGrandTotal +=
+                                $additionalTotal;
+
+                        @endphp
+
+
+                        <tr>
+
+
+                            {{-- BLANK WORKPLAN SIDE --}}
+
+                            <td
+                                colspan="{{ $wpColumnCount }}"
+                            >
+                            </td>
+
+
+                            @foreach([
+                                'funds',
+                                'programs',
+                                'projects',
+                                'activity',
+                                'expense_class',
+                                'account_title'
+                            ] as $column)
+
+                                @if(in_array(
+                                    $column,
+                                    $selectedFpCols
+                                ))
+
+                                    <td>
+
+                                        {{ $additionalFp->$column }}
+
+                                    </td>
+
+                                @endif
+
+                            @endforeach
+
+
+                            @if(in_array(
+                                'amount',
+                                $selectedFpCols
+                            ))
+
+                                <td class="text-right">
+
+                                    {{ number_format(
+                                        $additionalTotal,
+                                        2
+                                    ) }}
+
+                                </td>
+
+                            @endif
+
+
+                            @if(in_array(
+                                'q_budget',
+                                $selectedFpCols
+                            ))
+
+                                <td class="text-right">
+                                    {{ number_format(
+                                        $additionalQ1,
+                                        2
+                                    ) }}
+                                </td>
+
+                                <td class="text-right">
+                                    {{ number_format(
+                                        $additionalQ2,
+                                        2
+                                    ) }}
+                                </td>
+
+                                <td class="text-right">
+                                    {{ number_format(
+                                        $additionalQ3,
+                                        2
+                                    ) }}
+                                </td>
+
+                                <td class="text-right">
+                                    {{ number_format(
+                                        $additionalQ4,
+                                        2
+                                    ) }}
+                                </td>
+
+                            @endif
+
+
+                            <td class="text-right font-bold">
+
+                                {{ number_format(
+                                    $additionalTotal,
+                                    2
+                                ) }}
+
+                            </td>
+
+                        </tr>
+
+
+                    @endforeach
+
+
+                @endforeach
+
+
+                @php
+
+                    $fpLabelColumns = 0;
+
+                    foreach([
+                        'funds',
+                        'programs',
+                        'projects',
+                        'activity',
+                        'expense_class',
+                        'account_title',
+                        'amount'
+                    ] as $column) {
+
+                        if(in_array(
+                            $column,
+                            $selectedFpCols
+                        )) {
+                            $fpLabelColumns++;
+                        }
+
+                    }
+
+                @endphp
+
+
+                <tr class="grand-total-row">
+
+
+                    <td
+                        colspan="{{ $wpColumnCount }}"
+                    >
+
+                    </td>
+
+
+                    <td
+                        colspan="{{ $fpLabelColumns }}"
+                        class="text-right"
+                    >
+
+                        GRAND TOTAL:
+
+                    </td>
+
+
+                    @if(in_array(
+                        'q_budget',
+                        $selectedFpCols
+                    ))
+
+                        <td class="text-right">
+
+                            {{ number_format(
+                                $horizontalQ1,
+                                2
+                            ) }}
+
+                        </td>
+
+                        <td class="text-right">
+
+                            {{ number_format(
+                                $horizontalQ2,
+                                2
+                            ) }}
+
+                        </td>
+
+                        <td class="text-right">
+
+                            {{ number_format(
+                                $horizontalQ3,
+                                2
+                            ) }}
+
+                        </td>
+
+                        <td class="text-right">
+
+                            {{ number_format(
+                                $horizontalQ4,
+                                2
+                            ) }}
+
+                        </td>
+
+                    @endif
+
+
+                    <td class="text-right">
+
+                        {{ number_format(
+                            $horizontalGrandTotal,
+                            2
+                        ) }}
+
+                    </td>
+
+                </tr>
+
+
+            </tbody>
+
+        </table>
+
+
+    @else
+
+
+        @if(
+            $report_type === 'combined'
+            ||
+            $report_type === 'wp_only'
+        )
+
+
+            <div class="section-header wp-header">
+
+                I. WORK PLAN
+
             </div>
 
-            <div class="section-header" style="background: #0f172a;">Responsibility Center Budget Allocation Summary</div>
-            <p style="font-size: 8px; color: #475569; margin-bottom: 10px;">The following list details the compiled financial program allocation balances authorized for individual operating units during the planning year {{ $year }}.</p>
-            
-            <table class="summary-card-table">
+
+            <table>
+
                 <thead>
+
                     <tr>
-                        <th>Responsibility Center (RC)</th>
-                        <th class="text-right" style="padding-right: 15px;">Total Financial Allocation (PHP)</th>
+
+                        <th>RC</th>
+
+
+                        @foreach([
+                            'strategic_perspective' => 'Perspective',
+                            'strategic_objective' => 'Objective',
+                            'major_program' => 'Program',
+                            'strategic_measure' => 'Measure',
+                            'strategic_initiatives' => 'Initiative',
+                            'success_indicator' => 'Indicator'
+                        ] as $column => $label)
+
+                            @if(in_array(
+                                $column,
+                                $selectedWpCols
+                            ))
+
+                                <th>
+                                    {{ $label }}
+                                </th>
+
+                            @endif
+
+                        @endforeach
+
+
+                        @if(in_array(
+                            'q_targets',
+                            $selectedWpCols
+                        ))
+
+                            <th>Q1</th>
+                            <th>Q2</th>
+                            <th>Q3</th>
+                            <th>Q4</th>
+
+                        @endif
+
+
+                        <th>
+                            TOTAL
+                        </th>
+
                     </tr>
+
                 </thead>
+
+
                 <tbody>
-                    @php $overallTotalSum = 0; @endphp
-                    @foreach($rcTotalsTracker as $rcName => $totalAmount)
-                        @php $overallTotalSum += $totalAmount; @endphp
-                        <tr>
-                            <td class="font-bold" style="color: #1e3a8a;">{{ $rcName }}</td>
-                            <td class="text-right font-bold" style="padding-right: 15px;">{{ number_format($totalAmount, 2) }}</td>
+
+                    @foreach(
+                        $workplans->groupBy('r_center')
+                        as $groupName => $plans
+                    )
+
+
+                        <tr class="group-header">
+
+                            <td
+                                colspan="100%"
+                            >
+
+                                {{ strtoupper(
+                                    $groupName
+                                    ?: 'OTHER'
+                                ) }}
+
+                            </td>
+
                         </tr>
+
+
+                        @foreach($plans as $wp)
+
+
+                            <tr>
+
+                                <td>
+                                    {{ $wp->r_center }}
+                                </td>
+
+
+                                @foreach([
+                                    'strategic_perspective',
+                                    'strategic_objective',
+                                    'major_program',
+                                    'strategic_measure',
+                                    'strategic_initiatives',
+                                    'success_indicator'
+                                ] as $column)
+
+                                    @if(in_array(
+                                        $column,
+                                        $selectedWpCols
+                                    ))
+
+                                        <td>
+                                            {{ $wp->$column }}
+                                        </td>
+
+                                    @endif
+
+                                @endforeach
+
+
+                                @if(in_array(
+                                    'q_targets',
+                                    $selectedWpCols
+                                ))
+
+                                    <td>
+                                        {{ $wp->q1 }}
+                                    </td>
+
+                                    <td>
+                                        {{ $wp->q2 }}
+                                    </td>
+
+                                    <td>
+                                        {{ $wp->q3 }}
+                                    </td>
+
+                                    <td>
+                                        {{ $wp->q4 }}
+                                    </td>
+
+                                @endif
+
+
+                                <td class="text-center font-bold">
+
+                                    {{
+                                        $calcTotal(
+                                            $wp->q1,
+                                            $wp->q2,
+                                            $wp->q3,
+                                            $wp->q4
+                                        )
+                                    }}
+
+                                </td>
+
+                            </tr>
+
+
+                        @endforeach
+
+
                     @endforeach
-                    <tr class="grand-total-row">
-                        <td>TOTAL COMPREHENSIVE BUDGET:</td>
-                        <td class="text-right" style="padding-right: 15px;">₱ {{ number_format($overallTotalSum, 2) }}</td>
-                    </tr>
+
                 </tbody>
+
             </table>
-        </div>
+
+
+        @endif
+
+
+        @if(
+            $report_type === 'combined'
+            ||
+            $report_type === 'fp_only'
+        )
+
+
+            @php
+
+                $verticalQ1 = 0;
+                $verticalQ2 = 0;
+                $verticalQ3 = 0;
+                $verticalQ4 = 0;
+                $verticalTotal = 0;
+
+            @endphp
+
+
+            <div
+                class="section-header fp-header"
+            >
+
+                II. FINANCIAL PLAN
+
+            </div>
+
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>RC</th>
+
+
+                        @foreach([
+                            'funds',
+                            'programs',
+                            'projects',
+                            'activity',
+                            'expense_class',
+                            'account_title'
+                        ] as $column)
+
+                            @if(in_array(
+                                $column,
+                                $selectedFpCols
+                            ))
+
+                                <th>
+
+                                    {{ ucfirst(
+                                        str_replace(
+                                            '_',
+                                            ' ',
+                                            $column
+                                        )
+                                    ) }}
+
+                                </th>
+
+                            @endif
+
+                        @endforeach
+
+
+                        @if(in_array(
+                            'amount',
+                            $selectedFpCols
+                        ))
+
+                            <th>
+                                AMOUNT
+                            </th>
+
+                        @endif
+
+
+                        @if(in_array(
+                            'q_budget',
+                            $selectedFpCols
+                        ))
+
+                            <th>Q1</th>
+                            <th>Q2</th>
+                            <th>Q3</th>
+                            <th>Q4</th>
+
+                        @endif
+
+
+                        <th>
+                            TOTAL
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+
+                    @foreach($financials as $fp)
+
+
+                        @php
+
+                            $q1 =
+                                (float)
+                                ($fp->q1 ?? 0);
+
+                            $q2 =
+                                (float)
+                                ($fp->q2 ?? 0);
+
+                            $q3 =
+                                (float)
+                                ($fp->q3 ?? 0);
+
+                            $q4 =
+                                (float)
+                                ($fp->q4 ?? 0);
+
+                            $total =
+                                $q1
+                                + $q2
+                                + $q3
+                                + $q4;
+
+                            $verticalQ1 += $q1;
+                            $verticalQ2 += $q2;
+                            $verticalQ3 += $q3;
+                            $verticalQ4 += $q4;
+                            $verticalTotal += $total;
+
+                        @endphp
+
+
+                        <tr>
+
+                            <td>
+                                {{ $fp->r_center }}
+                            </td>
+
+
+                            @foreach([
+                                'funds',
+                                'programs',
+                                'projects',
+                                'activity',
+                                'expense_class',
+                                'account_title'
+                            ] as $column)
+
+                                @if(in_array(
+                                    $column,
+                                    $selectedFpCols
+                                ))
+
+                                    <td>
+
+                                        {{ $fp->$column }}
+
+                                    </td>
+
+                                @endif
+
+                            @endforeach
+
+
+                            @if(in_array(
+                                'amount',
+                                $selectedFpCols
+                            ))
+
+                                <td class="text-right">
+
+                                    {{ number_format(
+                                        $total,
+                                        2
+                                    ) }}
+
+                                </td>
+
+                            @endif
+
+
+                            @if(in_array(
+                                'q_budget',
+                                $selectedFpCols
+                            ))
+
+                                <td class="text-right">
+
+                                    {{ number_format(
+                                        $q1,
+                                        2
+                                    ) }}
+
+                                </td>
+
+                                <td class="text-right">
+
+                                    {{ number_format(
+                                        $q2,
+                                        2
+                                    ) }}
+
+                                </td>
+
+                                <td class="text-right">
+
+                                    {{ number_format(
+                                        $q3,
+                                        2
+                                    ) }}
+
+                                </td>
+
+                                <td class="text-right">
+
+                                    {{ number_format(
+                                        $q4,
+                                        2
+                                    ) }}
+
+                                </td>
+
+                            @endif
+
+
+                            <td class="text-right font-bold">
+
+                                {{ number_format(
+                                    $total,
+                                    2
+                                ) }}
+
+                            </td>
+
+                        </tr>
+
+
+                    @endforeach
+
+
+                    @php
+
+                        $verticalLabelColumns = 1;
+
+                        foreach([
+                            'funds',
+                            'programs',
+                            'projects',
+                            'activity',
+                            'expense_class',
+                            'account_title',
+                            'amount'
+                        ] as $column) {
+
+                            if(in_array(
+                                $column,
+                                $selectedFpCols
+                            )) {
+                                $verticalLabelColumns++;
+                            }
+
+                        }
+
+                    @endphp
+
+
+                    <tr class="grand-total-row">
+
+                        <td
+                            colspan="{{ $verticalLabelColumns }}"
+                            class="text-right"
+                        >
+
+                            GRAND TOTAL:
+
+                        </td>
+
+
+                        @if(in_array(
+                            'q_budget',
+                            $selectedFpCols
+                        ))
+
+                            <td class="text-right">
+
+                                {{ number_format(
+                                    $verticalQ1,
+                                    2
+                                ) }}
+
+                            </td>
+
+                            <td class="text-right">
+
+                                {{ number_format(
+                                    $verticalQ2,
+                                    2
+                                ) }}
+
+                            </td>
+
+                            <td class="text-right">
+
+                                {{ number_format(
+                                    $verticalQ3,
+                                    2
+                                ) }}
+
+                            </td>
+
+                            <td class="text-right">
+
+                                {{ number_format(
+                                    $verticalQ4,
+                                    2
+                                ) }}
+
+                            </td>
+
+                        @endif
+
+
+                        <td class="text-right">
+
+                            {{ number_format(
+                                $verticalTotal,
+                                2
+                            ) }}
+
+                        </td>
+
+                    </tr>
+
+
+                </tbody>
+
+            </table>
+
+
+        @endif
+
+
     @endif
+
+
+    @if(
+        isset($sigs)
+        &&
+        (
+            ($sigs['prep_show'] ?? false)
+            ||
+            ($sigs['rev_show'] ?? false)
+            ||
+            ($sigs['app_show'] ?? false)
+        )
+    )
+
+
+        <div
+            style="
+                margin-top:25px;
+                page-break-inside:avoid;
+            "
+        >
+
+            <table>
+
+                <tr>
+
+
+                    @foreach([
+                        'prep' => 'Prepared',
+                        'rev' => 'Reviewed',
+                        'app' => 'Approved'
+                    ] as $key => $label)
+
+
+                        @if(
+                            $sigs[$key.'_show']
+                            ?? false
+                        )
+
+
+                            <td
+                                style="
+                                    border:none;
+                                    width:33%;
+                                "
+                            >
+
+                                {{ $label }} by:
+
+                                <br><br><br><br>
+
+
+                                <strong>
+
+                                    {{
+                                        strtoupper(
+                                            $sigs[$key.'_name']
+                                            ??
+                                            '___________________'
+                                        )
+                                    }}
+
+                                </strong>
+
+
+                                <br>
+
+
+                                {{
+                                    $sigs[$key.'_pos']
+                                    ??
+                                    'Position'
+                                }}
+
+                            </td>
+
+
+                        @endif
+
+
+                    @endforeach
+
+
+                </tr>
+
+            </table>
+
+        </div>
+
+
+    @endif
+
 </body>
+
 </html>
