@@ -45,7 +45,7 @@ class MassReviewController extends Controller
         }
 
         if (in_array($role, ['PREPARER', 'REVIEWER'])) {
-            $userDepartment = strtoupper(trim($user->operating_department ?? ''));
+            $userDepartment = strtoupper(trim($user->responsibility_center ?? ''));
 
             $query->whereHas('workPlans', function ($q) use ($userDepartment) {
                 $q->whereRaw('UPPER(TRIM(r_center)) = ?', [$userDepartment]);
