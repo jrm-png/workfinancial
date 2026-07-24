@@ -44,6 +44,14 @@ class MassReviewController extends Controller
             });
         }
 
+        if (in_array($role, ['PREPARER', 'REVIEWER'])) {
+            $userDepartment = strtoupper(trim($user->operating_department ?? ''));
+
+            $query->whereHas('workPlans', function ($q) use ($userDepartment) {
+                $q->whereRaw('UPPER(TRIM(r_center)) = ?', [$userDepartment]);
+            });
+        }
+
         if ($role === 'FINANCE') {
             $query->whereHas('workPlans', function ($q) {
                 $q->where('status', 'For Submission to Finance');
