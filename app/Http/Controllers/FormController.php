@@ -643,6 +643,143 @@ public function update(Request $request, $id)
     return redirect()->route('workplan.list')->with('success', 'Plan updated successfully!');
 }
 
+public function save(Request $request, $id)
+{
+    $form = Form::findOrFail($id);
+    $status = $request->input('status', 'revised');
+
+    $apiEndpoint = 'http://54.255.221.225/ReceiverWFP.php';
+
+    DB::transaction(function () use ($request, $form, $status,$apiEndpoint) {
+        
+        $form->update([
+            'year'   => $request->year,
+            'status' => $status,
+        ]);
+
+        $common = $request->input('common_wp');
+        
+        $keptWorkplanIds = [];
+        $keptFinancialIds = [];
+
+        if ($request->has('workplans')) {
+            foreach ($request->workplans as $index => $wpData) {
+                
+                if ($status !== 'draft' && empty($wpData['strategic_initiatives'])) {
+                    continue;
+                }
+                
+                $currentFilePaths = [];
+                if (isset($wpData['existing_attachments'])) {
+                    $currentFilePaths = $wpData['existing_attachments']; 
+                }
+
+                $apiEndpoint = 'http://54.255.221.225/ReceiverWFP.php';
+
+                if ($request->hasFile("workplans.{$index}.attachments")) {
+
+                    foreach ($request->file("workplans.{$index}.attachments") as $file) {
+
+                        $fileName = time() . '_' . $file->getClientOriginalName();
+
+                        try {
+                            $response = Http::attach(
+                                'attachment_file',
+                                file_get_contents($file->getRealPath()),
+                                $fileName
+                            )->post($apiEndpoint);
+
+                            if ($response->successful()) {
+                                // Same path format used by store()
+                                $currentFilePaths[] = 'uploads/' . $fileName;
+                            } else {
+                                throw new \Exception(
+                                    "Failed to upload file: {$file->getClientOriginalName()}"
+                                );
+                            }
+
+                        } catch (\Exception $e) {
+                            throw new \Exception(
+                                "ReceiverWFP Error: " . $e->getMessage()
+                            );
+                        }
+                    }
+                }
+
+                $workplan = WorkPlan::updateOrCreate(
+                    [
+                        'id' => $wpData['id'] ?? null, 
+                    ],
+                    [
+                        'form_id'               => $form->id,
+                        'user_id'               => auth()->id(),
+                        'strategic_perspective' => $common['strategic_perspective'] ?? null,
+                        'major_program'         => $common['major_program'] ?? null,
+                        'strategic_objective'   => $common['strategic_objective'] ?? null,
+                        'strategic_measure'     => $common['strategic_measure'] ?? null,
+                        'strategic_initiatives' => $wpData['strategic_initiatives'] ?? null,
+                        'success_indicator'     => $wpData['success_indicator'] ?? null,
+                        'unit_type'             => $wpData['unit_type'] ?? 'number',
+                        'q1' => str_replace(',', '', $wpData['q1'] ?? 0),
+                        'q2' => str_replace(',', '', $wpData['q2'] ?? 0),
+                        'q3' => str_replace(',', '', $wpData['q3'] ?? 0),
+                        'q4' => str_replace(',', '', $wpData['q4'] ?? 0),
+                        'status'     => $status,
+                        'year'       => $request->year,
+                        'remarks'               => $wpData['remarks'] ?? null,
+                        'r_center'   => auth()->user()->responsibility_center,
+                        'department' => auth()->user()->operating_department,
+                        'attachments' => !empty($currentFilePaths) ? json_encode(array_values($currentFilePaths)) : null,
+                    ]
+                );
+
+                $keptWorkplanIds[] = $workplan->id;
+
+                if (isset($wpData['financials'])) {
+                    foreach ($wpData['financials'] as $fp) {
+                        if (empty($fp['account_title']) && empty($fp['funds'])) {
+                            continue;
+                        }
+
+                        $financial = FinancialPlan::updateOrCreate(
+                            [
+                                'id' => $fp['id'] ?? null,
+                            ],
+                            [
+                                'form_id'       => $form->id,
+                                'user_id'       => auth()->id(),
+                                'workplan_id'   => $workplan->id, 
+                                'funds'         => $fp['funds'] ?? null,
+                                'programs'      => $common['major_program'] ?? null,
+                                'expense_class' => $fp['expense_class'] ?? null,
+                                'projects'      => $wpData['strategic_initiatives'] ?? null,
+                                'account_title' => $fp['account_title'] ?? null,
+                                'activity'      => $fp['activity'] ?? null,
+                                'description'   => $fp['description'] ?? null,
+                                'q1' => str_replace(',', '', $fp['q1'] ?? 0),
+                                'q2' => str_replace(',', '', $fp['q2'] ?? 0),
+                                'q3' => str_replace(',', '', $fp['q3'] ?? 0),
+                                'q4' => str_replace(',', '', $fp['q4'] ?? 0),
+                                'year'       => $request->year,
+                                'r_center'   => auth()->user()->responsibility_center,
+                                'department' => auth()->user()->operating_department,
+                            ]
+                        );
+
+                        $keptFinancialIds[] = $financial->id;
+                    }
+                }
+            }
+        }
+
+        // BURAHIN LAMANG ANG MGA RECODS NA TINANGGAL NG USER SA FRONTEND
+        $form->workPlans()->whereNotIn('id', $keptWorkplanIds)->delete();
+        $form->financialPlans()->whereNotIn('id', $keptFinancialIds)->delete();
+    });
+
+    return redirect()->route('workplan.list')->with('success', 'Plan updated successfully!');
+}
+
 
 public function divisionProfile($r_center)
 {

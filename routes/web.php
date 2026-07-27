@@ -53,6 +53,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/export-center/generate', [FormController::class, 'generatePdf'])->name('plans.export.generate');
 
     Route::get('/plans/{id}/edit', [FormController::class, 'edit'])->name('plans.edit');
+    Route::put('/plans/{id}/save', [FormController::class, 'save'])->name('plans.save');
     Route::put('/plans/{id}/update', [FormController::class, 'update'])->name('plans.update');
 
     Route::get('/plans/drafts', [FormController::class, 'drafts'])->name('plans.drafts');
