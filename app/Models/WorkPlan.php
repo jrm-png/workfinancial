@@ -29,6 +29,7 @@ class WorkPlan extends Model
     'department',
     'attachments',
     'comments',
+    'sort_order',
 ];
 
 protected $casts = [

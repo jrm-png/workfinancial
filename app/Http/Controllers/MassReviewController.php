@@ -103,7 +103,7 @@ class MassReviewController extends Controller
             ->sort()
             ->values();
 
-        return view('mass-review.index', compact(
+        return view('mass_review.index', compact(
             'rows',
             'years',
             'responsibilityCenters'

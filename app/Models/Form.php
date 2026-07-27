@@ -13,8 +13,9 @@ class Form extends Model // The class name MUST match the filename Form.php
         'form_ref', 'year', 'department_id', 'status', 'created_by', 'approved_at', 'approved_by' , 'attachments',
     ];
 
-    public function workPlans() {
-    return $this->hasMany(WorkPlan::class);
+public function workPlans()
+{
+    return $this->hasMany(WorkPlan::class)->orderBy('sort_order', 'asc');
 }
 
 public function financialPlans() {
