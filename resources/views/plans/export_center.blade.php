@@ -32,6 +32,7 @@
         @foreach($centers as $center) 
             <option value="{{ $center }}">{{ $center }}</option> 
         @endforeach
+        
     </select>
 
 @elseif(auth()->user()->role === 'DEPARTMENT MANAGER')
@@ -54,7 +55,6 @@
     @endphp
 
     <select name="r_center" class="form-input">
-        {{-- Option para makita ang lahat ng centers sa ilalim ng kanilang departamento --}}
         <option value="{{ $allDeptValue }}">-- ALL UNDER {{ $deptGroup }} --</option>
         
         {{-- Mga indibidwal na centers sa ilalim ng kanilang departamento --}}

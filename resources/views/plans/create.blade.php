@@ -79,7 +79,7 @@
         @csrf
         @if($isEdit) @method('PUT') @endif
  
-        <input type="hidden" name="status" id="formStatus" value="{{ $form->status ?? 'draft' }}">
+        <input type="hidden" name="status" id="formStatus" value="{{ $form->status ?? 'pending' }}">
 
         <div style="margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
             <h1 style="border-left: 5px solid #10b981; padding-left: 20px; font-size: 28px; font-weight: 800; margin: 0;">{{ $isEdit ? 'Update Work Plan' : 'Create Work Plan' }}</h1>
@@ -964,7 +964,7 @@
     /* --- Save without page redirection via AJAX --- */
     function saveInPlace(saveUrl) {
         const form = document.getElementById('planForm');
-        document.getElementById('formStatus').value = 'draft';
+        document.getElementById('formStatus').value = 'pending';
 
         // Bind files from queue to file inputs
         Object.keys(fileQueue).forEach(idx => {

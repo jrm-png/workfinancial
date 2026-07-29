@@ -239,13 +239,19 @@
                 if (str_contains((string) $v, '%')) {
                     $hasPercent = true;
                 }
-
+      
                 $clean = str_replace(['%', ','], '', (string) $v);
                 $sum += is_numeric($clean) ? (float) $clean : 0;
+                
             }
 
-            return $hasPercent ? $sum . '%' : $sum;
-        };
+        if ($hasPercent) {
+            $sum = min($sum, 100); // Cap total at 100%
+            return $sum . '%';
+        }
+
+        return $sum;
+    };
 
         $approvedWorkplans = $workplans->filter(function($item) {
             return in_array(strtolower($item->status), [

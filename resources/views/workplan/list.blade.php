@@ -385,20 +385,27 @@
                     if (!val) return 0;
                     return parseFloat(String(val).replace(/,/g, '').replace(/%/g, '')) || 0;
                 };
-                return (
-                    parseValue(p.data.q1) +
-                    parseValue(p.data.q2) +
-                    parseValue(p.data.q3) +
-                    parseValue(p.data.q4)
-                );
+
+                const values = [p.data.q1, p.data.q2, p.data.q3, p.data.q4];
+                const hasPercent = values.some(v => String(v).includes('%'));
+
+                let total = values.reduce((sum, val) => sum + parseValue(val), 0);
+
+                if (hasPercent) {
+                    total = Math.min(total, 100);
+                }
+
+                return total;
             },
             valueFormatter: p => {
                 const values = [p.data.q1, p.data.q2, p.data.q3, p.data.q4];
                 const hasPercent = values.some(v => String(v).includes('%'));
+
                 const formatted = Number(p.value).toLocaleString(undefined, {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 2
                 });
+
                 return hasPercent ? `${formatted}%` : formatted;
             }
         },
