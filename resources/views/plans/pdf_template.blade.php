@@ -1213,7 +1213,7 @@
                         </td>
 
                         <td class="text-right" style="padding-right: 15px;">
-                            ₱ {{ number_format($overallTotalSum, 2) }}
+                            Php {{ number_format($overallTotalSum, 2) }}
                         </td>
 
                     </tr>
