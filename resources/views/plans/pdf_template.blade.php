@@ -838,58 +838,59 @@
 
                 <tbody>
 
-                    @foreach($approvedWorkplans->groupBy('r_center') as $groupName => $plans)
-
-                        <tr class="group-header">
-                            <td colspan="100%">
-                                {{ strtoupper($groupName ?: 'Other') }}
-                            </td>
-                        </tr>
-
-                        @foreach($plans as $wp)
-
-                            <tr>
-
-                                <td>{{ $wp->r_center }}</td>
-
-                                @if(in_array('strategic_perspective', $selectedWpCols))
-                                    <td>{{ $wp->strategic_perspective }}</td>
-                                @endif
-
-                                @if(in_array('strategic_objective', $selectedWpCols))
-                                    <td>{{ $wp->strategic_objective }}</td>
-                                @endif
-
-                                @if(in_array('major_program', $selectedWpCols))
-                                    <td>{{ $wp->major_program }}</td>
-                                @endif
-
-                                @if(in_array('strategic_measure', $selectedWpCols))
-                                    <td>{{ $wp->strategic_measure }}</td>
-                                @endif
-
-                                @if(in_array('strategic_initiatives', $selectedWpCols))
-                                    <td>{{ $wp->strategic_initiatives }}</td>
-                                @endif
-
-                                @if(in_array('success_indicator', $selectedWpCols))
-                                    <td>{{ $wp->success_indicator }}</td>
-                                @endif
-
-                                @if(in_array('q_targets', $selectedWpCols))
-                                    <td class="text-center">{{ $wp->q1 }}</td>
-                                    <td class="text-center">{{ $wp->q2 }}</td>
-                                    <td class="text-center">{{ $wp->q3 }}</td>
-                                    <td class="text-center">{{ $wp->q4 }}</td>
-                                @endif
-
-                                <td class="text-center font-bold">
-                                    {{ $calcTotal($wp->q1, $wp->q2, $wp->q3, $wp->q4) }}
+                    @foreach($approvedWorkplans->sortBy('form_id')->groupBy('r_center') as $groupName => $plans)
+                        
+                        
+                            <tr class="group-header">
+                                <td colspan="100%">
+                                    {{ strtoupper($groupName ?: 'Other') }}
                                 </td>
-
                             </tr>
 
-                        @endforeach
+                            @foreach($plans as $wp)
+
+                                <tr>
+
+                                    <td>{{ $wp->r_center }}</td>
+
+                                    @if(in_array('strategic_perspective', $selectedWpCols))
+                                        <td>{{ $wp->strategic_perspective }}</td>
+                                    @endif
+
+                                    @if(in_array('strategic_objective', $selectedWpCols))
+                                        <td>{{ $wp->strategic_objective }}</td>
+                                    @endif
+
+                                    @if(in_array('major_program', $selectedWpCols))
+                                        <td>{{ $wp->major_program }}</td>
+                                    @endif
+
+                                    @if(in_array('strategic_measure', $selectedWpCols))
+                                        <td>{{ $wp->strategic_measure }}</td>
+                                    @endif
+
+                                    @if(in_array('strategic_initiatives', $selectedWpCols))
+                                        <td>{{ $wp->strategic_initiatives }}</td>
+                                    @endif
+
+                                    @if(in_array('success_indicator', $selectedWpCols))
+                                        <td>{{ $wp->success_indicator }}</td>
+                                    @endif
+
+                                    @if(in_array('q_targets', $selectedWpCols))
+                                        <td class="text-center">{{ $wp->q1 }}</td>
+                                        <td class="text-center">{{ $wp->q2 }}</td>
+                                        <td class="text-center">{{ $wp->q3 }}</td>
+                                        <td class="text-center">{{ $wp->q4 }}</td>
+                                    @endif
+
+                                    <td class="text-center font-bold">
+                                        {{ $calcTotal($wp->q1, $wp->q2, $wp->q3, $wp->q4) }}
+                                    </td>
+
+                                </tr>
+
+                            @endforeach
 
                     @endforeach
 

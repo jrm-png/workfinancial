@@ -21,7 +21,6 @@
                 <label class="section-title">Report Mode</label>
                 <select name="report_mode" id="report_mode" onchange="toggleReportMode()" class="form-input" style="border: 2px solid #3b82f6;">
                     <option value="detailed">Detailed (Individual Plans)</option>
-                    <option value="summary">Summary (Totals Only)</option>
                 </select>
             </div>
             <div>
