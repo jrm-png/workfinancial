@@ -194,7 +194,7 @@
                     <div style="display:flex; gap:15px; align-items:center; height:100%; justify-content:center;">
                         <i class="fas fa-eye" style="color:#3b82f6; cursor:pointer;" onclick="showDetails(${params.data.id}, 'financial')" title="View Details"></i>
                         <i class="fas fa-edit" style="color:#10b981; cursor:pointer;" onclick="openEditModal(${params.data.form_id})"></i>
-                        <i class="fas fa-trash" style="color:#ef4444; cursor:pointer;" onclick="deleteRecord(${params.data.form_id}, ${params.data.id})"></i>
+                        <i class="fas fa-trash" style="color:#ef4444; cursor:pointer;" onclick="deleteRecord(${params.data.id})"></i>
                     </div>`;
             }
         },
@@ -300,28 +300,35 @@
 
     function deleteRecord(id) {
         if (!confirm('Are you sure you want to delete this financial record?')) return;
-        fetch(`/financial/${id}`, {
+
+        fetch(`/financialplan/${id}`, {
             method: 'DELETE',
-            headers: { 
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 'Accept': 'application/json'
             }
         })
-        .then(res => {
-            if(res.ok) {
-                // Tanggalin ang row sa grid nang hindi kailangan mag-refresh ang page
+        .then(async res => {
+            const data = await res.json();
+
+            if (res.ok) {
                 const rowNode = gridApi.getRowNode(id.toString());
+
                 if (rowNode) {
-                    gridApi.applyTransaction({ remove: [rowNode.data] });
+                    gridApi.applyTransaction({
+                        remove: [rowNode.data]
+                    });
                 }
+
                 alert('Record deleted successfully.');
             } else {
-                alert('Error: Could not delete the record.');
+                alert(data.message || 'Could not delete record.');
+                console.log(data);
             }
         })
         .catch(err => {
             console.error(err);
-            alert('Error: Could not delete the record.');
+            alert('Could not delete record.');
         });
     }
 </script>

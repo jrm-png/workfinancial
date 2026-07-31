@@ -59,7 +59,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/plans/drafts', [FormController::class, 'drafts'])->name('plans.drafts');
 
     Route::get('/financialplan/list', [FinancialPlanController::class, 'index'])->name('financial.list');
-    Route::delete('/financialplan/{workplan}', [FinancialPlanController::class, 'destroy'])->name('financial.destroy');
+    Route::delete('/financialplan/{id}', [FinancialPlanController::class, 'destroy'])->name('financial.destroy');
 
 
     Route::get('/division/{r_center}', [FormController::class, 'divisionProfile'])->name('division.profile');
