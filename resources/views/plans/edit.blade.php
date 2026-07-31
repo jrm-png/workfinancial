@@ -1006,11 +1006,7 @@
     };
 
     function closeEditModal() {
-        if (window.parent && typeof window.parent.closeEditModal === 'function') {
-            window.parent.closeEditModal();
-        } else {
-            window.history.back();
-        }
+        window.history.back();
     }
 </script>
 </body>

@@ -40,7 +40,7 @@
         $managedCenters = [];
 
         if ($deptGroup === 'OGM') {
-            $managedCenters = ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD'];
+            $managedCenters = ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD', 'BOD'];
         } elseif ($deptGroup === 'ERD') {
             $managedCenters = ['CPD', 'ED', 'SMD', 'ECO'];
         } elseif ($deptGroup === 'RMDD') {

@@ -364,7 +364,7 @@ public function index()
     if (in_array(strtolower($user->role), ['admin', 'monitor', 'finance'])) {
         $workPlans = \App\Models\WorkPlan::all();
     } elseif (strtoupper($user->role) === 'DEPARTMENT MANAGER' && strtoupper($user->operating_department) === 'OGM') {
-        $targetRCs = ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD'];
+        $targetRCs = ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD', 'BOD'];
         $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
     } elseif (strtoupper($user->role) === 'DEPARTMENT MANAGER' && strtoupper($user->operating_department) === 'ERD') {
         $targetRCs = ['CPD', 'ED', 'SMD', 'ECO'];

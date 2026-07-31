@@ -32,7 +32,7 @@ class MassReviewController extends Controller
             $deptGroup = strtoupper($user->operating_department ?? '');
 
             $managedCenters = match ($deptGroup) {
-                'OGM' => ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD'],
+                'OGM' => ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD', 'BOD'],
                 'ERD' => ['CPD', 'ED', 'SMD', 'ECO'],
                 'RMDD' => ['PDMED', 'CDD', 'ELRD'],
                 'MSD' => ['ADMIN', 'FINANCE'],
