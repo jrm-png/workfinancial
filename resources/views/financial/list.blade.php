@@ -193,8 +193,8 @@
                 return `
                     <div style="display:flex; gap:15px; align-items:center; height:100%; justify-content:center;">
                         <i class="fas fa-eye" style="color:#3b82f6; cursor:pointer;" onclick="showDetails(${params.data.id}, 'financial')" title="View Details"></i>
-                        <i class="fas fa-edit" style="color:#10b981; cursor:pointer;" onclick="openEditModal(${params.data.id})"></i>
-                        <i class="fas fa-trash" style="color:#ef4444; cursor:pointer;" onclick="deleteRecord(${params.data.id})"></i>
+                        <i class="fas fa-edit" style="color:#10b981; cursor:pointer;" onclick="openEditModal(${params.data.form_id})"></i>
+                        <i class="fas fa-trash" style="color:#ef4444; cursor:pointer;" onclick="deleteRecord(${params.data.form_id}, ${params.data.id})"></i>
                     </div>`;
             }
         },

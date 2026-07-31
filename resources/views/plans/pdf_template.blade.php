@@ -838,19 +838,17 @@
 
                 <tbody>
 
-                    @foreach($approvedWorkplans->sortBy('form_id')->groupBy('r_center') as $groupName => $plans)
+                    @foreach($approvedWorkplans->groupBy('r_center') as $groupName => $plans)
                         
-                        
-                            <tr class="group-header">
-                                <td colspan="100%">
-                                    {{ strtoupper($groupName ?: 'Other') }}
-                                </td>
-                            </tr>
-
-                            @foreach($plans as $wp)
+                        <tr class="group-header">
+                            <td colspan="100%">
+                                {{ strtoupper($groupName ?: 'Other') }}
+                            </td>
+                        </tr>
+                        @foreach($plans->groupBy('form_id') as $formId => $formGroup)
+                            @foreach($formGroup->sortBy('sort_order') as $wp)
 
                                 <tr>
-
                                     <td>{{ $wp->r_center }}</td>
 
                                     @if(in_array('strategic_perspective', $selectedWpCols))
@@ -891,7 +889,7 @@
                                 </tr>
 
                             @endforeach
-
+                        @endforeach
                     @endforeach
 
                 </tbody>

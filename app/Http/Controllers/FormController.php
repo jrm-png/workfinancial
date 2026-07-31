@@ -235,6 +235,11 @@ public function exportView()
 
 public function generatePdf(Request $request)
 {
+
+    ini_set('memory_limit', '1024M');
+
+
+
     $center = $request->r_center;
     $year = $request->year;
     $mode = $request->report_mode; // 'detailed' or 'summary'
