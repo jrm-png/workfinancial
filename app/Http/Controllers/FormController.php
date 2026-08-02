@@ -499,6 +499,11 @@ public function edit($id)
     // 🌟 FIXED LOGIC: Naka-group sa 'type' column mula sa iyong dropdown_settings table
     $dropdownOptions = \App\Models\Dropdown::all()->groupBy('type'); 
 
+    $workPlans = WorkPlan::where('form_id', $formId)
+    ->orderByRaw('ISNULL(sort_order), sort_order ASC') 
+    ->orderBy('id', 'asc')                
+    ->get();
+
     return view('plans.edit', compact('form', 'workPlans', 'financials', 'dropdownOptions'));
 }
 
