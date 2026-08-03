@@ -69,7 +69,7 @@ class MassReviewController extends Controller
         }
 
         $forms = $query
-            ->orderByDesc('created_at')
+            ->orderBy('created_at')
             ->get();
 
         $rows = [];

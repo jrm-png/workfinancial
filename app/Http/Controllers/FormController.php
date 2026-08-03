@@ -238,8 +238,6 @@ public function generatePdf(Request $request)
 
     ini_set('memory_limit', '1024M');
 
-
-
     $center = $request->r_center;
     $year = $request->year;
     $mode = $request->report_mode; // 'detailed' or 'summary'
@@ -379,7 +377,8 @@ public function index()
         $workPlans = \App\Models\WorkPlan::where('r_center', $user->responsibility_center)->get(); 
     }
     
-    $workPlans = $workPlans->unique('form_id')->values();
+    $workPlans = $workPlans->sortBy('created_at')->unique('form_id')->values();
+
 
     $availableStatuses = $workPlans->pluck('status')->unique()->filter()->toArray();
     $availableYears = $workPlans->pluck('year')->unique()->filter()->sort()->toArray();
@@ -499,10 +498,7 @@ public function edit($id)
     // 🌟 FIXED LOGIC: Naka-group sa 'type' column mula sa iyong dropdown_settings table
     $dropdownOptions = \App\Models\Dropdown::all()->groupBy('type'); 
 
-    $workPlans = WorkPlan::where('form_id', $id)
-    ->orderByRaw('ISNULL(sort_order), sort_order ASC') 
-    ->orderBy('id', 'asc')                
-    ->get();
+    
 
     return view('plans.edit', compact('form', 'workPlans', 'financials', 'dropdownOptions'));
 }
