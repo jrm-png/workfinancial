@@ -7,7 +7,9 @@
     }
 
     $isEdit = isset($form);
-    $action = $isEdit ? route('plans.update', $form->id) : route('plans.store');
+        $action = $isEdit
+    ? route('plans.update', $form->id)
+    : route('plans.store');
     $saveAction = $isEdit ? route('plans.save', $form->id) : route('plans.store');
     $workPlans = $isEdit ? $form->workPlans : collect([new \App\Models\WorkPlan]);
 @endphp

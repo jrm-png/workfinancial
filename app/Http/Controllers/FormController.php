@@ -292,8 +292,13 @@ public function generatePdf(Request $request)
         $wp_group = $request->wp_group_by ?? 'none';
         $fp_group = $request->fp_group_by ?? 'none';
         
-        $workplans = $wpQuery->get();
-        $financials = $fpQuery->get();
+        $workplans = $wpQuery
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $financials = $fpQuery
+            ->orderBy('created_at', 'asc')
+            ->get();
 
         $data = [
             'report_mode' => 'detailed',
@@ -334,10 +339,11 @@ public function generatePdf(Request $request)
         $data['rcTotalsTracker'] = $financials ?? collect();
     }
 
-return PDF::loadView('plans.pdf_template', $data)
-    ->setPaper('a4', 'landscape')
-    ->stream('Report.pdf');
+    return PDF::loadView('plans.pdf_template', $data)
+        ->setPaper('a4', 'landscape')
+        ->stream('Report.pdf');
 }
+
 public function destroy($id) // $id dito ay ang Form ID
 {
     return DB::transaction(function () use ($id) {
