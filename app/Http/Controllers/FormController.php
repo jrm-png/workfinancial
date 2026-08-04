@@ -291,7 +291,8 @@ public function generatePdf(Request $request)
         // DETAILED MODE
         $wp_group = $request->wp_group_by ?? 'none';
         $fp_group = $request->fp_group_by ?? 'none';
-        
+
+        // Sort BEFORE get()
         $workplans = $wpQuery
             ->orderBy('created_at', 'asc')
             ->get();
@@ -300,8 +301,14 @@ public function generatePdf(Request $request)
             ->orderBy('created_at', 'asc')
             ->get();
 
-        $wpData = ($wp_group !== 'none') ? $workplans->groupBy($wp_group) : collect(['All Records' => $workplans]);
-        $fpData = ($fp_group !== 'none') ? $financials->groupBy($fp_group) : collect(['All Records' => $financials]);
+        // Then group them
+        $wpData = $wp_group !== 'none'
+            ? $workplans->groupBy($wp_group)
+            : collect(['All Records' => $workplans]);
+
+        $fpData = $fp_group !== 'none'
+            ? $financials->groupBy($fp_group)
+            : collect(['All Records' => $financials]);
 
         $data = [
             'report_mode' => 'detailed',
