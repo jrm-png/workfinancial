@@ -3,11 +3,10 @@
     $userRole = (auth()->user()->role ?? '');
 
     if (!in_array($userRole, $allowedRoles)) {
-        abort(403, 'Unauthorized action.');
-    }
+        abort(403, 'Unauthorized action.');}
 
     $isEdit = isset($form);
-        $action = $isEdit
+    $action = $isEdit
     ? route('plans.update', $form->id)
     : route('plans.store');
     $saveAction = $isEdit ? route('plans.save', $form->id) : route('plans.store');

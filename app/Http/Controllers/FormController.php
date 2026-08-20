@@ -942,7 +942,6 @@ public function copyLoad(Request $request, $id)
 {
     $form = Form::with(['workPlans.financialPlans'])->findOrFail($id);
     
-    // Kunin lang yung mga napiling workplan IDs kung nag batch select/check lang sila
     $selectedWorkPlanIds = $request->input('selected_work_plans', []);
     if (!empty($selectedWorkPlanIds)) {
         $form->setRelation('workPlans', $form->workPlans->whereIn('id', $selectedWorkPlanIds));

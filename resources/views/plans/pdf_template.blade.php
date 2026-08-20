@@ -299,7 +299,8 @@
                         'projects' => 'Projects',
                         'activity' => 'Activity',
                         'expense_class' => 'Exp. Class',
-                        'account_title' => 'Account'
+                        'account_title' => 'Account',
+                        'description' => 'Description'
                     ] as $key => $label)
 
                         @if(in_array($key, $selectedSumCols))
@@ -367,6 +368,10 @@
 
                             @if(in_array('account_title', $selectedSumCols))
                                 <td>{{ $item->account_title }}</td>
+                            @endif
+
+                            @if(in_array('description', $selectedSumCols))
+                                <td>{{ $item->Description }}</td>
                             @endif
 
                             @if(in_array('quarterly', $selectedSumCols))
@@ -496,6 +501,10 @@
                     <col style="width: 8%;">
                 @endif
 
+                @if(in_array('description', $selectedFpCols))
+                    <col style="width: 8%;">
+                @endif
+
                 @if(in_array('amount', $selectedFpCols))
                     <col style="width: 7%;">
                 @endif
@@ -563,7 +572,8 @@
                         'projects',
                         'activity',
                         'expense_class',
-                        'account_title'
+                        'account_title',
+                        'description'
                     ] as $fCol)
 
                         @if(in_array($fCol, $selectedFpCols))
@@ -704,6 +714,10 @@
                                     <td>{{ $fp->account_title }}</td>
                                 @endif
 
+                                @if(in_array('description', $selectedFpCols))
+                                    <td>{{ $fp->description }}</td>
+                                @endif
+
                                 @php
                                     $fpRowTotal =
                                         (float) ($fp->q1 ?? 0)
@@ -750,7 +764,8 @@
                         'projects',
                         'activity',
                         'expense_class',
-                        'account_title'
+                        'account_title',
+                        'description'
                     ] as $col) {
                         if (in_array($col, $selectedFpCols)) {
                             $fpLabelColspan++;
@@ -924,7 +939,8 @@
                             'projects',
                             'activity',
                             'expense_class',
-                            'account_title'
+                            'account_title',
+                            'description'
                         ] as $fCol)
 
                             @if(in_array($fCol, $selectedFpCols))
@@ -988,7 +1004,8 @@
                                     'projects',
                                     'activity',
                                     'expense_class',
-                                    'account_title'
+                                    'account_title',
+                                    'description'
                                 ] as $fCol)
 
                                     @if(in_array($fCol, $selectedFpCols))
@@ -1040,7 +1057,8 @@
                             'projects',
                             'activity',
                             'expense_class',
-                            'account_title'
+                            'account_title',
+                            'description'
                         ] as $col) {
                             if (in_array($col, $selectedFpCols)) {
                                 $vtLabelColspan++;

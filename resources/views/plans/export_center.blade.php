@@ -120,7 +120,8 @@
                         <label class="check-label"><input type="checkbox" name="cols_fp[]" value="description" checked> Description</label>
                         <label class="check-label"><input type="checkbox" name="cols_fp[]" value="expense_class" checked> Expense Class</label>
                         <label class="check-label"><input type="checkbox" name="cols_fp[]" value="account_title" checked> Account Titles</label>
-                        <label class="check-label"><input type="checkbox" name="cols_fp[]" value="amount" checked> <b>AMOUNT</b></label>
+                        <label class="check-label"><input type="checkbox" name="cols_fp[]" value="description" checked> Description</label>
+                        <!-- <label class="check-label"><input type="checkbox" name="cols_fp[]" value="amount" checked> <b>AMOUNT</b></label> -->
                         <label class="check-label"><input type="checkbox" name="cols_fp[]" value="q_budget" checked> <b>Quarterly Budget (Q1-Q4)</b></label>
                     </div>
                 </div>
@@ -163,7 +164,8 @@
                             <label class="check-label"><input type="checkbox" name="sum_cols[]" value="description" checked> Description</label>
                             <label class="check-label"><input type="checkbox" name="sum_cols[]" value="expense_class" checked> Expense Class</label>
                             <label class="check-label"><input type="checkbox" name="sum_cols[]" value="account_title" checked> Account Titles</label>
-                            <label class="check-label"><input type="checkbox" name="sum_cols[]" value="amount" checked> <b>TOTAL AMOUNT</b></label>
+                            <label class="check-label"><input type="checkbox" name="sum_cols[]" value="description" checked> Description</label>
+                            <!-- <label class="check-label"><input type="checkbox" name="sum_cols[]" value="amount" checked> <b>TOTAL AMOUNT</b></label> -->
                             <label class="check-label"><input type="checkbox" name="sum_cols[]" value="quarterly" checked> <b>QUARTERLY TOTALS</b></label>
                         </div>
                     </div>
