@@ -1190,6 +1190,18 @@
                         </th>
 
                         <th class="text-right" style="padding-right: 15px;">
+                            MOOE
+                        </th>
+
+                        <th class="text-right" style="padding-right: 15px;">
+                            CO 
+                        </th>
+
+                        <th class="text-right" style="padding-right: 15px;">
+                            PS
+                        </th>
+
+                        <th class="text-right" style="padding-right: 15px;">
                             Total Financial Allocation (PHP)
                         </th>
 
@@ -1201,24 +1213,54 @@
 
                     @php
                         $overallTotalSum = 0;
+                        $overallMooe = 0;
+                        $overallCo = 0;
+                        $overallPs = 0;
                     @endphp
 
                     @foreach($rcTotalsTracker as $rcName => $totalAmount)
 
                         @php
+                            $rcItems = $approvedFinancials->flatten()->filter(function($item) use ($rcName) {
+                                return strtoupper($item->r_center) === $rcName;
+                            });
+
+                            $totalmooe = $rcItems->filter(fn($i) => strtoupper($i->expense_class) === 'MOOE')
+                                                ->sum(fn($i) => ($i->q1 ?? 0) + ($i->q2 ?? 0) + ($i->q3 ?? 0) + ($i->q4 ?? 0));
+
+                            $totalco   = $rcItems->filter(fn($i) => strtoupper($i->expense_class) === 'CO')
+                                                ->sum(fn($i) => ($i->q1 ?? 0) + ($i->q2 ?? 0) + ($i->q3 ?? 0) + ($i->q4 ?? 0));
+
+                            $totalps   = $rcItems->filter(fn($i) => strtoupper($i->expense_class) === 'PS')
+                                                ->sum(fn($i) => ($i->q1 ?? 0) + ($i->q2 ?? 0) + ($i->q3 ?? 0) + ($i->q4 ?? 0));
+                                                
+
                             $overallTotalSum += $totalAmount;
+                            $overallMooe += $totalmooe;
+                            $overallCo += $totalco;
+                            $overallPs += $totalps;
                         @endphp
 
                         <tr>
-
                             <td class="font-bold" style="color: #1e3a8a;">
                                 {{ $rcName }}
                             </td>
 
                             <td class="text-right font-bold" style="padding-right: 15px;">
-                                {{ number_format($totalAmount, 2) }}
+                                Php {{ number_format($totalmooe, 2) }}
                             </td>
 
+                            <td class="text-right font-bold" style="padding-right: 15px;">
+                                Php {{ number_format($totalco, 2) }}
+                            </td>
+
+                            <td class="text-right font-bold" style="padding-right: 15px;">
+                                Php {{ number_format($totalps, 2) }}
+                            </td>
+
+                            <td class="text-right font-bold" style="padding-right: 15px;">
+                                Php {{ number_format($totalAmount, 2) }}
+                            </td>
                         </tr>
 
                     @endforeach
@@ -1230,8 +1272,20 @@
                         </td>
 
                         <td class="text-right" style="padding-right: 15px;">
+                            Php {{ number_format($overallMooe, 2) }}
+                        </td>   
+
+                        <td class="text-right" style="padding-right: 15px;">
+                            Php {{ number_format($overallCo, 2) }}
+                        </td>   
+
+                        <td class="text-right" style="padding-right: 15px;">
+                            Php {{ number_format($overallPs, 2) }}
+                        </td>   
+
+                        <td class="text-right" style="padding-right: 15px;">
                             Php {{ number_format($overallTotalSum, 2) }}
-                        </td>
+                        </td>   
 
                     </tr>
 
@@ -1245,3 +1299,4 @@
 
 </body>
 </html>
+

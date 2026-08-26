@@ -264,14 +264,12 @@ public function generatePdf(Request $request)
         $selectedSumCols = $request->sum_cols ?? [];
         $summaryGroupBy = $request->summary_group_by === 'r_center' ? ['r_center'] : [];
         
-        // Dagdag natin sa group by lahat ng columns na tsenek para hindi mag-error ang SQL
         foreach($selectedSumCols as $col) {
             if(!in_array($col, ['amount', 'quarterly'])) {
                 $summaryGroupBy[] = $col;
             }
         }
 
-        // Tiyakin nating kasama ang r_center kapag marami silang centers na nilo-load para sa tracking ng summary cards
         if (str_contains($center, ',') && !in_array('r_center', $summaryGroupBy)) {
             $summaryGroupBy[] = 'r_center';
         }
@@ -282,11 +280,26 @@ public function generatePdf(Request $request)
             ->groupBy($summaryGroupBy)
             ->get();
 
+            $rcBreakdown = $approvedFinancials->flatten()->groupBy(function($item) {
+                return strtoupper($item->r_center);
+            })->map(function($items) {
+                return [
+                    'mooe' => $items->filter(fn($i) => strtoupper($i->expense_class) === 'MOOE')
+                                    ->sum(fn($i) => ($i->q1 ?? 0) + ($i->q2 ?? 0) + ($i->q3 ?? 0) + ($i->q4 ?? 0)),
+                    'co'   => $items->filter(fn($i) => strtoupper($i->expense_class) === 'CO')
+                                    ->sum(fn($i) => ($i->q1 ?? 0) + ($i->q2 ?? 0) + ($i->q3 ?? 0) + ($i->q4 ?? 0)),
+                    'ps'   => $items->filter(fn($i) => strtoupper($i->expense_class) === 'PS')
+                                    ->sum(fn($i) => ($i->q1 ?? 0) + ($i->q2 ?? 0) + ($i->q3 ?? 0) + ($i->q4 ?? 0)),
+                ];
+            });
+
         $data = [
             'report_mode' => 'summary',
             'summaryData' => $summaryData,
             'selectedSumCols' => $selectedSumCols,
         ];
+
+
     } else {
         // DETAILED MODE
         $wp_group = $request->wp_group_by ?? 'none';
@@ -323,9 +336,7 @@ public function generatePdf(Request $request)
         ];
     }
 
-    // --- Dynamic Title for Header ---
-    // Kung marami ang centers, palitan ang label ng pangalan ng mismong Operating Department ng manager
-    if (str_contains($center, ',')) {
+     if (str_contains($center, ',')) {
         $data['r_center'] = auth()->user()->operating_department . ' DEPT (COMBINED)';
     } else {
         $data['r_center'] = $center;
