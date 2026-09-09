@@ -25,6 +25,7 @@ class MassReviewController extends Controller
                 'FOR REVISION',
                 'Pending',
                 'For Submission to Finance',
+                'Approved',
             ]);
         });
 
