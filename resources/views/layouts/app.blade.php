@@ -218,6 +218,10 @@
                     <i class="fas fa-gear"></i>
                     <span class="nav-text">Settings</span>
                 </a>
+                <a href="{{ route('plans.export.view') }}" class="nav-link">
+                <i class="fas fa-file-pdf"></i>
+                <span class="nav-text">View Attachments</span>
+            </a>
             @endif
         </div>
 

@@ -54,7 +54,6 @@ class MassReviewController extends Controller
 
         if ($role === 'FINANCE') {
             $query->whereHas('workPlans', function ($q) {
-                $q->where('status', 'For Submission to Finance');
             });
         }
 

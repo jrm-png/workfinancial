@@ -93,6 +93,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     // Main View page for dropdown management
     Route::get('/dropdowns', [App\Http\Controllers\Admin\DropdownSettingsController::class, 'index'])->name('dropdowns.index');
     
+    
+
     // Actions for adding and deleting options
     Route::post('/dropdowns', [App\Http\Controllers\Admin\DropdownSettingsController::class, 'store'])->name('dropdowns.store');
     Route::delete('/dropdowns/{id}', [App\Http\Controllers\Admin\DropdownSettingsController::class, 'destroy'])->name('dropdowns.destroy');
