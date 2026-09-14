@@ -275,6 +275,91 @@
         $rcTotalsTracker = [];
     @endphp
 
+    @php
+        $sortPlans = function ($items) {
+            return collect($items)->sort(function ($a, $b) {
+                $aSort = (int) ($a->sort_order ?? 0);
+                $bSort = (int) ($b->sort_order ?? 0);
+
+                if ($aSort === 0 && $bSort === 0) {
+                    return (int) $a->id <=> (int) $b->id;
+                }
+
+                if ($aSort === 0) {
+                    return (int) $a->id <=> (int) $b->id;
+                }
+
+                if ($bSort === 0) {
+                    return (int) $a->id <=> (int) $b->id;
+                }
+
+                if ($aSort !== $bSort) {
+                    return $aSort <=> $bSort;
+                }
+
+                return (int) $a->id <=> (int) $b->id;
+            })->values();
+        };
+
+        $approvedWorkplans = $approvedWorkplans
+            ->sort(function ($a, $b) {
+                $formCompare = (int) $a->form_id <=> (int) $b->form_id;
+
+                if ($formCompare !== 0) {
+                    return $formCompare;
+                }
+
+                $aSort = (int) ($a->sort_order ?? 0);
+                $bSort = (int) ($b->sort_order ?? 0);
+
+                if ($aSort === 0 && $bSort === 0) {
+                    return (int) $a->id <=> (int) $b->id;
+                }
+
+                if ($aSort === 0) {
+                    return 1;
+                }
+
+                if ($bSort === 0) {
+                    return -1;
+                }
+
+                if ($aSort !== $bSort) {
+                    return $aSort <=> $bSort;
+                }
+
+                return (int) $a->id <=> (int) $b->id;
+            })
+            ->values();
+
+        $approvedFinancials = $approvedFinancials->map(function ($items) {
+            return collect($items)
+                ->sort(function ($a, $b) {
+                    $aSort = (int) ($a->sort_order ?? 0);
+                    $bSort = (int) ($b->sort_order ?? 0);
+
+                    if ($aSort === 0 && $bSort === 0) {
+                        return (int) $a->id <=> (int) $b->id;
+                    }
+
+                    if ($aSort === 0) {
+                        return 1;
+                    }
+
+                    if ($bSort === 0) {
+                        return -1;
+                    }
+
+                    if ($aSort !== $bSort) {
+                        return $aSort <=> $bSort;
+                    }
+
+                    return (int) $a->id <=> (int) $b->id;
+                })
+                ->values();
+        });
+    @endphp
+
     @if(($report_mode ?? '') == 'summary')
 
         @php
@@ -861,7 +946,7 @@
                             </td>
                         </tr>
                         @foreach($plans->groupBy('form_id') as $formId => $formGroup)
-                            @foreach($formGroup->sortBy('sort_order') as $wp)
+                            @foreach($formGroup as $wp)
 
                                 <tr>
                                     <td>{{ $wp->r_center }}</td>
