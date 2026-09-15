@@ -348,10 +348,10 @@
                                         </div>
 
                                         <div class="grid-4" style="margin-top:15px;">
-                                            <input type="number" name="workplans[{{$index}}][financials][{{$fIndex}}][q1]" value="{{ $fp->q1 }}" class="form-input cost-input" placeholder="Q1 Amount" oninput="updateSummary()">
-                                            <input type="number" name="workplans[{{$index}}][financials][{{$fIndex}}][q2]" value="{{ $fp->q2 }}" class="form-input cost-input" placeholder="Q2 Amount" oninput="updateSummary()">
-                                            <input type="number" name="workplans[{{$index}}][financials][{{$fIndex}}][q3]" value="{{ $fp->q3 }}" class="form-input cost-input" placeholder="Q3 Amount" oninput="updateSummary()">
-                                            <input type="number" name="workplans[{{$index}}][financials][{{$fIndex}}][q4]" value="{{ $fp->q4 }}" class="form-input cost-input" placeholder="Q4 Amount" oninput="updateSummary()">
+                                            <input type="number" step="any" name="workplans[{{$index}}][financials][{{$fIndex}}][q1]" value="{{ $fp->q1 }}" class="form-input cost-input" placeholder="Q1 Amount" oninput="updateSummary()">
+                                            <input type="number" step="any" name="workplans[{{$index}}][financials][{{$fIndex}}][q2]" value="{{ $fp->q2 }}" class="form-input cost-input" placeholder="Q2 Amount" oninput="updateSummary()">
+                                            <input type="number" step="any" name="workplans[{{$index}}][financials][{{$fIndex}}][q3]" value="{{ $fp->q3 }}" class="form-input cost-input" placeholder="Q3 Amount" oninput="updateSummary()">
+                                            <input type="number" step="any" name="workplans[{{$index}}][financials][{{$fIndex}}][q4]" value="{{ $fp->q4 }}" class="form-input cost-input" placeholder="Q4 Amount" oninput="updateSummary()">
                                         </div>
                                         <button type="button" class="btn-remove" style="margin-top:15px; padding:4px 10px;" onclick="this.closest('.fin-row').remove(); updateSummary();">Remove Budget</button>
                                     </div>
@@ -819,10 +819,10 @@
             </div>
 
             <div class="grid-4" style="margin-top:15px;">
-                <input type="number" name="workplans[${wpIdx}][financials][${fIndex}][q1]" class="form-input cost-input" placeholder="Q1 Amount" oninput="updateSummary()">
-                <input type="number" name="workplans[${wpIdx}][financials][${fIndex}][q2]" class="form-input cost-input" placeholder="Q2 Amount" oninput="updateSummary()">
-                <input type="number" name="workplans[${wpIdx}][financials][${fIndex}][q3]" class="form-input cost-input" placeholder="Q3 Amount" oninput="updateSummary()">
-                <input type="number" name="workplans[${wpIdx}][financials][${fIndex}][q4]" class="form-input cost-input" placeholder="Q4 Amount" oninput="updateSummary()">
+                <input type="number" step="any" name="workplans[${wpIdx}][financials][${fIndex}][q1]" class="form-input cost-input" placeholder="Q1 Amount" oninput="updateSummary()">
+                <input type="number" step="any" name="workplans[${wpIdx}][financials][${fIndex}][q2]" class="form-input cost-input" placeholder="Q2 Amount" oninput="updateSummary()">
+                <input type="number" step="any" name="workplans[${wpIdx}][financials][${fIndex}][q3]" class="form-input cost-input" placeholder="Q3 Amount" oninput="updateSummary()">
+                <input type="number" step="any" name="workplans[${wpIdx}][financials][${fIndex}][q4]" class="form-input cost-input" placeholder="Q4 Amount" oninput="updateSummary()">
             </div>
             <button type="button" class="btn-remove" style="margin-top:15px; padding:4px 10px;" onclick="this.closest('.fin-row').remove(); updateSummary();">Remove Budget</button>
         </div>`;
