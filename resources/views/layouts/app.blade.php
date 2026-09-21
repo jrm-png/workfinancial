@@ -162,17 +162,16 @@
 
     <nav class="sidebar" id="sidebar">
         <div style="flex-grow: 1;">
-                @if(auth()->user()->role === 'FINANCE')
-                    {{-- Show Finance Dashboard link --}}
-                    <a href="{{ route('dashfinance') }}" class="nav-link {{ request()->routeIs('dashfinance') ? 'active' : '' }}">
-                        <i class="fas fa-th-large"></i>
-                        <span class="nav-text">Dashboard</span>
-                    </a>
-                @else
                     {{-- Show Standard Dashboard link --}}
                     <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                         <i class="fas fa-th-large"></i>
                         <span class="nav-text">Dashboard</span>
+                    </a>
+                @if(auth()->user()->isAdmin() || auth()->user()->role === 'MONITOR' || auth()->user()->role === 'FINANCE')
+                    {{-- Show Finance Dashboard link --}}
+                    <a href="{{ route('dashfinance') }}" class="nav-link {{ request()->routeIs('dashfinance') ? 'active' : '' }}">
+                        <i class="fas fa-th-large"></i>
+                        <span class="nav-text">Finance Dashboard</span>
                     </a>
                 @endif
         

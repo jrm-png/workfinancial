@@ -415,13 +415,26 @@ public function index()
     return view('workplan.list', compact('workPlans', 'settings', 'availableStatuses', 'availableYears'));
 }
 
-public function dashboard()
-{
+public function dashboard(Request $request){
     // Fetch global system parameters setup settings
-    $settings = DB::table('settings')->where('id', 1)->first();
+    $settings = \DB::table('settings')->where('id', 1)->first();
 
-    // Fetch unique rejected rows intended for the user's recent remarks feedback alert grid
-    $notifications = DB::table('workplan')
+    // 1. Fetch available planning years from the workplan table
+    $availableYears = \App\Models\WorkPlan::whereNotNull('year')
+        ->select('year')
+        ->distinct()
+        ->orderBy('year', 'desc')
+        ->pluck('year')
+        ->toArray();
+
+    // Default to requested year or the latest available year / current year
+    $selectedYear = $request->get('year', reset($availableYears) ?: date('Y'));
+
+    // 2. Identify the user's assigned responsibility center
+    $userRCenter = auth()->user()->responsibility_center;
+
+    // 3. Fetch notifications for recent rejected remarks
+    $notifications = \DB::table('workplan')
         ->where('user_id', auth()->id()) 
         ->where('status', 'rejected')    
         ->select(
@@ -436,40 +449,39 @@ public function dashboard()
         ->unique('form_id')
         ->values();
 
-    // 1. Identify the user's assigned operational division group identifier string
-    // This looks at recent submissions from this user to discover their r_center
-    $userRCenter = auth()->user()->responsibility_center;
+    // 4. Calculate stats & expense class summary filtered by responsibility center and selected year
+    $expenseClassSummary = [];
+    $totalSubmitted = 0;
+    $proposedBudget = 0;
+    $approvedBudget = 0;
 
-    // 2. Fetch related transactional models if a department reference profile exists
     if ($userRCenter) {
-        $workPlans = \App\Models\WorkPlan::where('r_center', $userRCenter)->get();
-        $financialPlans = \App\Models\FinancialPlan::with('workPlan')
-            ->where('r_center', $userRCenter)
+        $totalSubmitted = \App\Models\WorkPlan::where('r_center', $userRCenter)
+            ->where('year', $selectedYear)
+            ->count();
+
+        // Fetch aggregated expense class metrics for the responsibility center and year
+        $expenseClassMetrics = \DB::table('financialplans as fp')
+            ->join('workplan as wp', 'fp.workplan_id', '=', 'wp.id')
+            ->where('fp.r_center', $userRCenter)
+            ->where('wp.year', $selectedYear)
+            ->select(
+                \DB::raw('COALESCE(NULLIF(TRIM(fp.expense_class), ""), "Unassigned") as expense_class'),
+                \DB::raw('SUM(COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) as total_proposed'),
+                \DB::raw('SUM(CASE WHEN LOWER(wp.status) = "approved" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as total_approved')
+            )
+            ->groupBy('expense_class')
             ->get();
-            
-        // Compute proposed budget accumulations across target records
-        $proposedBudget = $financialPlans->reduce(function ($carry, $plan) {
-            $rowTotal = (float)($plan->q1 ?? 0) + (float)($plan->q2 ?? 0) + (float)($plan->q3 ?? 0) + (float)($plan->q4 ?? 0);
-            return $carry + $rowTotal;
-        }, 0);
 
-        // Compute approved budget accumulations (filtered where parent status matches approved)
-        $approvedBudget = $financialPlans->filter(function ($plan) {
-            return strtolower($plan->workPlan->status ?? '') === 'approved';
-        })->reduce(function ($carry, $plan) {
-            $rowTotal = (float)($plan->q1 ?? 0) + (float)($plan->q2 ?? 0) + (float)($plan->q3 ?? 0) + (float)($plan->q4 ?? 0);
-            return $carry + $rowTotal;
-        }, 0);
+        $expenseClassSummary = $expenseClassMetrics->toArray();
 
-        $totalSubmitted = $workPlans->count();
-    } else {
-        // Fallback structures if the user profile does not contain prior submissions history
-        $totalSubmitted = 0;
-        $proposedBudget = 0;
-        $approvedBudget = 0;
+        // Sum up total stats from metrics
+        foreach ($expenseClassMetrics as $metric) {
+            $proposedBudget += $metric->total_proposed;
+            $approvedBudget += $metric->total_approved;
+        }
     }
 
-    // Combine calculated parameters into safe variables payload properties array 
     $stats = [
         'total_submitted' => $totalSubmitted,
         'proposed_budget' => $proposedBudget,
@@ -477,7 +489,7 @@ public function dashboard()
         'r_center'        => $userRCenter ?? 'N/A'
     ];
 
-    return view('dashboard', compact('settings', 'notifications', 'stats'));
+    return view('dashboard', compact('settings', 'notifications', 'stats', 'expenseClassSummary', 'availableYears', 'selectedYear'));
 }
 
 public function updateStatus(Request $request, $formId)
