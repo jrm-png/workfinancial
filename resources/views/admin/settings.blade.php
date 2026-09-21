@@ -219,45 +219,5 @@
         </div>
     </div>
 
-    <div class="section-card" style="width: 100%;">
-        <h2 style="font-size: 16px; font-weight: 700; margin: 0 0 6px 0; display: flex; align-items: center; gap: 10px; color: #1e293b;">
-            <i class="fas fa-user-shield" style="color: #64748b;"></i> Division Submission Overrides
-        </h2>
-        <p style="font-size: 13px; color: #64748b; margin: 0 0 20px 0;">The following centers can still process submissions or view tables even if the main application window is locked/closed.</p>
-        
-        <div style="overflow-x: auto; width: 100%;">
-            <table class="override-table">
-                <thead>
-                    <tr>
-                        <th>Responsibility Center</th>
-                        <th>Authorized Name Profile</th>
-                        <th style="text-align: center; width: 180px;">Override Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($users as $user)
-                    <tr>
-                        <td style="font-weight: 600; color: #1e293b;">{{ $user->responsibility_center }}</td>
-                        <td style="color: #475569;">{{ $user->name }}</td>
-                        <td style="text-align: center;">
-                            <button onclick="toggleOverride({{ $user->id }})" 
-                                    class="btn-status {{ $user->can_override_submission ? 'active' : '' }}">
-                                {{ $user->can_override_submission ? 'ENABLED' : 'DISABLED' }}
-                            </button>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<script>
-    function toggleOverride(userId) {
-        // Handle Ajax toggle logic here
-    }
-</script>
-
 </body>
 </html>
