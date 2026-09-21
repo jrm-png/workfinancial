@@ -281,16 +281,12 @@
                 $aSort = (int) ($a->sort_order ?? 0);
                 $bSort = (int) ($b->sort_order ?? 0);
 
-                if ($aSort === 0 && $bSort === 0) {
-                    return (int) $a->id <=> (int) $b->id;
+                if ($aSort === 0 && $bSort !== 0) {
+                    return -1;
                 }
 
-                if ($aSort === 0) {
-                    return (int) $a->id <=> (int) $b->id;
-                }
-
-                if ($bSort === 0) {
-                    return (int) $a->id <=> (int) $b->id;
+                if ($aSort !== 0 && $bSort === 0) {
+                    return 1;
                 }
 
                 if ($aSort !== $bSort) {
@@ -312,16 +308,12 @@
                 $aSort = (int) ($a->sort_order ?? 0);
                 $bSort = (int) ($b->sort_order ?? 0);
 
-                if ($aSort === 0 && $bSort === 0) {
-                    return (int) $a->id <=> (int) $b->id;
-                }
-
-                if ($aSort === 0) {
-                    return 1;
-                }
-
-                if ($bSort === 0) {
+                if ($aSort === 0 && $bSort !== 0) {
                     return -1;
+                }
+
+                if ($aSort !== 0 && $bSort === 0) {
+                    return 1;
                 }
 
                 if ($aSort !== $bSort) {
@@ -338,16 +330,12 @@
                     $aSort = (int) ($a->sort_order ?? 0);
                     $bSort = (int) ($b->sort_order ?? 0);
 
-                    if ($aSort === 0 && $bSort === 0) {
-                        return (int) $a->id <=> (int) $b->id;
-                    }
-
-                    if ($aSort === 0) {
-                        return 1;
-                    }
-
-                    if ($bSort === 0) {
+                    if ($aSort === 0 && $bSort !== 0) {
                         return -1;
+                    }
+
+                    if ($aSort !== 0 && $bSort === 0) {
+                        return 1;
                     }
 
                     if ($aSort !== $bSort) {
