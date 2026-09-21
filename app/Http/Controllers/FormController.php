@@ -853,66 +853,55 @@ public function divisionProfile($r_center)
     return view('division.profile', compact('r_center', 'workPlans', 'financialPlans', 'stats'));
 }
 
-public function financeDashboard()
+public function financeDashboard(Request $request)
 {
-    // Fetch global system control settings
+    // 1. Fetch distinct planning years directly from the 'year' column in workplan
+    $availableYears = \App\Models\WorkPlan::whereNotNull('year')
+        ->select('year')
+        ->distinct()
+        ->orderBy('year', 'desc')
+        ->pluck('year')
+        ->toArray();
+
+    // Default to selected year or fallback to the latest planning year / current year
+    $selectedYear = $request->get('year', reset($availableYears) ?: date('Y'));
+
+    // 2. Fetch global system control settings
     $settings = \DB::table('settings')->where('id', 1)->first();
 
-    // Fetch all work plans grouped by division (r_center) to count submissions
-    $workPlansGrouped = \App\Models\WorkPlan::all()->groupBy('r_center');
+    // 3. Aggregate financial stats filtered by workplan.year
+    $divisionMetrics = \DB::table('financialplans as fp')
+        ->join('workplan as wp', 'fp.workplan_id', '=', 'wp.id')
+        ->where('wp.year', $selectedYear) // 👈 Using the actual DB column 'year'
+        ->select(
+            'fp.r_center',
+            \DB::raw('COUNT(DISTINCT wp.id) as total_submissions'),
+            \DB::raw('SUM(COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) as proposed_budget'),
+            \DB::raw('SUM(CASE WHEN LOWER(wp.status) = "approved" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as approved_budget'),
+            
+            // Expense Class breakdowns
+            \DB::raw('SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = "PS" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as ps_total'),
+            \DB::raw('SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = "MOOE" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as mooe_total'),
+            \DB::raw('SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = "CO" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as co_total'),
+            \DB::raw('SUM(CASE WHEN fp.expense_class IS NULL OR TRIM(fp.expense_class) = "" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as null_total')
+        )
+        ->groupBy('fp.r_center')
+        ->get();
 
-    // Fetch all financial line items to compute proposed vs approved balances per division
-    $financialPlans = \App\Models\FinancialPlan::with('workPlan')->get();
+    // 4. Compute global stats for stats cards based on workplan.year
+    $globalTotalSubmissions = \App\Models\WorkPlan::where('year', $selectedYear)->count();
+    $globalProposedBudget = $divisionMetrics->sum('proposed_budget');
+    $globalApprovedBudget = $divisionMetrics->sum('approved_budget');
 
-    // Prepare container array for processing the grid rows
-    $divisionRows = [];
-    
-    // Global Accumulators for the top stats cards
-    $globalTotalSubmissions = \App\Models\WorkPlan::count();
-    $globalProposedBudget = 0;
-    $globalApprovedBudget = 0;
-
-    // Loop through each distinct division group to build row data dynamically
-    foreach ($workPlansGrouped as $r_center => $plans) {
-        
-        // Filter financial entries belonging exclusively to this current loop center
-        $divisionFinances = $financialPlans->where('r_center', $r_center);
-
-        // Compute total proposed values for this division row
-        $proposedSum = $divisionFinances->reduce(function ($carry, $item) {
-            $totalRow = (float)($item->q1 ?? 0) + (float)($item->q2 ?? 0) + (float)($item->q3 ?? 0) + (float)($item->q4 ?? 0);
-            return $carry + $totalRow;
-        }, 0);
-
-        // Compute approved values for this division row (where status is APPROVED)
-        $approvedSum = $divisionFinances->filter(function ($item) {
-            return strtolower($item->workPlan->status ?? '') === 'approved';
-        })->reduce(function ($carry, $item) {
-            $totalRow = (float)($item->q1 ?? 0) + (float)($item->q2 ?? 0) + (float)($item->q3 ?? 0) + (float)($item->q4 ?? 0);
-            return $carry + $totalRow;
-        }, 0);
-
-        // Append calculated balances to system-wide global metrics
-        $globalProposedBudget += $proposedSum;
-        $globalApprovedBudget += $approvedSum;
-
-        // Structure individual row layout for AG Grid initialization injection
-        $divisionRows[] = [
-            'r_center' => $r_center,
-            'total_submissions' => $plans->count(),
-            'proposed_budget' => $proposedSum,
-            'approved_budget' => $approvedSum
-        ];
-    }
-
-    // Wrap structured global calculations into an easily referenceable stats block
     $globalStats = [
         'total_submissions' => $globalTotalSubmissions,
         'proposed_budget' => $globalProposedBudget,
         'approved_budget' => $globalApprovedBudget,
     ];
 
-    return view('dashfinance', compact('settings', 'divisionRows', 'globalStats'));
+    $divisionRows = $divisionMetrics->toArray();
+
+    return view('dashfinance', compact('settings', 'divisionRows', 'globalStats', 'availableYears', 'selectedYear'));
 }
 
 public function viewAttachmentWFP(Request $request)

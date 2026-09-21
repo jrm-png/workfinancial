@@ -41,7 +41,6 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
-    /* Stats Grid System Layout */
     .stats-container { 
         display: grid; 
         grid-template-columns: repeat(3, 1fr); 
@@ -89,11 +88,21 @@
         align-items: center;
     }
 
+    .year-select {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background-color: #ffffff;
+        font-weight: 700;
+        color: #1e293b;
+        cursor: pointer;
+        outline: none;
+    }
+
     .badge-status {
         text-transform: uppercase;
         font-weight: 700;
         padding: 0.5rem 1rem;
-
         border-radius: 9999px;
         font-size: 0.75rem;
     }
@@ -108,14 +117,14 @@
 <div class="content dashboard-container">
     
     {{-- 1. Budget Submission Control Period Status Banner --}}
-<div class="schedule-banner">
+    <div class="schedule-banner">
         <div class="icon-box">
             <i class="fas fa-calendar-alt" style="color: var(--accent-color); font-size: 1.5rem;"></i>
         </div>
         <div style="flex: 1;">
-            <h2 style="margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 700;">2027 Submission Period</h2>
+            <h2 style="margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 700;">{{ $selectedYear }} Submission Period</h2>
             <p style="margin: 5px 0 0; color: #64748b; font-size: 0.95rem;">
-                @if($settings && $settings->submission_start)
+                @if($settings &&$settings->submission_start)
                     Active from <b>{{ \Carbon\Carbon::parse($settings->submission_start)->format('M d') }}</b> to <b>{{ \Carbon\Carbon::parse($settings->submission_end)->format('M d, Y') }}</b>
                 @else
                     <i>Schedule parameters not configured.</i>
@@ -125,8 +134,7 @@
 
         @if($settings)
             @php
-                $now = now();
-                $isClosed = $now->gt($settings->submission_end) || $now->lt($settings->submission_start);
+                $now = now();$isClosed = $now->gt($settings->submission_end) || $now->lt($settings->submission_start);
             @endphp
             <span class="badge-status" style="background: {{ $isClosed ? '#334155' : '#10b981' }}; color: white;">
                 {{ $isClosed ? 'Locked' : 'System Open' }}
@@ -137,7 +145,7 @@
     {{-- 2. System-Wide Consolidated Budget Stats Counter Elements --}}
     <div class="stats-container">
         <div class="stat-card">
-            <div class="stat-label">Total System Submissions</div>
+            <div class="stat-label">Total Submissions ({{ $selectedYear }})</div>
             <div class="stat-value">{{ $globalStats['total_submissions'] }}</div>
         </div>
         <div class="stat-card" style="border-left: 4px solid var(--accent-color);">
@@ -155,11 +163,27 @@
         <div class="card-header">
             <div>
                 <h3 style="margin: 0; color: #0f172a; font-size: 1.15rem;">Division Budget Status Tracking</h3>
-                <p style="margin: 4px 0 0; color: #64748b; font-size: 0.85rem;">Monitor financial statistics and navigate to specific division profile pages</p>
+                <p style="margin: 4px 0 0; color: #64748b; font-size: 0.85rem;">Monitor financial statistics and expense classes by division</p>
             </div>
+
+            {{-- Dynamic Year Selector Form --}}
+            <form method="GET" action="{{ request()->url() }}">
+                <label for="year" style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-right: 8px;">Filter Year:</label>
+                <select name="year" id="year" class="year-select" onchange="this.form.submit()">
+                    @if(!empty($availableYears))
+                        @foreach($availableYears as $year)
+                            <option value="{{ $year }}" {{ (string)$selectedYear === (string)$year ? 'selected' : '' }}>
+                                {{ $year }}
+                            </option>
+                        @endforeach
+                    @else
+                        <option value="{{ date('Y') }}">{{ date('Y') }}</option>
+                    @endif
+                </select>
+            </form>
         </div>
 
-        <div id="financeGrid" class="ag-theme-alpine" style="height: 480px; width: 100%;"></div>
+        <div id="financeGrid" class="ag-theme-alpine" style="height: 600px; width: 100%;"></div>
     </div>
 </div>
 
@@ -170,34 +194,64 @@
             return;
         }
 
-        // Inject computed database records from controller processing pipeline
         const rawGridData = @json($divisionRows);
+
+        const currencyFormatter = p => p.value ? '₱' + Number(p.value).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '₱0.00';
 
         const columnDefs = [
             { 
-                headerName: 'Responsibility Center / Dept', 
+                headerName: 'Responsibility Center', 
                 field: 'r_center', 
                 flex: 1.2,
+                pinned: 'left',
                 cellStyle: { fontWeight: 'bold' }
             },
             { 
-                headerName: 'Total Plans Submitted', 
+                headerName: 'Submissions', 
                 field: 'total_submissions', 
-                width: 180,
-                cellStyle: { textAlign: 'center', justifyContent: 'center' }
+                width: 130,
+                cellStyle: { textAlign: 'center' }
+            },
+            { 
+                headerName: 'PS', 
+                field: 'ps_total', 
+                flex: 1,
+                valueFormatter: currencyFormatter,
+                cellStyle: { color: '#334155' }
+            },
+            { 
+                headerName: 'MOOE', 
+                field: 'mooe_total', 
+                flex: 1,
+                valueFormatter: currencyFormatter,
+                cellStyle: { color: '#334155' }
+            },
+            { 
+                headerName: 'CO', 
+                field: 'co_total', 
+                flex: 1,
+                valueFormatter: currencyFormatter,
+                cellStyle: { color: '#334155' }
+            },
+            { 
+                headerName: 'Unassigned (NULL)', 
+                field: 'null_total', 
+                flex: 1,
+                valueFormatter: currencyFormatter,
+                cellStyle: p => p.value > 0 ? { color: '#ef4444', fontWeight: '600' } : { color: '#94a3b8' }
             },
             { 
                 headerName: 'Proposed Budget Total', 
                 field: 'proposed_budget', 
-                flex: 1,
-                valueFormatter: p => p.value ? '₱' + Number(p.value).toLocaleString(undefined, {minimumFractionDigits: 2}) : '₱0.00',
-                cellStyle: { color: '#2563eb', fontWeight: '600' }
+                flex: 1.1,
+                valueFormatter: currencyFormatter,
+                cellStyle: { color: '#2563eb', fontWeight: '700' }
             },
             { 
                 headerName: 'Approved Budget Total', 
                 field: 'approved_budget', 
-                flex: 1,
-                valueFormatter: p => p.value ? '₱' + Number(p.value).toLocaleString(undefined, {minimumFractionDigits: 2}) : '₱0.00',
+                flex: 1.1,
+                valueFormatter: currencyFormatter,
                 cellStyle: p => p.value > 0 ? { color: '#10b981', fontWeight: '700' } : { color: '#64748b' }
             },
             { 
@@ -205,7 +259,6 @@
                 width: 140,
                 pinned: 'right',
                 cellRenderer: p => {
-                    // Create structural click handler button dynamically to fit the engine structure
                     const actionBtn = document.createElement("button");
                     actionBtn.innerText = "VIEW PROFILE";
                     actionBtn.style.background = "#2563eb";
@@ -216,11 +269,9 @@
                     actionBtn.style.fontSize = "11px";
                     actionBtn.style.fontWeight = "800";
                     actionBtn.style.cursor = "pointer";
-                    actionBtn.style.transition = "0.2s";
 
-                    // Redirect window location to target division parameter dashboard route
                     actionBtn.onclick = () => {
-                        window.location.href = `/division/${encodeURIComponent(p.data.r_center)}`;
+                        window.location.href = `/division/${encodeURIComponent(p.data.r_center)}?year={{ $selectedYear }}`;
                     };
 
                     return actionBtn;
@@ -237,7 +288,7 @@
                 resizable: true
             },
             pagination: true,
-            paginationPageSize: 10
+            paginationPageSize: 20
         };
 
         const targetGridDiv = document.querySelector('#financeGrid');
