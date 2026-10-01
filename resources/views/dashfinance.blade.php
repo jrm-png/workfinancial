@@ -198,10 +198,7 @@
 
     <div class="dashboard-header">
         <h1>Financial Management Dashboard</h1>
-        <p>
-            Analyze proposed and approved budgets by department, responsibility center,
-            expense class, program, account title, and quarter.
-        </p>
+
     </div>
 
     <form method="GET" action="{{ request()->url() }}" class="filter-card">
