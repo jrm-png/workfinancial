@@ -113,7 +113,6 @@
             box-shadow: 0 0 0 3px rgba(76, 161, 175, 0.1);
         }
 
-        /* ⭐ BAGONG STYLES PARA SA EYE WRAPPER AT ICON */
         .password-wrapper {
             position: relative;
             display: flex;
@@ -121,7 +120,7 @@
         }
 
         .password-wrapper .form-control {
-            padding-right: 45px; /* Para hindi matakpan ng icon ang mahabang password */
+            padding-right: 45px; 
         }
 
         .toggle-password {

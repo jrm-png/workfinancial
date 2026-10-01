@@ -116,7 +116,6 @@
 
 <div class="content dashboard-container">
     
-    {{-- 1. Budget Submission Control Period Status Banner --}}
     <div class="schedule-banner">
         <div class="icon-box">
             <i class="fas fa-calendar-alt" style="color: var(--accent-color); font-size: 1.5rem;"></i>
@@ -142,7 +141,6 @@
         @endif
     </div>
 
-    {{-- 2. System-Wide Consolidated Budget Stats Counter Elements --}}
     <div class="stats-container">
         <div class="stat-card">
             <div class="stat-label">Total Submissions ({{ $selectedYear }})</div>
@@ -158,7 +156,6 @@
         </div>
     </div>
 
-    {{-- 3. Consolidated Responsibility Center Overview Grid Management Module --}}
     <div class="main-card">
         <div class="card-header">
             <div>
@@ -166,7 +163,7 @@
                 <p style="margin: 4px 0 0; color: #64748b; font-size: 0.85rem;">Monitor financial statistics and expense classes by division</p>
             </div>
 
-            {{-- Dynamic Year Selector Form --}}
+            {{-- Year Selector --}}
             <form method="GET" action="{{ request()->url() }}">
                 <label for="year" style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-right: 8px;">Filter Year:</label>
                 <select name="year" id="year" class="year-select" onchange="this.form.submit()">

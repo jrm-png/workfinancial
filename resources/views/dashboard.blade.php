@@ -11,6 +11,16 @@
         --primary: #2563eb;
         --success: #10b981;
     }
+    .year-select {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background-color: #ffffff;
+        font-weight: 700;
+        color: #1e293b;
+        cursor: pointer;
+        outline: none;
+    }
 
     .dashboard-container {
         padding: 2rem;
@@ -120,7 +130,6 @@
 </div>
 
 <div class="content dashboard-container">
-    {{-- 1. Hero Banner Setup Control Layout Elements --}}
     <div class="schedule-banner">
         <div class="icon-box">
             <i class="fas fa-calendar-alt" style="color: var(--accent-color); font-size: 1.5rem;"></i>
@@ -131,7 +140,7 @@
                 @if($settings && $settings->submission_start)
                     Active from <b>{{ \Carbon\Carbon::parse($settings->submission_start)->format('M d') }}</b> to <b>{{ \Carbon\Carbon::parse($settings->submission_end)->format('M d, Y') }}</b>
                 @else
-                    <i>Schedule parameters not configured.</i>
+                    <i>Schedule not configured.</i>
                 @endif
             </p>
         </div>
@@ -147,31 +156,61 @@
         @endif
     </div>
 
-    {{-- NEW ADDITION: Department/Division Budget Performance Counter Cards Element --}}
     <div class="stats-container">
         <div class="stat-card">
-            <div class="stat-label">Total Submissions ({{ $stats['r_center'] }})</div>
-            <div class="stat-value">{{ $stats['total_submitted'] }}</div>
+            <div class="stat-label">
+                Total Submissions ({{ $stats['r_center'] }})
+            </div>
+            <div class="stat-value">
+                {{ $stats['total_submitted'] }}
+            </div>
         </div>
+
         <div class="stat-card" style="border-left: 4px solid var(--primary);">
             <div class="stat-label">Proposed Budget</div>
-            <div class="stat-value">₱{{ number_format($stats['proposed_budget'], 2) }}</div>
+            <div class="stat-value">
+                ₱{{ number_format($stats['proposed_budget'], 2) }}
+            </div>
         </div>
+
         <div class="stat-card" style="border-left: 4px solid var(--success);">
             <div class="stat-label">Approved Budget</div>
-            <div class="stat-value" style="color: var(--success);">₱{{ number_format($stats['approved_budget'], 2) }}</div>
+            <div class="stat-value" style="color: var(--success);">
+                ₱{{ number_format($stats['approved_budget'], 2) }}
+            </div>
         </div>
     </div>
 
-    {{-- 2. Grid Notifications Feedback Module Container (KEPT EXACTLY AS ORIGINAL) --}}
     <div class="main-card">
         <div class="card-header">
             <div>
                 <h3 style="margin: 0; color: #0f172a; font-size: 1.15rem;">Recent Remarks & Feedback</h3>
                 <p style="margin: 4px 0 0; color: #64748b; font-size: 0.85rem;">View and manage your plan updates</p>
             </div>
+
+            {{-- Year Selector --}}
+            <form method="GET" action="{{ request()->url() }}">
+                <label for="year" style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-right: 8px;">
+                    Filter Year:
+                </label>
+
+                <select name="year" id="year" class="year-select" onchange="this.form.submit()">
+                    @foreach($availableYears as $year)
+                        @if($year === 'all')
+                            <option value="all" {{ $selectedYear === 'all' ? 'selected' : '' }}>
+                                All Years
+                            </option>
+                        @else
+                            <option value="{{ $year }}" {{ (string)$selectedYear === (string)$year ? 'selected' : '' }}>
+                                {{ $year }}
+                            </option>
+                        @endif
+                    @endforeach
+                </select>
+            </form>
         </div>
 
+    
         <div id="notifGrid" class="ag-theme-alpine" style="height: 500px; width: 100%;"></div>
     </div>
 </div>
@@ -233,6 +272,9 @@
                     btn.style.fontWeight = "bold";
                     btn.style.cursor = "pointer";
 
+                    btn.onclick = () => {
+                        window.location.href = `/division/${encodeURIComponent(p.data.r_center)}?year={{ $selectedYear }}`;
+                    };
                     btn.onclick = () => openEditModal(p.data.form_id);
 
                     return btn;

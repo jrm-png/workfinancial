@@ -243,7 +243,7 @@
         </div>
     </div>
 
-    {{-- ⭐ POPUP DYNAMIC EDIT USER MODAL --}}
+    {{-- EDIT USER MODAL --}}
     <div id="editUserModal" class="modal">
         <div class="modal-content">
             <button type="button" class="close-modal" onclick="closeEditModal()">&times;</button>

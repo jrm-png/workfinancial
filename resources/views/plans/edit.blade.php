@@ -279,7 +279,7 @@
                                         <div style="background:#f0fdf4; padding:8px 12px; border-radius:6px; margin-bottom:12px; border:1px dashed #a7f3d0; display:flex; align-items:center; justify-content:space-between;">
                                             <span style="font-weight:600; font-size:12px; color:#047857;"><i class="fas fa-exchange-alt"></i> Assigned Initiative:</span>
                                             <select class="form-input init-reassign-select" style="width: auto; padding: 4px 8px; font-size: 12px;" onchange="reassignFinancialRow(this)">
-                                                <!-- Dynamic JS Population -->
+                                            
                                             </select>
                                         </div>
 
@@ -395,7 +395,7 @@
                                 @endif
                             </div>
                         </div>
-                    </div><!-- End Initiative Body -->
+                    </div>
                 </div>
                 @endforeach
             </div>
@@ -403,7 +403,7 @@
             <button type="button" class="btn-add" onclick="addInitiativeBlock()">+ Add New Initiative</button>
         </div>
 
-        <!-- Budgetary Summary Consolidation Card -->
+ 
         <div class="section-card">
             <h3 style="margin-top:0; color:#1e293b; font-weight:800; border-bottom:2px solid #f1f5f9; padding-bottom:10px;">
                 <i class="fas fa-calculator" style="color:#2563eb;"></i> Budgetary Summary Consolidation
@@ -428,11 +428,11 @@
             </table>
         </div>
 
-        <!-- Sticky Action Bar -->
+        <!-- Action Bar -->
         <div class="sticky-bar">
             <button type="button" onclick="closeEditModal()" style="background:#e2e8f0; color:#475569; border:none; padding:12px 20px; border-radius:8px; font-weight:600; cursor:pointer;">Cancel</button>
             
-            <!-- Save Button (Saves without redirection via AJAX) -->
+            <!-- Save Button -->
             <button type="button" id="btnSaveDraft" onclick="saveInPlace('{{ $saveAction }}')" style="background:#059669; color:white; border:none; padding:12px 25px; border-radius:8px; font-weight:700; cursor:pointer; box-shadow: 0 4px 6px -1px rgba(5,150,105,0.2);">
                 <i class="fas fa-save"></i> Save (Stay on Page)
             </button>

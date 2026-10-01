@@ -21,8 +21,6 @@ Route::middleware(['auth'])->group(function () {
 
     // Dashboard (Main Hub)
     Route::get('/dashboard', [FormController::class, 'dashboard'])->name('dashboard');
-    
-
     Route::get('/dashboardfinance', [FormController::class, 'financeDashboard'])->name('dashfinance');
 
     // Profile Management
@@ -30,20 +28,16 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // UNIFIED PLANS (FormController)
-    // These handle the creation and submission of the integrated Work & Financial Plan
     Route::get('/plans/create', [FormController::class, 'create'])->name('plans.create');
     Route::post('/plans', [FormController::class, 'store'])->name('plans.store');
     
-    // LIST VIEWS (AG Grid Backends)
-    // Dapat nakaturo sa 'index' para ma-trigger yung fetching ng $settings
     Route::get('/workplan/list', [FormController::class, 'index'])->name('workplan.list');
         Route::get('/financialplan/list', [FinancialPlanController::class, 'list'])->name('financialplan.list');
         Route::get('/workplan/unified/{id}', [WorkPlanController::class, 'getUnifiedDetails']);
 
     Route::post('/workplan/update-status/{formId}', [FormController::class, 'updateStatus']);
 
-        // LEGACY/INDIVIDUAL ACTIONS (Optional - keep if still needed)
+        // ewan ewan
         Route::put('/workplan/{workplan}', [WorkPlanController::class, 'update'])->name('workplan.update');
         Route::delete('/workplan/{workplan}', [WorkPlanController::class, 'destroy'])->name('workplan.destroy');
 
@@ -71,6 +65,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/change-password', [PasswordChangeController::class, 'showForm'])->name('password.change.form');
 Route::post('/change-password', [PasswordChangeController::class, 'update'])->name('password.change.update');
+
 
 // --- ADMIN ONLY ROUTES ---
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
@@ -112,9 +107,7 @@ Route::middleware(['auth'])->group(function () {
     
     // Core Forms Processing Paths
     Route::get('/plans/create', [FormController::class, 'create'])->name('plans.create');
-});
 
-Route::middleware(['auth'])->group(function () {
 Route::get('/mass-review', [MassReviewController::class, 'index'])->name('mass-review.index');
 
 

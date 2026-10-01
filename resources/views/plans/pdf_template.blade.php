@@ -1243,129 +1243,129 @@
                 </table>
 
             </div>
+            <div>
+                <div class="section-header" style="background: #0f172a;">
+                    Responsibility Center Budget Allocation Summary
+                </div>
 
-            <div class="section-header" style="background: #0f172a;">
-                Responsibility Center Budget Allocation Summary
-            </div>
+                <p style="font-size: 8px; color: #475569; margin-bottom: 10px;">
+                    The following list details the compiled financial program allocation balances authorized for individual operating units during the planning year {{ $year }}.
+                </p>
 
-            <p style="font-size: 8px; color: #475569; margin-bottom: 10px;">
-                The following list details the compiled financial program allocation balances authorized for individual operating units during the planning year {{ $year }}.
-            </p>
+                <table class="summary-card-table">
 
-            <table class="summary-card-table">
-
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            Responsibility Center (RC)
-                        </th>
-
-                        <th class="text-right" style="padding-right: 15px;">
-                            MOOE
-                        </th>
-
-                        <th class="text-right" style="padding-right: 15px;">
-                            CO 
-                        </th>
-
-                        <th class="text-right" style="padding-right: 15px;">
-                            PS
-                        </th>
-
-                        <th class="text-right" style="padding-right: 15px;">
-                            Total Financial Allocation (PHP)
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    @php
-                        $overallTotalSum = 0;
-                        $overallMooe = 0;
-                        $overallCo = 0;
-                        $overallPs = 0;
-                    @endphp
-
-                    @foreach($rcTotalsTracker as $rcName => $totalAmount)
-
-                        @php
-                            $rcItems = $approvedFinancials->flatten()->filter(function($item) use ($rcName) {
-                                return strtoupper($item->r_center) === $rcName;
-                            });
-
-                            $totalmooe = $rcItems->filter(fn($i) => strtoupper($i->expense_class) === 'MOOE')
-                                                ->sum(fn($i) => ($i->q1 ?? 0) + ($i->q2 ?? 0) + ($i->q3 ?? 0) + ($i->q4 ?? 0));
-
-                            $totalco   = $rcItems->filter(fn($i) => strtoupper($i->expense_class) === 'CO')
-                                                ->sum(fn($i) => ($i->q1 ?? 0) + ($i->q2 ?? 0) + ($i->q3 ?? 0) + ($i->q4 ?? 0));
-
-                            $totalps   = $rcItems->filter(fn($i) => strtoupper($i->expense_class) === 'PS')
-                                                ->sum(fn($i) => ($i->q1 ?? 0) + ($i->q2 ?? 0) + ($i->q3 ?? 0) + ($i->q4 ?? 0));
-                                                
-
-                            $overallTotalSum += $totalAmount;
-                            $overallMooe += $totalmooe;
-                            $overallCo += $totalco;
-                            $overallPs += $totalps;
-                        @endphp
+                    <thead>
 
                         <tr>
-                            <td class="font-bold" style="color: #1e3a8a;">
-                                {{ $rcName }}
-                            </td>
 
-                            <td class="text-right font-bold" style="padding-right: 15px;">
-                                Php {{ number_format($totalmooe, 2) }}
-                            </td>
+                            <th>
+                                Responsibility Center (RC)
+                            </th>
 
-                            <td class="text-right font-bold" style="padding-right: 15px;">
-                                Php {{ number_format($totalco, 2) }}
-                            </td>
+                            <th class="text-right" style="padding-right: 15px;">
+                                MOOE
+                            </th>
 
-                            <td class="text-right font-bold" style="padding-right: 15px;">
-                                Php {{ number_format($totalps, 2) }}
-                            </td>
+                            <th class="text-right" style="padding-right: 15px;">
+                                CO 
+                            </th>
 
-                            <td class="text-right font-bold" style="padding-right: 15px;">
-                                Php {{ number_format($totalAmount, 2) }}
-                            </td>
+                            <th class="text-right" style="padding-right: 15px;">
+                                PS
+                            </th>
+
+                            <th class="text-right" style="padding-right: 15px;">
+                                Total Financial Allocation (PHP)
+                            </th>
+
                         </tr>
 
-                    @endforeach
+                    </thead>
 
-                    <tr class="grand-total-row">
+                    <tbody>
 
-                        <td>
-                            TOTAL COMPREHENSIVE BUDGET:
-                        </td>
+                        @php
+                            $overallTotalSum = 0;
+                            $overallMooe = 0;
+                            $overallCo = 0;
+                            $overallPs = 0;
+                        @endphp
 
-                        <td class="text-right" style="padding-right: 15px;">
-                            Php {{ number_format($overallMooe, 2) }}
-                        </td>   
+                        @foreach($rcTotalsTracker as $rcName => $totalAmount)
 
-                        <td class="text-right" style="padding-right: 15px;">
-                            Php {{ number_format($overallCo, 2) }}
-                        </td>   
+                            @php
+                                $rcItems = $approvedFinancials->flatten()->filter(function($item) use ($rcName) {
+                                    return strtoupper($item->r_center) === $rcName;
+                                });
 
-                        <td class="text-right" style="padding-right: 15px;">
-                            Php {{ number_format($overallPs, 2) }}
-                        </td>   
+                                $totalmooe = $rcItems->filter(fn($i) => strtoupper($i->expense_class) === 'MOOE')
+                                                    ->sum(fn($i) => ($i->q1 ?? 0) + ($i->q2 ?? 0) + ($i->q3 ?? 0) + ($i->q4 ?? 0));
 
-                        <td class="text-right" style="padding-right: 15px;">
-                            Php {{ number_format($overallTotalSum, 2) }}
-                        </td>   
+                                $totalco   = $rcItems->filter(fn($i) => strtoupper($i->expense_class) === 'CO')
+                                                    ->sum(fn($i) => ($i->q1 ?? 0) + ($i->q2 ?? 0) + ($i->q3 ?? 0) + ($i->q4 ?? 0));
 
-                    </tr>
+                                $totalps   = $rcItems->filter(fn($i) => strtoupper($i->expense_class) === 'PS')
+                                                    ->sum(fn($i) => ($i->q1 ?? 0) + ($i->q2 ?? 0) + ($i->q3 ?? 0) + ($i->q4 ?? 0));
+                                                    
 
-                </tbody>
+                                $overallTotalSum += $totalAmount;
+                                $overallMooe += $totalmooe;
+                                $overallCo += $totalco;
+                                $overallPs += $totalps;
+                            @endphp
 
-            </table>
+                            <tr>
+                                <td class="font-bold" style="color: #1e3a8a;">
+                                    {{ $rcName }}
+                                </td>
 
+                                <td class="text-right font-bold" style="padding-right: 15px;">
+                                    Php {{ number_format($totalmooe, 2) }}
+                                </td>
+
+                                <td class="text-right font-bold" style="padding-right: 15px;">
+                                    Php {{ number_format($totalco, 2) }}
+                                </td>
+
+                                <td class="text-right font-bold" style="padding-right: 15px;">
+                                    Php {{ number_format($totalps, 2) }}
+                                </td>
+
+                                <td class="text-right font-bold" style="padding-right: 15px;">
+                                    Php {{ number_format($totalAmount, 2) }}
+                                </td>
+                            </tr>
+
+                        @endforeach
+
+                        <tr class="grand-total-row">
+
+                            <td>
+                                TOTAL COMPREHENSIVE BUDGET:
+                            </td>
+
+                            <td class="text-right" style="padding-right: 15px;">
+                                Php {{ number_format($overallMooe, 2) }}
+                            </td>   
+
+                            <td class="text-right" style="padding-right: 15px;">
+                                Php {{ number_format($overallCo, 2) }}
+                            </td>   
+
+                            <td class="text-right" style="padding-right: 15px;">
+                                Php {{ number_format($overallPs, 2) }}
+                            </td>   
+
+                            <td class="text-right" style="padding-right: 15px;">
+                                Php {{ number_format($overallTotalSum, 2) }}
+                            </td>   
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+            </div>
         </div>
 
     @endif

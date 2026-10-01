@@ -174,15 +174,33 @@
                         <span class="nav-text">Finance Dashboard</span>
                     </a>
                 @endif
-        
-            <div class="sidebar-section">Planning</div>
-            <a href="{{ route('plans.create') }}" class="nav-link {{ request()->routeIs('plans.create') ? 'active' : '' }}">
-                <i class="fas fa-edit"></i>
-                <span class="nav-text">Prepare Work Plan</span>
-            </a>
 
+                <div class="sidebar-section">Planning</div>
+                    @php
+                        $settings = $settings ?? null;
+                        $now = now();
+                        $submissionClosed = true; 
+                        $viewingOpen = false;
 
-
+                        if ($settings) {
+                            $start = $settings->submission_start ? \Carbon\Carbon::parse($settings->submission_start) : null;
+                            $end = $settings->submission_end ? \Carbon\Carbon::parse($settings->submission_end) : null;
+                            if ($start && $end && $now->between($start, $end)) {
+                                $submissionClosed = false;
+                            }
+                            $viewingOpen = (bool) ($settings->is_viewing_open ?? false);
+                        }
+                    @endphp
+                @if($submissionClosed)
+                        <a style="opacity:0.5; cursor:not-allowed;" class="nav-link {{ request()->routeIs('plans.create') ? 'active' : '' }}">
+                            <i class="fas fa-edit"></i> Submissions Closed
+                        </a>
+                    @else
+                <a href="{{ route('plans.create') }}" class="nav-link {{ request()->routeIs('plans.create') ? 'active' : '' }}">
+                    <i class="fas fa-edit"></i>
+                    <span class="nav-text">Prepare Work Plan</span>
+                </a>
+                @endif
 
             <div class="sidebar-section">Reports</div>
             <a href="{{ route('workplan.list') }}" class="nav-link {{ request()->routeIs('workplan.list') ? 'active' : '' }}">

@@ -246,7 +246,7 @@ public function generatePdf(Request $request)
     $wpQuery = WorkPlan::where('year', $year);
     $fpQuery = FinancialPlan::where('year', $year);
 
-    // ⭐ OPERATING DEPARTMENT & ALL CENTERS FILTER HANDLING
+    //   OPERATING DEPARTMENT & ALL CENTERS FILTER HANDLING
     if ($center !== 'ALL') {
         if (str_contains($center, ',')) {
             // Kapag pinili ang "-- ALL UNDER [DEPT] --", gagawin nating array ang string list
@@ -415,20 +415,34 @@ public function index()
     return view('workplan.list', compact('workPlans', 'settings', 'availableStatuses', 'availableYears'));
 }
 
-public function dashboard()
+public function dashboard(\Illuminate\Http\Request $request)
 {
-    // Fetch global system parameters setup settings
     $settings = DB::table('settings')->where('id', 1)->first();
 
-    // Fetch unique rejected rows intended for the user's recent remarks feedback alert grid
+    $availableYears = \App\Models\WorkPlan::whereNotNull('year')
+        ->select('year')
+        ->distinct()
+        ->orderBy('year', 'asc')
+        ->pluck('year')
+        ->toArray();
+
+    array_unshift($availableYears, 'all');
+
+    $selectedYear = $request->get('year', 'all');
+
+    $user = auth()->user();
+    $userRCenter = $user->responsibility_center;
+    $userOpDept = $user->operating_department;
+    $userRole = $user->role;
+
     $notifications = DB::table('workplan')
-        ->where('user_id', auth()->id()) 
-        ->where('status', 'rejected')    
+        ->where('user_id', $user->id)
+        ->where('status', 'rejected')
         ->select(
-            'r_center', 
-            'strategic_initiatives',   
-            'comment as remarks', 
-            'status', 
+            'r_center',
+            'strategic_initiatives',
+            'comment as remarks',
+            'status',
             'form_id'
         )
         ->latest()
@@ -436,48 +450,83 @@ public function dashboard()
         ->unique('form_id')
         ->values();
 
-    // 1. Identify the user's assigned operational division group identifier string
-    // This looks at recent submissions from this user to discover their r_center
-    $userRCenter = auth()->user()->responsibility_center;
+    if (strtolower($userRole) === 'department manager' && $userOpDept) {
 
-    // 2. Fetch related transactional models if a department reference profile exists
-    if ($userRCenter) {
-        $workPlans = \App\Models\WorkPlan::where('r_center', $userRCenter)->get();
-        $financialPlans = \App\Models\FinancialPlan::with('workPlan')
-            ->where('r_center', $userRCenter)
-            ->get();
-            
-        // Compute proposed budget accumulations across target records
-        $proposedBudget = $financialPlans->reduce(function ($carry, $plan) {
-            $rowTotal = (float)($plan->q1 ?? 0) + (float)($plan->q2 ?? 0) + (float)($plan->q3 ?? 0) + (float)($plan->q4 ?? 0);
-            return $carry + $rowTotal;
-        }, 0);
+        $workPlansQuery = \App\Models\WorkPlan::where('department', $userOpDept);
 
-        // Compute approved budget accumulations (filtered where parent status matches approved)
-        $approvedBudget = $financialPlans->filter(function ($plan) {
-            return strtolower($plan->workPlan->status ?? '') === 'approved';
-        })->reduce(function ($carry, $plan) {
-            $rowTotal = (float)($plan->q1 ?? 0) + (float)($plan->q2 ?? 0) + (float)($plan->q3 ?? 0) + (float)($plan->q4 ?? 0);
-            return $carry + $rowTotal;
-        }, 0);
+        $financialPlansQuery = \App\Models\FinancialPlan::with('workPlan')
+            ->where('department', $userOpDept);
 
-        $totalSubmitted = $workPlans->count();
+        $displayCenter = $userOpDept;
+
+    } elseif ($userRCenter) {
+
+        $workPlansQuery = \App\Models\WorkPlan::where('r_center', $userRCenter);
+
+        $financialPlansQuery = \App\Models\FinancialPlan::with('workPlan')
+            ->where('r_center', $userRCenter);
+
+        $displayCenter = $userRCenter;
+
     } else {
-        // Fallback structures if the user profile does not contain prior submissions history
-        $totalSubmitted = 0;
-        $proposedBudget = 0;
-        $approvedBudget = 0;
+
+        $workPlansQuery = \App\Models\WorkPlan::query()->whereRaw('1 = 0');
+
+        $financialPlansQuery = \App\Models\FinancialPlan::with('workPlan')
+            ->whereRaw('1 = 0');
+
+        $displayCenter = 'N/A';
     }
 
-    // Combine calculated parameters into safe variables payload properties array 
+    if ($selectedYear !== 'all') {
+        $workPlansQuery->where('year', $selectedYear);
+
+        $financialPlansQuery->whereHas('workPlan', function ($query) use ($selectedYear) {
+            $query->where('year', $selectedYear);
+        });
+    }
+
+    $workPlans = $workPlansQuery->get();
+    $financialPlans = $financialPlansQuery->get();
+
+    $proposedBudget = $financialPlans->reduce(function ($carry, $plan) {
+        $rowTotal =
+            (float)($plan->q1 ?? 0) +
+            (float)($plan->q2 ?? 0) +
+            (float)($plan->q3 ?? 0) +
+            (float)($plan->q4 ?? 0);
+
+        return $carry + $rowTotal;
+    }, 0);
+
+    $approvedBudget = $financialPlans->filter(function ($plan) {
+        return strtolower($plan->workPlan->status ?? '') === 'approved';
+    })->reduce(function ($carry, $plan) {
+        $rowTotal =
+            (float)($plan->q1 ?? 0) +
+            (float)($plan->q2 ?? 0) +
+            (float)($plan->q3 ?? 0) +
+            (float)($plan->q4 ?? 0);
+
+        return $carry + $rowTotal;
+    }, 0);
+
+    $totalSubmitted = $workPlans->count();
+
     $stats = [
         'total_submitted' => $totalSubmitted,
         'proposed_budget' => $proposedBudget,
         'approved_budget' => $approvedBudget,
-        'r_center'        => $userRCenter ?? 'N/A'
+        'r_center' => $displayCenter
     ];
 
-    return view('dashboard', compact('settings', 'notifications', 'stats'));
+    return view('dashboard', compact(
+        'settings',
+        'notifications',
+        'stats',
+        'availableYears',
+        'selectedYear'
+    ));
 }
 
 public function updateStatus(Request $request, $formId)
@@ -872,7 +921,7 @@ public function financeDashboard(Request $request)
     // 3. Aggregate financial stats filtered by workplan.year
     $divisionMetrics = \DB::table('financialplans as fp')
         ->join('workplan as wp', 'fp.workplan_id', '=', 'wp.id')
-        ->where('wp.year', $selectedYear) // 👈 Using the actual DB column 'year'
+        ->where('wp.year', $selectedYear) 
         ->select(
             'fp.r_center',
             \DB::raw('COUNT(DISTINCT wp.id) as total_submissions'),
