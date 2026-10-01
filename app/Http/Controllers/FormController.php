@@ -914,57 +914,201 @@ public function financeDashboard(Request $request)
     array_unshift($availableYears, 'all');
 
     $selectedYear = $request->get('year', 'all');
+    $selectedDepartment = $request->get('department', 'all');
+    $selectedRC = $request->get('r_center', 'all');
+    $selectedExpenseClass = $request->get('expense_class', 'all');
+    $selectedProgram = $request->get('program', 'all');
+    $selectedAccountTitle = $request->get('account_title', 'all');
+    $selectedStatus = $request->get('status', 'all');
 
     $settings = \DB::table('settings')->where('id', 1)->first();
 
-    $divisionMetricsQuery = \DB::table('financialplans as fp')
+    $baseQuery = \DB::table('financialplans as fp')
         ->join('workplan as wp', 'fp.workplan_id', '=', 'wp.id');
 
     if ($selectedYear !== 'all') {
-        $divisionMetricsQuery->where('wp.year', $selectedYear);
+        $baseQuery->where('wp.year', $selectedYear);
     }
 
-    $divisionMetrics = $divisionMetricsQuery
+    if ($selectedDepartment !== 'all') {
+        $baseQuery->where('wp.department', $selectedDepartment);
+    }
+
+    if ($selectedRC !== 'all') {
+        $baseQuery->where('fp.r_center', $selectedRC);
+    }
+
+    if ($selectedExpenseClass !== 'all') {
+        if ($selectedExpenseClass === 'Unassigned') {
+            $baseQuery->where(function($q) {
+                $q->whereNull('fp.expense_class')
+                  ->orWhereRaw("TRIM(fp.expense_class) = ''");
+            });
+        } else {
+            $baseQuery->where('fp.expense_class', $selectedExpenseClass);
+        }
+    }
+
+    if ($selectedProgram !== 'all') {
+        $baseQuery->where('fp.programs', $selectedProgram);
+    }
+
+    if ($selectedAccountTitle !== 'all') {
+        $baseQuery->where('fp.account_title', $selectedAccountTitle);
+    }
+
+    if ($selectedStatus !== 'all') {
+        $baseQuery->whereRaw('LOWER(TRIM(wp.status)) = ?', [strtolower($selectedStatus)]);
+    }
+
+    $totalExpression = 'COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)';
+
+    $filterQuery = \DB::table('financialplans as fp')
+        ->join('workplan as wp', 'fp.workplan_id', '=', 'wp.id');
+
+    if ($selectedYear !== 'all') {
+        $filterQuery->where('wp.year', $selectedYear);
+    }
+
+    $departments = (clone $filterQuery)
+        ->whereNotNull('wp.department')
+        ->whereRaw("TRIM(wp.department) <> ''")
+        ->select('wp.department')
+        ->distinct()
+        ->orderBy('wp.department')
+        ->pluck('wp.department')
+        ->values();
+
+    $responsibilityCenters = (clone $filterQuery)
+        ->whereNotNull('fp.r_center')
+        ->whereRaw("TRIM(fp.r_center) <> ''")
+        ->select('fp.r_center')
+        ->distinct()
+        ->orderBy('fp.r_center')
+        ->pluck('fp.r_center')
+        ->values();
+
+    $expenseClasses = (clone $filterQuery)
+        ->select(\DB::raw('COALESCE(NULLIF(TRIM(fp.expense_class), ""), "Unassigned") as expense_class'))
+        ->distinct()
+        ->orderBy('expense_class')
+        ->pluck('expense_class')
+        ->values();
+
+    $programs = (clone $filterQuery)
+        ->whereNotNull('fp.programs')
+        ->whereRaw("TRIM(fp.programs) <> ''")
+        ->select('fp.programs')
+        ->distinct()
+        ->orderBy('fp.programs')
+        ->pluck('fp.programs')
+        ->values();
+
+    $accountTitles = (clone $filterQuery)
+        ->whereNotNull('fp.account_title')
+        ->whereRaw("TRIM(fp.account_title) <> ''")
+        ->select('fp.account_title')
+        ->distinct()
+        ->orderBy('fp.account_title')
+        ->pluck('fp.account_title')
+        ->values();
+
+    $statuses = \DB::table('workplan')
+        ->whereNotNull('status')
+        ->whereRaw("TRIM(status) <> ''")
+        ->select('status')
+        ->distinct()
+        ->orderBy('status')
+        ->pluck('status')
+        ->values();
+
+    $globalStatsQuery = clone $baseQuery;
+
+    $globalStats = [
+        'total_submissions' => $globalStatsQuery
+            ->distinct('wp.id')
+            ->count('wp.id'),
+
+        'proposed_budget' => (clone $globalStatsQuery)
+            ->sum(\DB::raw($totalExpression)),
+
+        'approved_budget' => (clone $globalStatsQuery)
+            ->whereRaw('LOWER(TRIM(wp.status)) = ?', ['approved'])
+            ->sum(\DB::raw($totalExpression)),
+
+        'ps_total' => (clone $globalStatsQuery)
+            ->whereRaw('UPPER(TRIM(fp.expense_class)) = ?', ['PS'])
+            ->sum(\DB::raw($totalExpression)),
+
+        'mooe_total' => (clone $globalStatsQuery)
+            ->whereRaw('UPPER(TRIM(fp.expense_class)) = ?', ['MOOE'])
+            ->sum(\DB::raw($totalExpression)),
+
+        'co_total' => (clone $globalStatsQuery)
+            ->whereRaw('UPPER(TRIM(fp.expense_class)) = ?', ['CO'])
+            ->sum(\DB::raw($totalExpression)),
+    ];
+
+    $divisionRows = (clone $baseQuery)
         ->select(
             'fp.r_center',
             \DB::raw('COUNT(DISTINCT wp.id) as total_submissions'),
-            \DB::raw('SUM(COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) as proposed_budget'),
-            \DB::raw('SUM(CASE WHEN LOWER(wp.status) = "approved" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as approved_budget'),
-
-            \DB::raw('SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = "PS" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as ps_total'),
-
-            \DB::raw('SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = "MOOE" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as mooe_total'),
-
-            \DB::raw('SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = "CO" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as co_total'),
-
-            \DB::raw('SUM(CASE WHEN fp.expense_class IS NULL OR TRIM(fp.expense_class) = "" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as null_total')
+            \DB::raw("SUM($totalExpression) as proposed_budget"),
+            \DB::raw("SUM(CASE WHEN LOWER(TRIM(wp.status)) = 'approved' THEN $totalExpression ELSE 0 END) as approved_budget"),
+            \DB::raw("SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = 'PS' THEN $totalExpression ELSE 0 END) as ps_total"),
+            \DB::raw("SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = 'MOOE' THEN $totalExpression ELSE 0 END) as mooe_total"),
+            \DB::raw("SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = 'CO' THEN $totalExpression ELSE 0 END) as co_total")
         )
         ->groupBy('fp.r_center')
+        ->orderByDesc('proposed_budget')
         ->get();
 
-    if ($selectedYear === 'all') {
-        $globalTotalSubmissions = \App\Models\WorkPlan::count();
-    } else {
-        $globalTotalSubmissions = \App\Models\WorkPlan::where('year', $selectedYear)->count();
-    }
+    $programData = (clone $baseQuery)
+        ->select(
+            \DB::raw('COALESCE(NULLIF(TRIM(fp.programs), ""), "Unassigned") as programs'),
+            \DB::raw("SUM($totalExpression) as total"),
+            \DB::raw('SUM(COALESCE(fp.q1,0)) as q1'),
+            \DB::raw('SUM(COALESCE(fp.q2,0)) as q2'),
+            \DB::raw('SUM(COALESCE(fp.q3,0)) as q3'),
+            \DB::raw('SUM(COALESCE(fp.q4,0)) as q4')
+        )
+        ->groupBy('fp.programs')
+        ->orderByDesc('total')
+        ->get();
 
-    $globalProposedBudget = $divisionMetrics->sum('proposed_budget');
-    $globalApprovedBudget = $divisionMetrics->sum('approved_budget');
-
-    $globalStats = [
-        'total_submissions' => $globalTotalSubmissions,
-        'proposed_budget' => $globalProposedBudget,
-        'approved_budget' => $globalApprovedBudget,
-    ];
-
-    $divisionRows = $divisionMetrics->toArray();
+    $accountData = (clone $baseQuery)
+        ->select(
+            \DB::raw('COALESCE(NULLIF(TRIM(fp.account_title), ""), "Unassigned") as account_title'),
+            \DB::raw("SUM($totalExpression) as total"),
+            \DB::raw('SUM(COALESCE(fp.q1,0)) as q1'),
+            \DB::raw('SUM(COALESCE(fp.q2,0)) as q2'),
+            \DB::raw('SUM(COALESCE(fp.q3,0)) as q3'),
+            \DB::raw('SUM(COALESCE(fp.q4,0)) as q4')
+        )
+        ->groupBy('fp.account_title')
+        ->orderByDesc('total')
+        ->get();
 
     return view('dashfinance', compact(
         'settings',
-        'divisionRows',
-        'globalStats',
         'availableYears',
-        'selectedYear'
+        'selectedYear',
+        'selectedDepartment',
+        'selectedRC',
+        'selectedExpenseClass',
+        'selectedProgram',
+        'selectedAccountTitle',
+        'selectedStatus',
+        'departments',
+        'responsibilityCenters',
+        'expenseClasses',
+        'programs',
+        'accountTitles',
+        'statuses',
+        'globalStats',
+        'divisionRows',
+        'programData',
+        'accountData'
     ));
 }
 
