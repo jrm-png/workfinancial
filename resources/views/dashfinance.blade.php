@@ -319,7 +319,6 @@
     <div class="table-card">
         <div class="table-header">
             <h3><i class="fas fa-building"></i> Responsibility Center Summary</h3>
-            <p>Overall financial position grouped by responsibility center</p>
         </div>
         <div id="divisionGrid" class="ag-theme-alpine" style="height:380px; width:100%;"></div>
     </div>
@@ -327,7 +326,6 @@
     <div class="table-card">
         <div class="table-header">
             <h3><i class="fas fa-tasks"></i> Programs Summary</h3>
-            <p>Complete breakdown of financial allocations per program</p>
         </div>
         <div id="programGrid" class="ag-theme-alpine" style="height:450px; width:100%;"></div>
     </div>
@@ -335,7 +333,6 @@
     <div class="table-card">
         <div class="table-header">
             <h3><i class="fas fa-file-invoice-dollar"></i> Account Titles Summary</h3>
-            <p>Complete breakdown of financial allocations per account title</p>
         </div>
         <div id="accountGrid" class="ag-theme-alpine" style="height:500px; width:100%;"></div>
     </div>
