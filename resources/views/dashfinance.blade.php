@@ -181,7 +181,6 @@
 
     <div class="dashboard-header">
         <h1>Financial Management Dashboard</h1>
-        <p>Analyze proposed and approved budgets across departments, responsibility centers, programs, and account titles.</p>
     </div>
 
     <form method="GET" action="{{ request()->url() }}" class="filter-card">
