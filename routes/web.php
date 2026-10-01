@@ -67,6 +67,7 @@ Route::get('/change-password', [PasswordChangeController::class, 'showForm'])->n
 Route::post('/change-password', [PasswordChangeController::class, 'update'])->name('password.change.update');
 
 
+
 // --- ADMIN ONLY ROUTES ---
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     

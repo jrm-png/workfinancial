@@ -904,7 +904,6 @@ public function divisionProfile($r_center)
 
 public function financeDashboard(Request $request)
 {
-    // 1. Fetch distinct planning years directly from the 'year' column in workplan
     $availableYears = \App\Models\WorkPlan::whereNotNull('year')
         ->select('year')
         ->distinct()
@@ -912,33 +911,43 @@ public function financeDashboard(Request $request)
         ->pluck('year')
         ->toArray();
 
-    // Default to selected year or fallback to the latest planning year / current year
-    $selectedYear = $request->get('year', reset($availableYears) ?: date('Y'));
+    array_unshift($availableYears, 'all');
 
-    // 2. Fetch global system control settings
+    $selectedYear = $request->get('year', 'all');
+
     $settings = \DB::table('settings')->where('id', 1)->first();
 
-    // 3. Aggregate financial stats filtered by workplan.year
-    $divisionMetrics = \DB::table('financialplans as fp')
-        ->join('workplan as wp', 'fp.workplan_id', '=', 'wp.id')
-        ->where('wp.year', $selectedYear) 
+    $divisionMetricsQuery = \DB::table('financialplans as fp')
+        ->join('workplan as wp', 'fp.workplan_id', '=', 'wp.id');
+
+    if ($selectedYear !== 'all') {
+        $divisionMetricsQuery->where('wp.year', $selectedYear);
+    }
+
+    $divisionMetrics = $divisionMetricsQuery
         ->select(
             'fp.r_center',
             \DB::raw('COUNT(DISTINCT wp.id) as total_submissions'),
             \DB::raw('SUM(COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) as proposed_budget'),
             \DB::raw('SUM(CASE WHEN LOWER(wp.status) = "approved" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as approved_budget'),
-            
-            // Expense Class breakdowns
+
             \DB::raw('SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = "PS" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as ps_total'),
+
             \DB::raw('SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = "MOOE" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as mooe_total'),
+
             \DB::raw('SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = "CO" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as co_total'),
+
             \DB::raw('SUM(CASE WHEN fp.expense_class IS NULL OR TRIM(fp.expense_class) = "" THEN (COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)) ELSE 0 END) as null_total')
         )
         ->groupBy('fp.r_center')
         ->get();
 
-    // 4. Compute global stats for stats cards based on workplan.year
-    $globalTotalSubmissions = \App\Models\WorkPlan::where('year', $selectedYear)->count();
+    if ($selectedYear === 'all') {
+        $globalTotalSubmissions = \App\Models\WorkPlan::count();
+    } else {
+        $globalTotalSubmissions = \App\Models\WorkPlan::where('year', $selectedYear)->count();
+    }
+
     $globalProposedBudget = $divisionMetrics->sum('proposed_budget');
     $globalApprovedBudget = $divisionMetrics->sum('approved_budget');
 
@@ -950,7 +959,13 @@ public function financeDashboard(Request $request)
 
     $divisionRows = $divisionMetrics->toArray();
 
-    return view('dashfinance', compact('settings', 'divisionRows', 'globalStats', 'availableYears', 'selectedYear'));
+    return view('dashfinance', compact(
+        'settings',
+        'divisionRows',
+        'globalStats',
+        'availableYears',
+        'selectedYear'
+    ));
 }
 
 public function viewAttachmentWFP(Request $request)

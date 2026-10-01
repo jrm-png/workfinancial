@@ -165,17 +165,22 @@
 
             {{-- Year Selector --}}
             <form method="GET" action="{{ request()->url() }}">
-                <label for="year" style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-right: 8px;">Filter Year:</label>
+                <label for="year" style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-right: 8px;">
+                    Filter Year:
+                </label>
+
                 <select name="year" id="year" class="year-select" onchange="this.form.submit()">
-                    @if(!empty($availableYears))
-                        @foreach($availableYears as $year)
+                    @foreach($availableYears as $year)
+                        @if($year === 'all')
+                            <option value="all" {{ $selectedYear === 'all' ? 'selected' : '' }}>
+                                All Years
+                            </option>
+                        @else
                             <option value="{{ $year }}" {{ (string)$selectedYear === (string)$year ? 'selected' : '' }}>
                                 {{ $year }}
                             </option>
-                        @endforeach
-                    @else
-                        <option value="{{ date('Y') }}">{{ date('Y') }}</option>
-                    @endif
+                        @endif
+                    @endforeach
                 </select>
             </form>
         </div>
