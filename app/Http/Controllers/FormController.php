@@ -914,7 +914,6 @@ public function financeDashboard(Request $request)
     array_unshift($availableYears, 'all');
 
     $selectedYear = $request->get('year', 'all');
-    $selectedDepartment = $request->get('department', 'all');
     $selectedRC = $request->get('r_center', 'all');
     $selectedExpenseClass = $request->get('expense_class', 'all');
     $selectedProgram = $request->get('program', 'all');
@@ -930,23 +929,12 @@ public function financeDashboard(Request $request)
         $baseQuery->where('wp.year', $selectedYear);
     }
 
-    if ($selectedDepartment !== 'all') {
-        $baseQuery->where('wp.department', $selectedDepartment);
-    }
-
     if ($selectedRC !== 'all') {
         $baseQuery->where('fp.r_center', $selectedRC);
     }
 
     if ($selectedExpenseClass !== 'all') {
-        if ($selectedExpenseClass === 'Unassigned') {
-            $baseQuery->where(function($q) {
-                $q->whereNull('fp.expense_class')
-                  ->orWhereRaw("TRIM(fp.expense_class) = ''");
-            });
-        } else {
-            $baseQuery->where('fp.expense_class', $selectedExpenseClass);
-        }
+        $baseQuery->where('fp.expense_class', $selectedExpenseClass);
     }
 
     if ($selectedProgram !== 'all') {
@@ -961,7 +949,18 @@ public function financeDashboard(Request $request)
         $baseQuery->whereRaw('LOWER(TRIM(wp.status)) = ?', [strtolower($selectedStatus)]);
     }
 
-    $totalExpression = 'COALESCE(fp.q1,0) + COALESCE(fp.q2,0) + COALESCE(fp.q3,0) + COALESCE(fp.q4,0)';
+    $totalExpression = '
+        COALESCE(fp.q1, 0) +
+        COALESCE(fp.q2, 0) +
+        COALESCE(fp.q3, 0) +
+        COALESCE(fp.q4, 0)
+    ';
+
+    /*
+    |--------------------------------------------------------------------------
+    | FILTER OPTIONS
+    |--------------------------------------------------------------------------
+    */
 
     $filterQuery = \DB::table('financialplans as fp')
         ->join('workplan as wp', 'fp.workplan_id', '=', 'wp.id');
@@ -969,15 +968,6 @@ public function financeDashboard(Request $request)
     if ($selectedYear !== 'all') {
         $filterQuery->where('wp.year', $selectedYear);
     }
-
-    $departments = (clone $filterQuery)
-        ->whereNotNull('wp.department')
-        ->whereRaw("TRIM(wp.department) <> ''")
-        ->select('wp.department')
-        ->distinct()
-        ->orderBy('wp.department')
-        ->pluck('wp.department')
-        ->values();
 
     $responsibilityCenters = (clone $filterQuery)
         ->whereNotNull('fp.r_center')
@@ -989,10 +979,12 @@ public function financeDashboard(Request $request)
         ->values();
 
     $expenseClasses = (clone $filterQuery)
-        ->select(\DB::raw('COALESCE(NULLIF(TRIM(fp.expense_class), ""), "Unassigned") as expense_class'))
+        ->whereNotNull('fp.expense_class')
+        ->whereRaw("TRIM(fp.expense_class) <> ''")
+        ->select('fp.expense_class')
         ->distinct()
-        ->orderBy('expense_class')
-        ->pluck('expense_class')
+        ->orderBy('fp.expense_class')
+        ->pluck('fp.expense_class')
         ->values();
 
     $programs = (clone $filterQuery)
@@ -1022,6 +1014,12 @@ public function financeDashboard(Request $request)
         ->pluck('status')
         ->values();
 
+    /*
+    |--------------------------------------------------------------------------
+    | GLOBAL KPI
+    |--------------------------------------------------------------------------
+    */
+
     $globalStatsQuery = clone $baseQuery;
 
     $globalStats = [
@@ -1049,43 +1047,193 @@ public function financeDashboard(Request $request)
             ->sum(\DB::raw($totalExpression)),
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | RESPONSIBILITY CENTER SUMMARY
+    |--------------------------------------------------------------------------
+    */
+
     $divisionRows = (clone $baseQuery)
         ->select(
             'fp.r_center',
+
             \DB::raw('COUNT(DISTINCT wp.id) as total_submissions'),
-            \DB::raw("SUM($totalExpression) as proposed_budget"),
-            \DB::raw("SUM(CASE WHEN LOWER(TRIM(wp.status)) = 'approved' THEN $totalExpression ELSE 0 END) as approved_budget"),
-            \DB::raw("SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = 'PS' THEN $totalExpression ELSE 0 END) as ps_total"),
-            \DB::raw("SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = 'MOOE' THEN $totalExpression ELSE 0 END) as mooe_total"),
-            \DB::raw("SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = 'CO' THEN $totalExpression ELSE 0 END) as co_total")
+
+            \DB::raw("
+                SUM(
+                    COALESCE(fp.q1,0) +
+                    COALESCE(fp.q2,0) +
+                    COALESCE(fp.q3,0) +
+                    COALESCE(fp.q4,0)
+                ) as proposed_budget
+            "),
+
+            \DB::raw("
+                SUM(
+                    CASE
+                        WHEN LOWER(TRIM(wp.status)) = 'approved'
+                        THEN
+                            COALESCE(fp.q1,0) +
+                            COALESCE(fp.q2,0) +
+                            COALESCE(fp.q3,0) +
+                            COALESCE(fp.q4,0)
+                        ELSE 0
+                    END
+                ) as approved_budget
+            "),
+
+            \DB::raw("
+                SUM(
+                    CASE
+                        WHEN UPPER(TRIM(fp.expense_class)) = 'PS'
+                        THEN
+                            COALESCE(fp.q1,0) +
+                            COALESCE(fp.q2,0) +
+                            COALESCE(fp.q3,0) +
+                            COALESCE(fp.q4,0)
+                        ELSE 0
+                    END
+                ) as ps_total
+            "),
+
+            \DB::raw("
+                SUM(
+                    CASE
+                        WHEN UPPER(TRIM(fp.expense_class)) = 'MOOE'
+                        THEN
+                            COALESCE(fp.q1,0) +
+                            COALESCE(fp.q2,0) +
+                            COALESCE(fp.q3,0) +
+                            COALESCE(fp.q4,0)
+                        ELSE 0
+                    END
+                ) as mooe_total
+            "),
+
+            \DB::raw("
+                SUM(
+                    CASE
+                        WHEN UPPER(TRIM(fp.expense_class)) = 'CO'
+                        THEN
+                            COALESCE(fp.q1,0) +
+                            COALESCE(fp.q2,0) +
+                            COALESCE(fp.q3,0) +
+                            COALESCE(fp.q4,0)
+                        ELSE 0
+                    END
+                ) as co_total
+            ")
         )
         ->groupBy('fp.r_center')
         ->orderByDesc('proposed_budget')
         ->get();
 
-    $programData = (clone $baseQuery)
+    /*
+    |--------------------------------------------------------------------------
+    | EXPENSE CLASS CHART
+    |--------------------------------------------------------------------------
+    */
+
+    $expenseClassData = (clone $baseQuery)
         ->select(
-            \DB::raw('COALESCE(NULLIF(TRIM(fp.programs), ""), "Unassigned") as programs'),
-            \DB::raw("SUM($totalExpression) as total"),
-            \DB::raw('SUM(COALESCE(fp.q1,0)) as q1'),
-            \DB::raw('SUM(COALESCE(fp.q2,0)) as q2'),
-            \DB::raw('SUM(COALESCE(fp.q3,0)) as q3'),
-            \DB::raw('SUM(COALESCE(fp.q4,0)) as q4')
+            'fp.expense_class',
+            \DB::raw("SUM($totalExpression) as total")
         )
-        ->groupBy('fp.programs')
+        ->whereNotNull('fp.expense_class')
+        ->whereRaw("TRIM(fp.expense_class) <> ''")
+        ->groupBy('fp.expense_class')
         ->orderByDesc('total')
         ->get();
 
-    $accountData = (clone $baseQuery)
+    /*
+    |--------------------------------------------------------------------------
+    | QUARTERLY CHART
+    |--------------------------------------------------------------------------
+    */
+
+    $quarterlyData = (clone $baseQuery)
         ->select(
-            \DB::raw('COALESCE(NULLIF(TRIM(fp.account_title), ""), "Unassigned") as account_title'),
-            \DB::raw("SUM($totalExpression) as total"),
             \DB::raw('SUM(COALESCE(fp.q1,0)) as q1'),
             \DB::raw('SUM(COALESCE(fp.q2,0)) as q2'),
             \DB::raw('SUM(COALESCE(fp.q3,0)) as q3'),
             \DB::raw('SUM(COALESCE(fp.q4,0)) as q4')
         )
+        ->first();
+
+    /*
+    |--------------------------------------------------------------------------
+    | PROGRAM CHART
+    |--------------------------------------------------------------------------
+    */
+
+    $programData = (clone $baseQuery)
+        ->select(
+            'fp.programs',
+            \DB::raw("SUM($totalExpression) as total")
+        )
+        ->whereNotNull('fp.programs')
+        ->whereRaw("TRIM(fp.programs) <> ''")
+        ->groupBy('fp.programs')
+        ->orderByDesc('total')
+        ->limit(10)
+        ->get();
+
+    /*
+    |--------------------------------------------------------------------------
+    | ACCOUNT TITLE CHART
+    |--------------------------------------------------------------------------
+    */
+
+    $accountData = (clone $baseQuery)
+        ->select(
+            'fp.account_title',
+            \DB::raw("SUM($totalExpression) as total")
+        )
+        ->whereNotNull('fp.account_title')
+        ->whereRaw("TRIM(fp.account_title) <> ''")
         ->groupBy('fp.account_title')
+        ->orderByDesc('total')
+        ->limit(15)
+        ->get();
+
+    /*
+    |--------------------------------------------------------------------------
+    | PIVOT-LIKE FINANCIAL BREAKDOWN
+    |--------------------------------------------------------------------------
+    */
+
+    $financialRows = (clone $baseQuery)
+        ->select(
+            'fp.r_center',
+            'fp.programs',
+            'fp.expense_class',
+            'fp.account_title',
+
+            \DB::raw('COUNT(DISTINCT wp.id) as submissions'),
+
+            \DB::raw('SUM(COALESCE(fp.q1,0)) as q1'),
+            \DB::raw('SUM(COALESCE(fp.q2,0)) as q2'),
+            \DB::raw('SUM(COALESCE(fp.q3,0)) as q3'),
+            \DB::raw('SUM(COALESCE(fp.q4,0)) as q4'),
+
+            \DB::raw("
+                SUM(
+                    COALESCE(fp.q1,0) +
+                    COALESCE(fp.q2,0) +
+                    COALESCE(fp.q3,0) +
+                    COALESCE(fp.q4,0)
+                ) as total
+            ")
+        )
+        ->groupBy(
+            'fp.r_center',
+            'fp.programs',
+            'fp.expense_class',
+            'fp.account_title'
+        )
+        ->orderBy('fp.r_center')
+        ->orderBy('fp.programs')
+        ->orderBy('fp.expense_class')
         ->orderByDesc('total')
         ->get();
 
@@ -1093,22 +1241,26 @@ public function financeDashboard(Request $request)
         'settings',
         'availableYears',
         'selectedYear',
-        'selectedDepartment',
+
         'selectedRC',
         'selectedExpenseClass',
         'selectedProgram',
         'selectedAccountTitle',
         'selectedStatus',
-        'departments',
+
         'responsibilityCenters',
         'expenseClasses',
         'programs',
         'accountTitles',
         'statuses',
+
         'globalStats',
         'divisionRows',
+        'expenseClassData',
+        'quarterlyData',
         'programData',
-        'accountData'
+        'accountData',
+        'financialRows'
     ));
 }
 
