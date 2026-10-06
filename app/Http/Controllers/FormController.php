@@ -228,8 +228,11 @@ public function updateSettings(Request $request)
 
 public function exportView()
 {
-    // Get unique centers for the dropdown
-    $centers = DB::table('workplan')->distinct()->pluck('r_center');
+    $centers = DB::table('workplan')
+    ->distinct()
+    ->pluck('r_center')
+    ->sort()
+    ->values();
     return view('plans.export_center', compact('centers'));
 }
 
@@ -560,18 +563,15 @@ public function edit($id)
 {
     $user = auth()->user();
 
-    // Explicit Role Security Boundary Verification
     $allowedRoles = ['PREPARER', 'APPROVER', 'MONITOR', 'admin'];
     if (!in_array($user->role, $allowedRoles)) {
         abort(403, 'Unauthorized Access: Your profile tier cannot edit performance plans.');
     }
 
-    // Retrieve master entry form with corresponding relations loaded
     $form = \App\Models\Form::findOrFail($id);
     $workPlans = $form->workPlans; 
     $financials = \App\Models\FinancialPlan::whereIn('workplan_id', $workPlans->pluck('id'))->get();
 
-    // 🌟 FIXED LOGIC: Naka-group sa 'type' column mula sa iyong dropdown_settings table
     $dropdownOptions = \App\Models\Dropdown::all()->groupBy('type'); 
 
     
@@ -658,7 +658,6 @@ public function update(Request $request, $id)
                     ],
                     [
                         'form_id'               => $form->id,
-                        'user_id'               => auth()->id(),
                         'sort_order'            => $index,
                         'strategic_perspective' => $common['strategic_perspective'] ?? null,
                         'major_program'         => $common['major_program'] ?? null,
@@ -674,8 +673,6 @@ public function update(Request $request, $id)
                         'status'     => $status,
                         'year'       => $request->year,
                         'remarks'               => $wpData['remarks'] ?? null,
-                        'r_center'   => auth()->user()->responsibility_center,
-                        'department' => auth()->user()->operating_department,
                         'attachments' => !empty($currentFilePaths) ? json_encode(array_values($currentFilePaths)) : null,
                     ]
                 );
@@ -694,7 +691,6 @@ public function update(Request $request, $id)
                             ],
                             [
                                 'form_id'       => $form->id,
-                                'user_id'       => auth()->id(),
                                 'workplan_id'   => $workplan->id, 
                                 'funds'         => $fp['funds'] ?? null,
                                 'programs'      => $common['major_program'] ?? null,
@@ -708,8 +704,6 @@ public function update(Request $request, $id)
                                 'q3' => str_replace(',', '', $fp['q3'] ?? 0),
                                 'q4' => str_replace(',', '', $fp['q4'] ?? 0),
                                 'year'       => $request->year,
-                                'r_center'   => auth()->user()->responsibility_center,
-                                'department' => auth()->user()->operating_department,
                             ]
                         );
 
@@ -781,7 +775,6 @@ public function save(Request $request, $id)
                         ['id' => $wpData['id'] ?? null],
                         [
                             'form_id'               => $form->id,
-                            'user_id'               => auth()->id(),
                             'sort_order'            => $index,
                             'strategic_perspective' => $common['strategic_perspective'] ?? null,
                             'major_program'         => $common['major_program'] ?? null,
@@ -797,8 +790,6 @@ public function save(Request $request, $id)
                             'status'                => $status,
                             'year'                  => $request->year,
                             'remarks'               => $wpData['remarks'] ?? null,
-                            'r_center'              => auth()->user()->responsibility_center ?? null,
-                            'department'            => auth()->user()->operating_department ?? null,
                             'attachments'           => !empty($currentFilePaths) ? json_encode(array_values($currentFilePaths)) : null,
                         ]
                     );
@@ -816,7 +807,6 @@ public function save(Request $request, $id)
                                 ['id' => $fp['id'] ?? null],
                                 [
                                     'form_id'       => $form->id,
-                                    'user_id'       => auth()->id(),
                                     'workplan_id'   => $workplan->id, 
                                     'funds'         => $fp['funds'] ?? null,
                                     'programs'      => $common['major_program'] ?? null,
@@ -830,8 +820,6 @@ public function save(Request $request, $id)
                                     'q3'            => str_replace(',', '', $fp['q3'] ?? 0),
                                     'q4'            => str_replace(',', '', $fp['q4'] ?? 0),
                                     'year'          => $request->year,
-                                    'r_center'      => auth()->user()->responsibility_center ?? null,
-                                    'department'    => auth()->user()->operating_department ?? null,
                                 ]
                             );
 
@@ -1039,7 +1027,7 @@ public function divisionProfile($r_center)
                 DB::raw("SUM(CASE WHEN UPPER(TRIM(fp.expense_class)) = 'CO' THEN $totalExpression ELSE 0 END) as co_total")
             )
             ->groupBy('fp.r_center')
-            ->orderByDesc('proposed_budget')
+            ->orderBy('fp.r_center')
             ->get();
 
         $programRows = (clone $baseQuery)
@@ -1053,7 +1041,7 @@ public function divisionProfile($r_center)
                 DB::raw("SUM($totalExpression) as total")
             )
             ->groupBy('program')
-            ->orderByDesc('total')
+            ->orderBy('program')
             ->get();
 
         $accountRows = (clone $baseQuery)
@@ -1068,7 +1056,7 @@ public function divisionProfile($r_center)
                 DB::raw("SUM($totalExpression) as total")
             )
             ->groupBy('account_title', 'expense_class')
-            ->orderByDesc('total')
+            ->orderBy('account_title')
             ->get();
 
         return view('dashfinance', compact(

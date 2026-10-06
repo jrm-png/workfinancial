@@ -192,7 +192,7 @@
                     @endphp
                 @if($submissionClosed)
                         <a style="opacity:0.5; cursor:not-allowed;" class="nav-link {{ request()->routeIs('plans.create') ? 'active' : '' }}">
-                            <i class="fas fa-edit"></i> Submissions Closed
+                            <i class="fas fa-edit"></i> <span class="nav-text">Submissions Closed</span>
                         </a>
                     @else
                 <a href="{{ route('plans.create') }}" class="nav-link {{ request()->routeIs('plans.create') ? 'active' : '' }}">
