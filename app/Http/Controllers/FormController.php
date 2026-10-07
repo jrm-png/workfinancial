@@ -1109,7 +1109,7 @@ public function copySearch()
     $currentUserRCenter = auth()->user()->responsibility_center; 
 
     $forms = Form::with(['workPlans.financialPlans'])
-        ->where('created_by', $currentUserRCenter) // Restricted lang sa kapareho niyang r_center
+        ->where('created_by', $currentUserRCenter)
         ->where('status', '!=', 'draft')
         ->latest()
         ->get();
@@ -1130,11 +1130,74 @@ public function copyLoad(Request $request, $id)
         ->get()
         ->groupBy('type');
 
-    $targetYear = $request->input('new_year', $form->year); // Target dynamic new year
+    $targetYear = $request->input('new_year', $form->year); 
 
     $isCopy = true;
 
     return view('plans.create', compact('form', 'dropdownOptions', 'isCopy', 'targetYear'));
+}
+
+public function batchCopy(Request $request)
+{
+    $request->validate([
+        'form_ids' => ['required', 'array', 'min:1'],
+        'form_ids.*' => ['integer'],
+        'new_year' => ['required', 'integer', 'digits:4'],
+    ]);
+
+    $currentUserRCenter = auth()->user()->responsibility_center;
+    $newYear = $request->input('new_year');
+
+    $forms = Form::with(['workPlans.financialPlans'])
+        ->whereIn('id', $request->input('form_ids'))
+        ->where('created_by', $currentUserRCenter)
+        ->where('status', '!=', 'draft')
+        ->get();
+
+    if ($forms->count() !== count($request->input('form_ids'))) {
+        return back()->with('error', 'One or more selected plans are invalid or unavailable.');
+    }
+
+    try {
+        DB::transaction(function () use ($forms, $newYear) {
+
+            foreach ($forms as $form) {
+
+                $newForm = $form->replicate();
+
+                $newForm->form_ref = 'REF-' . strtoupper(Str::random(8));
+                $newForm->year = $newYear;
+
+                $newForm->save();
+
+                foreach ($form->workPlans as $workPlan) {
+
+                    $newWorkPlan = $workPlan->replicate();
+
+                    $newWorkPlan->form_id = $newForm->id;
+                    $newWorkPlan->year = $newYear;
+
+                    $newWorkPlan->save();
+
+                    foreach ($workPlan->financialPlans as $financialPlan) {
+
+                        $newFinancialPlan = $financialPlan->replicate();
+
+                        $newFinancialPlan->form_id = $newForm->id;
+                        $newFinancialPlan->workplan_id = $newWorkPlan->id;
+                        $newFinancialPlan->year = $newYear;
+
+                        $newFinancialPlan->save();
+                    }
+                }
+            }
+        });
+
+    } catch (\Exception $e) {
+        return back()->with('error', 'Batch copy failed: ' . $e->getMessage());
+    }
+
+    return redirect()->route('plans.copy.search')->with('success', $forms->count() . ' plan copied successfully to year ' . $newYear . '.');
 }
 }
 
