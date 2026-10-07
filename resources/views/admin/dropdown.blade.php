@@ -119,7 +119,6 @@
 </div>
 
     <script>
-        // --- TAB SWITCHER LOGIC ---
         function switchTab(typeKey) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -134,7 +133,6 @@
             filterDropdownItems();
         }
 
-        // --- REAL-TIME JAVASCRIPT FILTER/SEARCH LOGIC ---
         function filterDropdownItems() {
             const query = document.getElementById('searchBar').value.toLowerCase().trim();
             const activeTabContent = document.querySelector('.tab-content.active');

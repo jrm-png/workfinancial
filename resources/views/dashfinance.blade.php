@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function () {
         columnDefs: divisionColumnDefs,
         defaultColDef: { sortable: true, filter: true, resizable: true },
         pagination: true,
-        paginationPageSize: 10
+        paginationPageSize: 20
     });
 
     const programColumnDefs = [
@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function () {
         columnDefs: programColumnDefs,
         defaultColDef: { sortable: true, filter: true, resizable: true },
         pagination: true,
-        paginationPageSize: 15
+        paginationPageSize: 20
     });
 
     const accountColumnDefs = [
@@ -402,7 +402,7 @@ document.addEventListener('DOMContentLoaded', function () {
         columnDefs: accountColumnDefs,
         defaultColDef: { sortable: true, filter: true, resizable: true },
         pagination: true,
-        paginationPageSize: 15
+        paginationPageSize: 100
     });
 });
 </script>

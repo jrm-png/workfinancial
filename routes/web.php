@@ -7,7 +7,7 @@ use App\Http\Controllers\WorkPlanController;
 use App\Http\Controllers\FinancialPlanController;
 use App\Http\Controllers\FormController;
 use App\Http\Controllers\Auth\PasswordChangeController;
-use App\Http\Controllers\Admin\DropdownSettingController;
+use App\Http\Controllers\Admin\DropdownSettingsController;
 use Spatie\Browsershot\Browsershot;
 use App\Http\Controllers\MassReviewController;
 
@@ -85,11 +85,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('/settings', [FormController::class, 'updateSettings'])->name('settings.update');
 
     Route::prefix('admin')->name('admin.')->group(function () {
-    // Main View page for dropdown management
-    Route::get('/dropdowns', [App\Http\Controllers\Admin\DropdownSettingsController::class, 'index'])->name('dropdowns.index');
+    Route::get('/dropdowns', [DropdownSettingsController::class, 'index'])->name('dropdowns.index');
     
-    Route::post('/dropdowns', [App\Http\Controllers\Admin\DropdownSettingsController::class, 'store'])->name('dropdowns.store');
-    Route::delete('/dropdowns/{id}', [App\Http\Controllers\Admin\DropdownSettingsController::class, 'destroy'])->name('dropdowns.destroy');
+    Route::post('/dropdowns', [DropdownSettingsController::class, 'store'])->name('dropdowns.store');
+    Route::delete('/dropdowns/{id}', [DropdownSettingsController::class, 'destroy'])->name('dropdowns.destroy');
 });
 
     Route::post('/users/{user}/toggle-override', [FormController::class, 'toggleOverride'])->name('admin.users.toggle_override');
