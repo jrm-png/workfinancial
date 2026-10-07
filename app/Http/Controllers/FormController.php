@@ -1111,6 +1111,7 @@ public function copySearch()
     $forms = Form::with(['workPlans.financialPlans'])
         ->where('created_by', $currentUserRCenter)
         ->where('status', '!=', 'draft')
+        ->whereHas('workPlans')
         ->latest()
         ->get();
 
