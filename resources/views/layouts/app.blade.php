@@ -175,7 +175,7 @@
               
 
                 <div class="sidebar-section">Planning</div>
-                    @php
+                    <!-- @php
                         $settings = $settings ?? null;
                         $now = now();
                         $submissionClosed = true; 
@@ -194,12 +194,13 @@
                         <a style="opacity:0.5; cursor:not-allowed;" class="nav-link {{ request()->routeIs('plans.create') ? 'active' : '' }}">
                             <i class="fas fa-edit"></i> <span class="nav-text">Submissions Closed</span>
                         </a>
-                    @else
+                @else -->
+                
+                <!-- @endif -->
                 <a href="{{ route('plans.create') }}" class="nav-link {{ request()->routeIs('plans.create') ? 'active' : '' }}">
                     <i class="fas fa-edit"></i>
                     <span class="nav-text">Prepare Work Plan</span>
                 </a>
-                @endif
 
             <div class="sidebar-section">Reports</div>
             <a href="{{ route('workplan.list') }}" class="nav-link {{ request()->routeIs('workplan.list') ? 'active' : '' }}">
