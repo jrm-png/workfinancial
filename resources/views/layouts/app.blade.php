@@ -155,7 +155,11 @@
             </button>
             <div class="user-pill">
                 <i class="fas fa-user-circle" style="margin-right: 8px; color:var(--accentname)" ></i>
-                <span style="color:var(--accentname)">{{ Auth::user()->name }} — </span> <span style="color:var(--accent)">{{ Auth::user()->responsibility_center }} ({{ Auth::user()->role }})</span>
+                @if(auth()->user()->role === 'DEPARTMENT MANAGER')
+                    <span style="color:var(--accentname)">{{ Auth::user()->name }} — </span> <span style="color:var(--accent)">{{ Auth::user()->operating_department }} ({{ Auth::user()->role }})</span>
+                @else
+                    <span style="color:var(--accentname)">{{ Auth::user()->name }} — </span> <span style="color:var(--accent)">{{ Auth::user()->responsibility_center }} ({{ Auth::user()->role }})</span>
+                @endif
             </div>
         </div>
     </header>

@@ -258,7 +258,8 @@
                 'approved',
                 'draft',
                 'pending',
-                'for review',
+                'for reviewal',
+                'for revision',
                 'for submission to finance'
             ]);
         });
