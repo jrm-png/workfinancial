@@ -706,6 +706,9 @@ public function update(Request $request, $id)
                                 'q3' => str_replace(',', '', $fp['q3'] ?? 0),
                                 'q4' => str_replace(',', '', $fp['q4'] ?? 0),
                                 'year'       => $request->year,
+                                
+                                'r_center'   => auth()->user()->responsibility_center,
+                                'department' => auth()->user()->operating_department,
                             ]
                         );
 
@@ -824,6 +827,9 @@ public function save(Request $request, $id)
                                     'q3'            => str_replace(',', '', $fp['q3'] ?? 0),
                                     'q4'            => str_replace(',', '', $fp['q4'] ?? 0),
                                     'year'          => $request->year,
+                                    
+                                'r_center'   => auth()->user()->responsibility_center,
+                                'department' => auth()->user()->operating_department,
                                 ]
                             );
 
