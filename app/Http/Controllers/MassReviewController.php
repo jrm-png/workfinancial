@@ -189,7 +189,14 @@ class MassReviewController extends Controller
     public function forReviewal(Request $request)
     {
         abort_unless(
-            strtoupper(auth()->user()->role) === 'REVIEWER',
+            in_array(strtoupper(auth()->user()->role), [
+                'ADMIN',
+                'MONITOR',
+                'FINANCE',
+                'REVIEWER',
+                'APPROVER',
+                'DEPARTMENT MANAGER',
+            ]),
             403
         );
 

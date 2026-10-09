@@ -658,6 +658,7 @@ public function update(Request $request, $id)
                     ],
                     [
                         'form_id'               => $form->id,
+                        'user_id'               => auth()->id(),
                         'sort_order'            => $index,
                         'strategic_perspective' => $common['strategic_perspective'] ?? null,
                         'major_program'         => $common['major_program'] ?? null,
@@ -691,6 +692,7 @@ public function update(Request $request, $id)
                             ],
                             [
                                 'form_id'       => $form->id,
+                                'user_id'       => auth()->id(),
                                 'workplan_id'   => $workplan->id, 
                                 'funds'         => $fp['funds'] ?? null,
                                 'programs'      => $common['major_program'] ?? null,
@@ -775,6 +777,7 @@ public function save(Request $request, $id)
                         ['id' => $wpData['id'] ?? null],
                         [
                             'form_id'               => $form->id,
+                            'user_id'               => auth()->id(),
                             'sort_order'            => $index,
                             'strategic_perspective' => $common['strategic_perspective'] ?? null,
                             'major_program'         => $common['major_program'] ?? null,
@@ -807,6 +810,7 @@ public function save(Request $request, $id)
                                 ['id' => $fp['id'] ?? null],
                                 [
                                     'form_id'       => $form->id,
+                                    'user_id'       => auth()->id(),
                                     'workplan_id'   => $workplan->id, 
                                     'funds'         => $fp['funds'] ?? null,
                                     'programs'      => $common['major_program'] ?? null,

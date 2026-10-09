@@ -61,10 +61,8 @@ class UserController extends Controller
         return back()->with('success', 'User account updated successfully.');
     }
 
-    // ⭐ DELETE METHOD
     public function destroy(User $user)
     {
-        // Proteksyon para hindi mabora ng Admin ang sarili niyang account accidentally
         if (auth()->id() === $user->id) {
             return back()->with('error', 'You cannot delete your own admin account.');
         }
