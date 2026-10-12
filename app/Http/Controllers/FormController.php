@@ -833,7 +833,7 @@ public function save(Request $request, $id)
                                     'year'          => $request->year,
                                     
                                 'r_center'   => auth()->user()->responsibility_center,
-                                'department' => auth()->user()->operating_department,\
+                                'department' => auth()->user()->operating_department,
                                 ]
                             );
 
