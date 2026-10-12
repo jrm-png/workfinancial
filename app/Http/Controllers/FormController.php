@@ -674,6 +674,8 @@ public function update(Request $request, $id)
                         'status'     => $status,
                         'year'       => $request->year,
                         'remarks'               => $wpData['remarks'] ?? null,
+                        'r_center'   => auth()->user()->responsibility_center,
+                        'department' => auth()->user()->operating_department,
                         'attachments' => !empty($currentFilePaths) ? json_encode(array_values($currentFilePaths)) : null,
                     ]
                 );
@@ -796,6 +798,8 @@ public function save(Request $request, $id)
                             'status'                => $status,
                             'year'                  => $request->year,
                             'remarks'               => $wpData['remarks'] ?? null,
+                            'r_center'   => auth()->user()->responsibility_center,
+                            'department' => auth()->user()->operating_department,
                             'attachments'           => !empty($currentFilePaths) ? json_encode(array_values($currentFilePaths)) : null,
                         ]
                     );
@@ -829,7 +833,7 @@ public function save(Request $request, $id)
                                     'year'          => $request->year,
                                     
                                 'r_center'   => auth()->user()->responsibility_center,
-                                'department' => auth()->user()->operating_department,
+                                'department' => auth()->user()->operating_department,\
                                 ]
                             );
 
