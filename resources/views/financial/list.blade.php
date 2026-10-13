@@ -187,6 +187,12 @@
             valueFormatter: p => p.value ? new Date(p.value).toLocaleDateString() : '-' 
         },
         { 
+            headerName: 'Updated', 
+            field: 'updated_at', 
+            width: 110,
+            valueFormatter: p => p.value ? new Date(p.value).toLocaleDateString() : '-' 
+        },
+        { 
             headerName: 'Actions', 
             width: 120,
             cellRenderer: params => {
