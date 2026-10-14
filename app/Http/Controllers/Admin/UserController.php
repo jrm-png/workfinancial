@@ -39,7 +39,6 @@ class UserController extends Controller
         return back()->with('success', "User created. Temporary password: $password");
     }
 
-    // ⭐ EDIT / UPDATE METHOD
     public function update(Request $request, User $user)
     {
         $request->validate([

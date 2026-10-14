@@ -392,16 +392,16 @@ public function index()
     if (in_array(strtolower($user->role), ['admin', 'monitor', 'finance'])) {
         $workPlans = \App\Models\WorkPlan::all();
     } elseif (strtoupper($user->role) === 'DEPARTMENT MANAGER' && strtoupper($user->operating_department) === 'OGM') {
-        $targetRCs = ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD', 'BOD'];
+        $targetRCs = ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD', 'BOD', 'OGM'];
         $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
     } elseif (strtoupper($user->role) === 'DEPARTMENT MANAGER' && strtoupper($user->operating_department) === 'ERD') {
-        $targetRCs = ['CPD', 'ED', 'SMD', 'ECO'];
+        $targetRCs = ['CPD', 'ED', 'SMD', 'ECO', 'ERD'];
         $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
     } elseif (strtoupper($user->role) === 'DEPARTMENT MANAGER' && strtoupper($user->operating_department) === 'RMDD') {
-        $targetRCs = ['PDMED', 'CDD', 'ELRD'];
+        $targetRCs = ['PDMED', 'CDD', 'ELRD', 'RMDD'];
         $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
     } elseif (strtoupper($user->role) === 'DEPARTMENT MANAGER' && strtoupper($user->operating_department) === 'MSD') {
-        $targetRCs = ['ADMIN', 'FINANCE'];
+        $targetRCs = ['ADMIN', 'FINANCE', 'MSD'];
         $workPlans = \App\Models\WorkPlan::whereIn('r_center', $targetRCs)->get();
     } else {
         $workPlans = \App\Models\WorkPlan::where('r_center', $user->responsibility_center)->get(); 

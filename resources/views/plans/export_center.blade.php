@@ -40,13 +40,13 @@
         $managedCenters = [];
 
         if ($deptGroup === 'OGM') {
-            $managedCenters = ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD', 'BOD'];
+            $managedCenters = ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD', 'BOD', 'OGM'];
         } elseif ($deptGroup === 'ERD') {
-            $managedCenters = ['CPD', 'ED', 'SMD', 'ECO'];
+            $managedCenters = ['CPD', 'ED', 'SMD', 'ECO', 'ERD'];
         } elseif ($deptGroup === 'RMDD') {
-            $managedCenters = ['PDMED', 'CDD', 'ELRD'];
+            $managedCenters = ['PDMED', 'CDD', 'ELRD', 'RMDD'   ];
         } elseif ($deptGroup === 'MSD') {
-            $managedCenters = ['ADMIN', 'FINANCE'];
+            $managedCenters = ['ADMIN', 'FINANCE', 'MSD'];
         }
         
         // Pinagsasama ang mga centers gamit ang comma para sa value ng filter

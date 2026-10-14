@@ -11,7 +11,7 @@
 
         body {
             font-family: 'Helvetica', sans-serif;
-            font-size: 7.5px;
+            font-size: 10px;
             color: #1e293b;
             margin: 0;
             line-height: 1.3;

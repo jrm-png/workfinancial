@@ -304,10 +304,10 @@
 
     <script>
         const rcData = {
-            'OGM': ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD','BOD'],
-            'ERD': ['CPD', 'ED', 'SMD', 'ECO'],
-            'RMDD': ['PDMED', 'CDD', 'ELRD'],
-            'MSD': ['ADMIN', 'FINANCE']
+            'OGM': ['OGM', 'OAGM', 'SMO', 'PIU', 'IAD', 'LAD', 'PPIMD','BOD', 'OGM'],
+            'ERD': ['CPD', 'ED', 'SMD', 'ECO', 'ERD',],
+            'RMDD': ['PDMED', 'CDD', 'ELRD', 'RMDD'],
+            'MSD': ['ADMIN', 'FINANCE', 'MSD']
         };
 
         function updateResponsibilityCenters(deptSelectId, rcSelectId, selectedRcValue = '') {
