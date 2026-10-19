@@ -589,44 +589,88 @@ public function getDrafts()
     return view('plans.partials.drafts_list', compact('drafts'));
 }
 
+
 public function update(Request $request, $id)
 {
     $form = Form::findOrFail($id);
-    $status = $request->input('status', 'revised');
+    $user = auth()->user();
 
+    $role = strtoupper(trim((string) $user->role));
+    $isProtectedRole = in_array($role, ['ADMIN', 'FINANCE', 'MONITOR'], true);
+
+    $status = $request->input('status', 'revised');
     $apiEndpoint = 'http://54.255.221.225/ReceiverWFP.php';
 
-    DB::transaction(function () use ($request, $form, $status,$apiEndpoint) {
-        
-        $form->update([
-            'year'   => $request->year,
-            'status' => $status,
-        ]);
+    try {
+        DB::transaction(function () use (
+            $request,
+            $form,
+            $user,
+            $isProtectedRole,
+            $status,
+            $apiEndpoint
+        ) {
+            $form->update([
+                'year' => $request->year,
+                'status' => $status,
+            ]);
 
-        $common = $request->input('common_wp');
-        
-        $keptWorkplanIds = [];
-        $keptFinancialIds = [];
+            $common = $request->input('common_wp', []);
 
-        if ($request->has('workplans')) {
-            foreach ($request->workplans as $index => $wpData) {
-                
-                if ($status !== 'draft' && empty($wpData['strategic_initiatives'])) {
+            $keptWorkplanIds = [];
+            $keptFinancialIds = [];
+
+            $latestWorkplan = WorkPlan::where('form_id', $form->id)
+                ->orderByDesc('id')
+                ->first();
+
+            $latestFinancial = FinancialPlan::where('form_id', $form->id)
+                ->orderByDesc('id')
+                ->first();
+
+            $defaultUserId = $latestWorkplan->user_id
+                ?? $latestFinancial?->user_id
+                ?? $form->created_by
+                ?? $user->id;
+
+            $defaultRCenter = $latestWorkplan->r_center
+                ?? $latestFinancial?->r_center
+                ?? $user->responsibility_center;
+
+            $defaultDepartment = $latestWorkplan->department
+                ?? $latestFinancial?->department
+                ?? $user->operating_department;
+
+            foreach ($request->input('workplans', []) as $index => $wpData) {
+                if (
+                    $status !== 'draft'
+                    && empty($wpData['strategic_initiatives'])
+                ) {
                     continue;
                 }
-                
-                $currentFilePaths = [];
-                if (isset($wpData['existing_attachments'])) {
-                    $currentFilePaths = $wpData['existing_attachments']; 
+
+                $workplan = null;
+
+                if (!empty($wpData['id'])) {
+                    $workplan = WorkPlan::where('form_id', $form->id)
+                        ->where('id', $wpData['id'])
+                        ->first();
                 }
 
-                $apiEndpoint = 'http://54.255.221.225/ReceiverWFP.php';
+                $currentFilePaths = $wpData['existing_attachments'] ?? [];
+
+                if (!is_array($currentFilePaths)) {
+                    $currentFilePaths = [];
+                }
 
                 if ($request->hasFile("workplans.{$index}.attachments")) {
-
-                    foreach ($request->file("workplans.{$index}.attachments") as $file) {
-
-                        $fileName = time() . '_' . $file->getClientOriginalName();
+                    foreach (
+                        $request->file("workplans.{$index}.attachments")
+                        as $file
+                    ) {
+                        $fileName = time() . '_' .
+                            uniqid() . '_' .
+                            $file->getClientOriginalName();
 
                         try {
                             $response = Http::attach(
@@ -635,129 +679,250 @@ public function update(Request $request, $id)
                                 $fileName
                             )->post($apiEndpoint);
 
-                            if ($response->successful()) {
-                                // Same path format used by store()
-                                $currentFilePaths[] = 'uploads/' . $fileName;
-                            } else {
+                            if (!$response->successful()) {
                                 throw new \Exception(
-                                    "Failed to upload file: {$file->getClientOriginalName()}"
+                                    'Failed to upload file: ' .
+                                    $file->getClientOriginalName()
                                 );
                             }
 
+                            $currentFilePaths[] = 'uploads/' . $fileName;
                         } catch (\Exception $e) {
                             throw new \Exception(
-                                "ReceiverWFP Error: " . $e->getMessage()
+                                'ReceiverWFP Error: ' . $e->getMessage()
                             );
                         }
                     }
                 }
 
-                $workplan = WorkPlan::updateOrCreate(
-                    [
-                        'id' => $wpData['id'] ?? null, 
-                    ],
-                    [
-                        'form_id'               => $form->id,
-                        'user_id'               => auth()->id(),
-                        'sort_order'            => $index,
-                        'strategic_perspective' => $common['strategic_perspective'] ?? null,
-                        'major_program'         => $common['major_program'] ?? null,
-                        'strategic_objective'   => $common['strategic_objective'] ?? null,
-                        'strategic_measure'     => $common['strategic_measure'] ?? null,
-                        'strategic_initiatives' => $wpData['strategic_initiatives'] ?? null,
-                        'success_indicator'     => $wpData['success_indicator'] ?? null,
-                        'unit_type'             => $wpData['unit_type'] ?? 'number',
-                        'q1' => str_replace(',', '', $wpData['q1'] ?? 0),
-                        'q2' => str_replace(',', '', $wpData['q2'] ?? 0),
-                        'q3' => str_replace(',', '', $wpData['q3'] ?? 0),
-                        'q4' => str_replace(',', '', $wpData['q4'] ?? 0),
-                        'status'     => $status,
-                        'year'       => $request->year,
-                        'remarks'               => $wpData['remarks'] ?? null,
-                        'r_center'   => auth()->user()->responsibility_center,
-                        'department' => auth()->user()->operating_department,
-                        'attachments' => !empty($currentFilePaths) ? json_encode(array_values($currentFilePaths)) : null,
-                    ]
-                );
+                $workplanData = [
+                    'form_id' => $form->id,
+                    'sort_order' => $index,
+                    'strategic_perspective' =>
+                        $common['strategic_perspective'] ?? null,
+                    'major_program' => $common['major_program'] ?? null,
+                    'strategic_objective' =>
+                        $common['strategic_objective'] ?? null,
+                    'strategic_measure' =>
+                        $common['strategic_measure'] ?? null,
+                    'strategic_initiatives' =>
+                        $wpData['strategic_initiatives'] ?? null,
+                    'success_indicator' =>
+                        $wpData['success_indicator'] ?? null,
+                    'unit_type' => $wpData['unit_type'] ?? 'number',
+                    'q1' => str_replace(',', '', $wpData['q1'] ?? 0),
+                    'q2' => str_replace(',', '', $wpData['q2'] ?? 0),
+                    'q3' => str_replace(',', '', $wpData['q3'] ?? 0),
+                    'q4' => str_replace(',', '', $wpData['q4'] ?? 0),
+                    'status' => $status,
+                    'year' => $request->year,
+                    'remarks' => $wpData['remarks'] ?? null,
+                    'attachments' => !empty($currentFilePaths)
+                        ? json_encode(array_values($currentFilePaths))
+                        : null,
+                ];
+
+                if ($isProtectedRole) {
+                    if ($workplan) {
+                        $workplanData['user_id'] = $workplan->user_id;
+                        $workplanData['r_center'] = $workplan->r_center;
+                        $workplanData['department'] = $workplan->department;
+                    } else {
+                        $workplanData['user_id'] = $defaultUserId;
+                        $workplanData['r_center'] = $defaultRCenter;
+                        $workplanData['department'] = $defaultDepartment;
+                    }
+                } else {
+                    $workplanData['user_id'] = $user->id;
+                    $workplanData['r_center'] =
+                        $user->responsibility_center;
+                    $workplanData['department'] =
+                        $user->operating_department;
+                }
+
+                if ($workplan) {
+                    $workplan->update($workplanData);
+                } else {
+                    $workplan = WorkPlan::create($workplanData);
+                }
 
                 $keptWorkplanIds[] = $workplan->id;
 
-                if (isset($wpData['financials'])) {
-                    foreach ($wpData['financials'] as $fp) {
-                        if (empty($fp['account_title']) && empty($fp['funds'])) {
-                            continue;
-                        }
-
-                        $financial = FinancialPlan::updateOrCreate(
-                            [
-                                'id' => $fp['id'] ?? null,
-                            ],
-                            [
-                                'form_id'       => $form->id,
-                                'user_id'       => auth()->id(),
-                                'workplan_id'   => $workplan->id, 
-                                'funds'         => $fp['funds'] ?? null,
-                                'programs'      => $common['major_program'] ?? null,
-                                'expense_class' => $fp['expense_class'] ?? null,
-                                'projects'      => $wpData['strategic_initiatives'] ?? null,
-                                'account_title' => $fp['account_title'] ?? null,
-                                'activity'      => $fp['activity'] ?? null,
-                                'description'   => $fp['description'] ?? null,
-                                'q1' => str_replace(',', '', $fp['q1'] ?? 0),
-                                'q2' => str_replace(',', '', $fp['q2'] ?? 0),
-                                'q3' => str_replace(',', '', $fp['q3'] ?? 0),
-                                'q4' => str_replace(',', '', $fp['q4'] ?? 0),
-                                'year'       => $request->year,
-                                
-                                'r_center'   => auth()->user()->responsibility_center,
-                                'department' => auth()->user()->operating_department,
-                            ]
-                        );
-
-                        $keptFinancialIds[] = $financial->id;
+                foreach ($wpData['financials'] ?? [] as $fp) {
+                    if (
+                        empty($fp['account_title'])
+                        && empty($fp['funds'])
+                    ) {
+                        continue;
                     }
+
+                    $financial = null;
+
+                    if (!empty($fp['id'])) {
+                        $financial = FinancialPlan::where(
+                            'form_id',
+                            $form->id
+                        )
+                            ->where('id', $fp['id'])
+                            ->first();
+                    }
+
+                    $financialData = [
+                        'form_id' => $form->id,
+                        'workplan_id' => $workplan->id,
+                        'funds' => $fp['funds'] ?? null,
+                        'programs' => $common['major_program'] ?? null,
+                        'expense_class' => $fp['expense_class'] ?? null,
+                        'projects' =>
+                            $wpData['strategic_initiatives'] ?? null,
+                        'account_title' => $fp['account_title'] ?? null,
+                        'activity' => $fp['activity'] ?? null,
+                        'description' => $fp['description'] ?? null,
+                        'q1' => str_replace(',', '', $fp['q1'] ?? 0),
+                        'q2' => str_replace(',', '', $fp['q2'] ?? 0),
+                        'q3' => str_replace(',', '', $fp['q3'] ?? 0),
+                        'q4' => str_replace(',', '', $fp['q4'] ?? 0),
+                        'year' => $request->year,
+                    ];
+
+                    if ($isProtectedRole) {
+                        if ($financial) {
+                            $financialData['user_id'] = $financial->user_id;
+                            $financialData['r_center'] = $financial->r_center;
+                            $financialData['department'] =
+                                $financial->department;
+                        } else {
+                            $financialData['user_id'] =
+                                $workplan->user_id ?? $defaultUserId;
+
+                            $financialData['r_center'] =
+                                $workplan->r_center ?? $defaultRCenter;
+
+                            $financialData['department'] =
+                                $workplan->department ?? $defaultDepartment;
+                        }
+                    } else {
+                        $financialData['user_id'] = $user->id;
+                        $financialData['r_center'] =
+                            $user->responsibility_center;
+                        $financialData['department'] =
+                            $user->operating_department;
+                    }
+
+                    if ($financial) {
+                        $financial->update($financialData);
+                    } else {
+                        $financial = FinancialPlan::create($financialData);
+                    }
+
+                    $keptFinancialIds[] = $financial->id;
                 }
             }
-        }
 
-        // BURAHIN LAMANG ANG MGA RECODS NA TINANGGAL NG USER SA FRONTEND
-        $form->workPlans()->whereNotIn('id', $keptWorkplanIds)->delete();
-        $form->financialPlans()->whereNotIn('id', $keptFinancialIds)->delete();
-    });
+            $form->workPlans()
+                ->whereNotIn('id', $keptWorkplanIds)
+                ->delete();
 
-    return redirect()->route('workplan.list')->with('success', 'Plan updated successfully!');
+            $form->financialPlans()
+                ->whereNotIn('id', $keptFinancialIds)
+                ->delete();
+        });
+
+        return redirect()
+            ->route('workplan.list')
+            ->with('success', 'Plan updated successfully!');
+    } catch (\Exception $e) {
+        return redirect()
+            ->back()
+            ->withInput()
+            ->with('error', 'Error occurred: ' . $e->getMessage());
+    }
 }
+
+
 
 public function save(Request $request, $id)
 {
     $form = Form::findOrFail($id);
+    $user = auth()->user();
+
+    $role = strtoupper(trim((string) $user->role));
+    $isProtectedRole = in_array($role, ['ADMIN', 'FINANCE', 'MONITOR'], true);
+
     $status = $request->input('status', 'draft');
     $apiEndpoint = 'http://54.255.221.225/ReceiverWFP.php';
 
     try {
-        DB::transaction(function () use ($request, $form, $status, $apiEndpoint) {
-            
+        DB::transaction(function () use (
+            $request,
+            $form,
+            $user,
+            $isProtectedRole,
+            $status,
+            $apiEndpoint
+        ) {
             $form->update([
-                'year'   => $request->year,
+                'year' => $request->year,
                 'status' => $status,
             ]);
 
-            $common = $request->input('common_wp');
+            $common = $request->input('common_wp', []);
+
             $keptWorkplanIds = [];
             $keptFinancialIds = [];
 
+            $latestWorkplan = WorkPlan::where('form_id', $form->id)
+                ->orderByDesc('id')
+                ->first();
+
+            $latestFinancial = FinancialPlan::where('form_id', $form->id)
+                ->orderByDesc('id')
+                ->first();
+
+            $defaultUserId = $latestWorkplan->user_id
+                ?? $latestFinancial?->user_id
+                ?? $form->created_by
+                ?? $user->id;
+
+            $defaultRCenter = $latestWorkplan->r_center
+                ?? $latestFinancial?->r_center
+                ?? $user->responsibility_center;
+
+            $defaultDepartment = $latestWorkplan->department
+                ?? $latestFinancial?->department
+                ?? $user->operating_department;
+
             if ($request->has('workplans')) {
-                foreach ($request->workplans as $index => $wpData) {
-                    
-                    if ($status !== 'draft' && empty($wpData['strategic_initiatives'])) {
+                foreach ($request->input('workplans', []) as $index => $wpData) {
+                    if (
+                        $status !== 'draft'
+                        && empty($wpData['strategic_initiatives'])
+                    ) {
                         continue;
                     }
-                    
+
+                    $workplan = null;
+
+                    if (!empty($wpData['id'])) {
+                        $workplan = WorkPlan::where('form_id', $form->id)
+                            ->where('id', $wpData['id'])
+                            ->first();
+                    }
+
                     $currentFilePaths = $wpData['existing_attachments'] ?? [];
 
+                    if (!is_array($currentFilePaths)) {
+                        $currentFilePaths = [];
+                    }
+
                     if ($request->hasFile("workplans.{$index}.attachments")) {
-                        foreach ($request->file("workplans.{$index}.attachments") as $file) {
-                            $fileName = time() . '_' . $file->getClientOriginalName();
+                        foreach (
+                            $request->file("workplans.{$index}.attachments")
+                            as $file
+                        ) {
+                            $fileName = time() . '_' .
+                                uniqid() . '_' .
+                                $file->getClientOriginalName();
 
                             try {
                                 $response = Http::attach(
@@ -766,76 +931,154 @@ public function save(Request $request, $id)
                                     $fileName
                                 )->post($apiEndpoint);
 
-                                if ($response->successful()) {
-                                    $currentFilePaths[] = 'uploads/' . $fileName;
-                                } else {
-                                    throw new \Exception("Failed to upload file: {$file->getClientOriginalName()}");
+                                if (!$response->successful()) {
+                                    throw new \Exception(
+                                        "Failed to upload file: " .
+                                        $file->getClientOriginalName()
+                                    );
                                 }
+
+                                $currentFilePaths[] = 'uploads/' . $fileName;
                             } catch (\Exception $e) {
-                                throw new \Exception("ReceiverWFP Error: " . $e->getMessage());
+                                throw new \Exception(
+                                    'ReceiverWFP Error: ' . $e->getMessage()
+                                );
                             }
                         }
                     }
 
-                    // Save or update workplan
-                    $workplan = WorkPlan::updateOrCreate(
-                        ['id' => $wpData['id'] ?? null],
-                        [
-                            'form_id'               => $form->id,
-                            'user_id'               => auth()->id(),
-                            'sort_order'            => $index,
-                            'strategic_perspective' => $common['strategic_perspective'] ?? null,
-                            'major_program'         => $common['major_program'] ?? null,
-                            'strategic_objective'   => $common['strategic_objective'] ?? null,
-                            'strategic_measure'     => $common['strategic_measure'] ?? null,
-                            'strategic_initiatives' => $wpData['strategic_initiatives'] ?? null,
-                            'success_indicator'     => $wpData['success_indicator'] ?? null,
-                            'unit_type'             => $wpData['unit_type'] ?? 'number',
-                            'q1'                    => str_replace(',', '', $wpData['q1'] ?? 0),
-                            'q2'                    => str_replace(',', '', $wpData['q2'] ?? 0),
-                            'q3'                    => str_replace(',', '', $wpData['q3'] ?? 0),
-                            'q4'                    => str_replace(',', '', $wpData['q4'] ?? 0),
-                            'status'                => $status,
-                            'year'                  => $request->year,
-                            'remarks'               => $wpData['remarks'] ?? null,
-                            'r_center'   => auth()->user()->responsibility_center,
-                            'department' => auth()->user()->operating_department,
-                            'attachments'           => !empty($currentFilePaths) ? json_encode(array_values($currentFilePaths)) : null,
-                        ]
-                    );
+                    $workplanData = [
+                        'form_id' => $form->id,
+                        'sort_order' => $index,
+                        'strategic_perspective' =>
+                            $common['strategic_perspective'] ?? null,
+                        'major_program' =>
+                            $common['major_program'] ?? null,
+                        'strategic_objective' =>
+                            $common['strategic_objective'] ?? null,
+                        'strategic_measure' =>
+                            $common['strategic_measure'] ?? null,
+                        'strategic_initiatives' =>
+                            $wpData['strategic_initiatives'] ?? null,
+                        'success_indicator' =>
+                            $wpData['success_indicator'] ?? null,
+                        'unit_type' =>
+                            $wpData['unit_type'] ?? 'number',
+                        'q1' => str_replace(',', '', $wpData['q1'] ?? 0),
+                        'q2' => str_replace(',', '', $wpData['q2'] ?? 0),
+                        'q3' => str_replace(',', '', $wpData['q3'] ?? 0),
+                        'q4' => str_replace(',', '', $wpData['q4'] ?? 0),
+                        'status' => $status,
+                        'year' => $request->year,
+                        'remarks' => $wpData['remarks'] ?? null,
+                        'attachments' => !empty($currentFilePaths)
+                            ? json_encode(array_values($currentFilePaths))
+                            : null,
+                    ];
+
+                    if ($isProtectedRole) {
+                        if ($workplan) {
+                            $workplanData['user_id'] = $workplan->user_id;
+                            $workplanData['r_center'] = $workplan->r_center;
+                            $workplanData['department'] = $workplan->department;
+                        } else {
+                            $workplanData['user_id'] = $defaultUserId;
+                            $workplanData['r_center'] = $defaultRCenter;
+                            $workplanData['department'] = $defaultDepartment;
+                        }
+                    } else {
+                        $workplanData['user_id'] = $user->id;
+                        $workplanData['r_center'] =
+                            $user->responsibility_center;
+                        $workplanData['department'] =
+                            $user->operating_department;
+                    }
+
+                    if ($workplan) {
+                        $workplan->update($workplanData);
+                    } else {
+                        $workplan = WorkPlan::create($workplanData);
+                    }
 
                     $keptWorkplanIds[] = $workplan->id;
 
                     if (isset($wpData['financials'])) {
                         foreach ($wpData['financials'] as $fp) {
-                            if (empty($fp['account_title']) && empty($fp['funds'])) {
+                            if (
+                                empty($fp['account_title'])
+                                && empty($fp['funds'])
+                            ) {
                                 continue;
                             }
 
-                            // Save or update financial plan
-                            $financial = FinancialPlan::updateOrCreate(
-                                ['id' => $fp['id'] ?? null],
-                                [
-                                    'form_id'       => $form->id,
-                                    'user_id'       => auth()->id(),
-                                    'workplan_id'   => $workplan->id, 
-                                    'funds'         => $fp['funds'] ?? null,
-                                    'programs'      => $common['major_program'] ?? null,
-                                    'expense_class' => $fp['expense_class'] ?? null,
-                                    'projects'      => $wpData['strategic_initiatives'] ?? null,
-                                    'account_title' => $fp['account_title'] ?? null,
-                                    'activity'      => $fp['activity'] ?? null,
-                                    'description'   => $fp['description'] ?? null,
-                                    'q1'            => str_replace(',', '', $fp['q1'] ?? 0),
-                                    'q2'            => str_replace(',', '', $fp['q2'] ?? 0),
-                                    'q3'            => str_replace(',', '', $fp['q3'] ?? 0),
-                                    'q4'            => str_replace(',', '', $fp['q4'] ?? 0),
-                                    'year'          => $request->year,
-                                    
-                                'r_center'   => auth()->user()->responsibility_center,
-                                'department' => auth()->user()->operating_department,
-                                ]
-                            );
+                            $financial = null;
+
+                            if (!empty($fp['id'])) {
+                                $financial = FinancialPlan::where(
+                                    'form_id',
+                                    $form->id
+                                )
+                                    ->where('id', $fp['id'])
+                                    ->first();
+                            }
+
+                            $financialData = [
+                                'form_id' => $form->id,
+                                'workplan_id' => $workplan->id,
+                                'funds' => $fp['funds'] ?? null,
+                                'programs' =>
+                                    $common['major_program'] ?? null,
+                                'expense_class' =>
+                                    $fp['expense_class'] ?? null,
+                                'projects' =>
+                                    $wpData['strategic_initiatives'] ?? null,
+                                'account_title' =>
+                                    $fp['account_title'] ?? null,
+                                'activity' => $fp['activity'] ?? null,
+                                'description' => $fp['description'] ?? null,
+                                'q1' => str_replace(',', '', $fp['q1'] ?? 0),
+                                'q2' => str_replace(',', '', $fp['q2'] ?? 0),
+                                'q3' => str_replace(',', '', $fp['q3'] ?? 0),
+                                'q4' => str_replace(',', '', $fp['q4'] ?? 0),
+                                'year' => $request->year,
+                            ];
+
+                            if ($isProtectedRole) {
+                                if ($financial) {
+                                    $financialData['user_id'] =
+                                        $financial->user_id;
+                                    $financialData['r_center'] =
+                                        $financial->r_center;
+                                    $financialData['department'] =
+                                        $financial->department;
+                                } else {
+                                    $financialData['user_id'] =
+                                        $workplan->user_id
+                                        ?? $defaultUserId;
+
+                                    $financialData['r_center'] =
+                                        $workplan->r_center
+                                        ?? $defaultRCenter;
+
+                                    $financialData['department'] =
+                                        $workplan->department
+                                        ?? $defaultDepartment;
+                                }
+                            } else {
+                                $financialData['user_id'] = $user->id;
+                                $financialData['r_center'] =
+                                    $user->responsibility_center;
+                                $financialData['department'] =
+                                    $user->operating_department;
+                            }
+
+                            if ($financial) {
+                                $financial->update($financialData);
+                            } else {
+                                $financial = FinancialPlan::create(
+                                    $financialData
+                                );
+                            }
 
                             $keptFinancialIds[] = $financial->id;
                         }
@@ -843,31 +1086,38 @@ public function save(Request $request, $id)
                 }
             }
 
-            // Remove items removed from UI
-            $form->workPlans()->whereNotIn('id', $keptWorkplanIds)->delete();
-            $form->financialPlans()->whereNotIn('id', $keptFinancialIds)->delete();
+            $form->workPlans()
+                ->whereNotIn('id', $keptWorkplanIds)
+                ->delete();
+
+            $form->financialPlans()
+                ->whereNotIn('id', $keptFinancialIds)
+                ->delete();
         });
 
-        // Return JSON response for AJAX requests without redirecting
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Plan saved successfully!'
+                'message' => 'Plan saved successfully!',
             ]);
         }
 
-        return redirect()->back()->with('success', 'Plan saved successfully!');
-
+        return redirect()->back()->with(
+            'success',
+            'Plan saved successfully!'
+        );
     } catch (\Exception $e) {
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
+                'message' => 'Error: ' . $e->getMessage(),
             ], 500);
         }
+
         return back()->with('error', 'Error occurred: ' . $e->getMessage());
     }
 }
+
 
 
 public function divisionProfile($r_center)
