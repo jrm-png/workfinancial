@@ -28,6 +28,7 @@ class FinancialPlan extends Model
         'form_id',
         'department',
         'workplan_id',
+        'sort_order',
     ];
 
 public function workPlan()

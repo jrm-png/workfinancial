@@ -314,7 +314,7 @@ public function generatePdf(Request $request)
             ->get();
 
         $financials = $fpQuery
-            ->orderBy('created_at', 'asc')
+            ->orderBy('id', 'asc')
             ->get();
 
         // Then group them
